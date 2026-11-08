@@ -27,8 +27,10 @@ try {
   expect('the log tag shows the real spend', tags.some(t => t.includes(`$${full.spent.toFixed(2)}`)));
   const plaque = await page.textContent('#plaque');
   expect('the plaque gives the real run count', plaque!.includes(`${gen.runs} runs`), plaque!.slice(0, 90));
-  await page.hover('.tag:nth-child(1)'); await page.waitForTimeout(300);
-  expect('hovering a tag dims the others', (await page.$$('.tag.dim')).length === 5);
+  // the tags drift with the gallery camera, so this uses keyboard focus, which lights a room the same way
+  await page.focus('.tag:nth-child(1)'); await page.waitForTimeout(300);
+  expect('focusing a room tag with the keyboard dims the others', (await page.$$('.tag.dim')).length === 5);
+  await page.evaluate(() => (document.activeElement as HTMLElement).blur());
 
   await go('#/chart', 4000);
   expect('the chart room opens', (await page.textContent('#folio h1')) === 'The chart room');
