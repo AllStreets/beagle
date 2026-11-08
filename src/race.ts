@@ -13,7 +13,7 @@ import { bootstrap, mean, pareto } from './stats.ts';
 import type { Genome } from './genome.ts';
 
 export type Voyage = { id: string; arena: string; started_at: string; sealed_hash: string; settings: Settings; status: string };
-export type Score = { genome: string; mean: number; lo: number; hi: number; usd: number; ms: number; pareto: number; tasks: number; noAnswer: number };
+export type Score = { genome: string; mean: number; lo: number; hi: number; usd: number; ms: number; pareto: number; tasks: number; noAnswer: number; within: number };   // within: full marks, on the same tasks as the score
 export type RaceResult = { complete: boolean; reason?: string; common: string[]; scores: Score[] };
 export type RaceEvent =
   | { type: 'run'; generation: number; genome: string; task: string; score: number; status: string; usd: number; ms: number }
@@ -61,7 +61,7 @@ export function summarize(rows: { genome: string; task: string; score: number; s
   const raw = genomes.map(g => {
     const rs = common.map(t => byGenome.get(g)!.get(t)!);
     const xs = rs.map(r => r.score), ci = bootstrap(xs, seed);
-    return { genome: g, mean: mean(xs), lo: ci.lo, hi: ci.hi, usd: rs.reduce((n, r) => n + r.usd, 0), ms: Math.round(mean(rs.map(r => r.ms))), tasks: rs.length, noAnswer: rs.filter(r => r.status === 'no-answer').length, pareto: 0 };
+    return { genome: g, mean: mean(xs), lo: ci.lo, hi: ci.hi, usd: rs.reduce((n, r) => n + r.usd, 0), ms: Math.round(mean(rs.map(r => r.ms))), tasks: rs.length, noAnswer: rs.filter(r => r.status === 'no-answer').length, within: rs.filter(r => r.score >= 1).length, pareto: 0 };
   });
   const ranks = pareto(raw);
   raw.forEach((s, i) => s.pareto = ranks[i]);

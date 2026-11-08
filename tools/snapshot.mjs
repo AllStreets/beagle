@@ -7,11 +7,10 @@ const v = await get(`/voyages/${V}`), gen = await get(`/voyages/${V}/generations
 const byId = new Map(gen.genomes.map(g => [g.id, g]));
 const entrants = [];
 for (const s of gen.scores) {
-  const g = byId.get(s.genome), runs = await get(`/voyages/${V}/runs?generation=0&genome=${encodeURIComponent(s.genome)}`);
-  const common = new Set(runs.map(r => r.task));
+  const g = byId.get(s.genome);
   entrants.push({ ...s, name: g?.name ?? s.genome.replace('baseline:', ''), kind: g ? 'genome' : 'baseline', model: g?.model ?? (s.genome.includes('Claude') ? 'claude:claude-haiku-4-5' : 'none'),
     shape: g?.genome.workflow.shape ?? 'baseline', n: g?.genome.workflow.n ?? null, tools: g?.genome.tools ?? [], examples: g?.genome.memory.examples ?? 0,
-    within25: runs.filter(r => r.score >= 1).length, ran: common.size });
+    within25: s.within, ran: s.tasks });
 }
 const leader = entrants.find(e => e.kind === 'genome');
 const leaderRuns = await get(`/voyages/${V}/runs?generation=0&genome=${encodeURIComponent(leader.genome)}`);

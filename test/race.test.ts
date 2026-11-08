@@ -134,3 +134,14 @@ test('the controls see the task exactly as the agents do', async () => {
   }
   assert.ok(seen.length && seen.every(s => !s.includes('Mannheim') && s.includes('[place]')), 'Claude was shown the hidden text');
 });
+
+test('the count of answers within 25 km is taken on the same tasks as the score', () => {
+  const rows = [
+    { genome: 'a', task: 't1', score: 1, status: 'done', usd: 0, ms: 1 }, { genome: 'a', task: 't2', score: 1, status: 'done', usd: 0, ms: 1 },
+    { genome: 'b', task: 't1', score: 0, status: 'done', usd: 0, ms: 1 },
+  ];
+  const { common, scores } = R.summarize(rows, 1);
+  assert.deepEqual(common, ['t1']);
+  assert.equal(scores.find(s => s.genome === 'a')!.within, 1, 'only t1 counts, as for the score');
+  assert.equal(scores.find(s => s.genome === 'b')!.within, 0);
+});

@@ -31,7 +31,10 @@
   figure:hover b, figure:focus-visible b { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: .5px; }
   figure:focus-visible { outline: 1px dotted var(--ink); outline-offset: 6px; }
   h2 { font: 400 20px "IM Fell English", serif; margin: 14px 0 4px; border-top: .5px solid var(--rule); padding-top: 14px; }
-  .controls { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px 22px; }
+  .ctlwrap { display: grid; grid-template-columns: 2fr 3fr; column-gap: 22px; border-top: .5px solid var(--rule); margin-top: 12px; padding-top: 6px; }
+  .ctlwrap h2 { grid-column: 1; border: 0; margin: 8px 0 4px; padding: 0; }
+  .ctlnote { grid-column: 1; margin: 0; color: var(--soft); font-style: italic; font-size: 15px; }
+  .controls { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 22px; }
   aside { font-size: 16.5px; }
   aside .now { font: 400 26px/1.25 "IM Fell English", serif; margin: 0 0 12px; }
   aside p { margin: 0 0 12px; }
@@ -49,7 +52,7 @@
     <div class="voyage" id="voyage"></div>
   </header>
   <main>
-    <div><div class="figs" id="figs"></div><h2>Controls</h2><div class="controls" id="controls"></div></div>
+    <div><div class="figs" id="figs"></div><div class="ctlwrap"><h2>Controls</h2><p class="ctlnote">What an agent has to beat. A random point, the gazetteer with no model, and one plain question to Claude, each shown the item exactly as the agents see it.</p><div class="controls" id="controls"></div></div></div>
     <aside id="aside"></aside>
   </main>
   <footer><span>Drawn from the race as it stood; every figure is a real agent and every number a count of real runs.</span><span id="when"></span></footer>
@@ -64,9 +67,9 @@ const hash = s => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 1677761
 // Each figure is the agent's anatomy: its workflow is the body, the gazetteer is a crown of
 // spines, worked examples are seeds around it, the model sets how densely it is engraved.
 function figure(e, i) {
-  const r = rng(hash(e.genome)), cx = 110, cy = 92, W = 220, H = 196;
+  const r = rng(hash(e.genome)), cx = 110, cy = 88, W = 220, H = 196, K = 1.32;
   const dense = /sonnet/.test(e.model) ? 1 : /haiku/.test(e.model) ? .7 : /claude/.test(e.model) ? .7 : e.model === 'none' ? .25 : .45;
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${e.name}">`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${e.name}"><g transform="translate(${cx} ${cy}) scale(${K}) translate(${-cx} ${-cy})">`;
   const hatch = (x, y, rad) => { let h = ''; const n = Math.round(10 + 22 * dense); for (let k = 0; k < n; k++) { const a = r() * Math.PI * 2, d = rad * Math.sqrt(r()), x1 = x + Math.cos(a) * d, y1 = y + Math.sin(a) * d; h += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${(x1 + 3 + r() * 3).toFixed(1)}" y2="${(y1 + 2 + r() * 2).toFixed(1)}" stroke="${INK}" stroke-width=".55" opacity=".6"/>`; } return h; };
   // an outline that wobbles a little, as a hand-cut line does
   const blob = (x, y, rad, w = 1.1) => { let d = ''; const n = 64, ph = r() * 6, amp = rad * .035; for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = rad + Math.sin(a * 5 + ph) * amp + Math.sin(a * 3 - ph) * amp * .6; d += `${k ? 'L' : 'M'}${(x + Math.cos(a) * rr).toFixed(2)},${(y + Math.sin(a) * rr).toFixed(2)}`; } return `<path d="${d}Z" fill="none" stroke="${INK}" stroke-width="${w}"/>`; };
@@ -88,8 +91,9 @@ function figure(e, i) {
   if (shape === 'vote') for (let k = 0; k < (e.n ?? 3); k++) { const a = k / (e.n ?? 3) * Math.PI * 2 - Math.PI / 2; s += cell(cx + Math.cos(a) * 20, cy + Math.sin(a) * 20, 15); }
   if (shape === 'baseline') s += `<rect x="${cx - 22}" y="${cy - 22}" width="44" height="44" fill="none" stroke="${INK}" stroke-width="1.1" transform="rotate(${r() * 30} ${cx} ${cy})"/>${hatch(cx, cy, 16)}`;
   for (let k = 0; k < (e.examples ?? 0); k++) { const a = k / e.examples * Math.PI * 2 + .3; s += `<ellipse cx="${cx + Math.cos(a) * 62}" cy="${cy + Math.sin(a) * 54}" rx="3.2" ry="2.2" fill="${INK}" transform="rotate(${a * 57} ${cx + Math.cos(a) * 62} ${cy + Math.sin(a) * 54})"/>`; }
+  s += '</g>';
   // the scale bar: 0 to 100, engraved ticks, the score as a filled bar, the interval as a fine line above it
-  const x0 = 26, x1 = W - 26, y = 172, at = v => x0 + (x1 - x0) * v;
+  const x0 = 26, x1 = W - 26, y = 176, at = v => x0 + (x1 - x0) * v;
   s += `<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${INK}" stroke-width=".7"/>`;
   for (let t = 0; t <= 10; t++) s += `<line x1="${at(t / 10)}" y1="${y}" x2="${at(t / 10)}" y2="${y + (t % 5 ? 3 : 6)}" stroke="${INK}" stroke-width=".6"/>`;
   s += `<rect x="${x0}" y="${y - 6}" width="${(x1 - x0) * e.mean}" height="5" fill="${INK}"/>`;
@@ -107,13 +111,13 @@ document.getElementById('when').textContent = `Generation one of ${5}`;
 const lead = genomes[0];
 const key = [
   ['single', 'One look: it reads the item and answers.'], ['plan-then-answer', 'Plans first, then answers.'], ['self-check', 'Checks its own answer before giving it.'], ['vote', 'Answers several times and takes the middle.'],
-].map(([shape, text]) => `<div>${figure({ genome: shape, shape, n: 3, tools: [], examples: 0, model: 'claude:x', mean: 0, lo: 0, hi: 0 }).replace(/<line x1="26"[\s\S]*$/, '</svg>').replace('viewBox="0 0 220 196"', 'viewBox="50 30 120 125"')}<span>${text}</span></div>`).join('')
-  + `<div>${figure({ genome: 'spines', shape: 'single', tools: ['lookup_place'], examples: 4, model: 'claude:x', mean: 0, lo: 0, hi: 0 }).replace(/<line x1="26"[\s\S]*$/, '</svg>').replace('viewBox="0 0 220 196"', 'viewBox="40 22 140 140"')}<span>Spines: it may look places up in the gazetteer. Seeds: worked examples it was shown.</span></div>`;
+].map(([shape, text]) => `<div>${figure({ genome: shape, shape, n: 3, tools: [], examples: 0, model: 'claude:x', mean: 0, lo: 0, hi: 0 }).replace(/<\/g>[\s\S]*$/, '</g></svg>').replace('viewBox="0 0 220 196"', 'viewBox="30 10 160 160"')}<span>${text}</span></div>`).join('')
+  + `<div>${figure({ genome: 'spines', shape: 'single', tools: ['lookup_place'], examples: 4, model: 'claude:x', mean: 0, lo: 0, hi: 0 }).replace(/<\/g>[\s\S]*$/, '</g></svg>').replace('viewBox="0 0 220 196"', 'viewBox="20 0 180 180"')}<span>Spines: it may look places up in the gazetteer. Seeds: worked examples it was shown.</span></div>`;
 document.getElementById('aside').innerHTML = `
   <p class="now">The first generation is racing.</p>
   <p>${lead.name} leads. It has put ${lead.within25} of the ${lead.ran} items it has seen within 25 km of where they happened.</p>
   <p>The bar under each figure is its score out of 100, and the fine line above it the range the score could truly lie in, given how few items it has seen so far.</p>
-  <p class="soft">An agent only counts as good if it beats the controls: a random point, the gazetteer alone, and one plain question to Claude.</p>
+
   <div class="key">${key}</div>
   <div class="seal">The sealed test, fingerprinted before the voyage began: <code>${D.voyage.sealed_hash}</code></div>`;
 </script>
