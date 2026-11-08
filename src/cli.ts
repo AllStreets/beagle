@@ -7,12 +7,14 @@ import { startVoyage, race, getVoyage, finishVoyage, sealedScore, type RaceEvent
 import { exportBundle, regrade } from './bundle.ts';
 import { starters } from './arenas/geotag/starters.ts';
 import { getSettings, saveSettings } from './settings.ts';
+import { breed } from './designer.ts';
+import type { Genome } from './genome.ts';
 
 const [cmd, ...args] = process.argv.slice(2);
 const flag = (k: string) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : undefined; };
 
 function table(r: RaceResult) {
-  const names = new Map(starters().map(g => [g.id, g.name]));
+  const names = new Map((open().prepare('select id, body from genomes').all() as { id: string; body: string }[]).map(g => [g.id, (JSON.parse(g.body) as Genome).name]));
   console.log(`\n${r.complete ? 'Complete' : `Incomplete: ${r.reason}`}. ${r.common.length} tasks every entrant finished.\n`);
   console.log('  score  95% interval    cost     time  front  answered  entrant');
   for (const s of r.scores) console.log(`  ${(s.mean * 100).toFixed(1).padStart(5)}  ${(s.lo * 100).toFixed(1).padStart(5)} to ${(s.hi * 100).toFixed(1).padEnd(5)}  $${s.usd.toFixed(3).padStart(6)}  ${(s.ms / 1000).toFixed(1).padStart(5)}s  ${String(s.pareto).padStart(5)}  ${String(s.tasks - s.noAnswer).padStart(4)}/${s.tasks}  ${names.get(s.genome) ?? s.genome}`);
@@ -37,6 +39,20 @@ const commands: Record<string, () => Promise<void> | void> = {
     const v = getVoyage(args[0]); const gen = Number(flag('generation') ?? 0);
     console.log(`Racing generation ${gen} of ${v.id}: ${starters().length} starters and the baselines on ${v.settings.raceTasks} tasks, cap $${v.settings.capGeneration}.`);
     table(await race(v.id, gen, starters(), { onEvent: progress }));
+  },
+  // breed and race generation after generation, from the last one raced
+  async evolve() {
+    const v = getVoyage(args[0]), db = open(), n = Number(flag('generations') ?? 1);
+    for (let i = 0; i < n; i++) {
+      const last = (db.prepare('select max(generation) g from runs where voyage = ? and generation >= 0').get(v.id) as { g: number }).g;
+      console.log(`\nGeneration ${last + 2}: the designer reads generation ${last + 1}...`);
+      const b = await breed(v.id, last, { children: Number(flag('children') ?? 8), elites: 2, probe: 6, log: console.log });
+      for (const r of b.refused) console.log(`  refused "${r.name}": ${r.why}`);
+      for (const g of b.next.slice(2)) console.log(`  + ${g.name} (from ${b.parents[g.id].join(', ')}): ${b.reasons[g.id]}`);
+      const r = await race(v.id, last + 1, b.next, { onEvent: progress });
+      table(r);
+      if (!r.complete) break;
+    }
   },
   finish() { finishVoyage(args[0]); console.log(`Voyage ${args[0]} finished. Its sealed test can now be scored.`); },
   async sealed() { table(await sealedScore(args[0], args.slice(1), { onEvent: progress })); },
