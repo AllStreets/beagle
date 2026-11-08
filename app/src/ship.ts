@@ -140,7 +140,7 @@ export function buildShip(room: Room) {
     glass.position.set(x, y, -1.4); glass.castShadow = false;
     const cap = add(new THREE.Mesh(new THREE.CylinderGeometry(.06, .12, .1, 12), brass)); cap.position.set(x, y + .12, -1.4);
     const chain = add(new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, .3, 4), brass)); chain.position.set(x, y + .33, -1.4);
-    const l = new THREE.PointLight('#ffc88a', 6, (r.x1 - r.x0) * 1.1, 1.6); l.position.set(x, y - .1, -1.0);
+    const l = new THREE.PointLight('#ffc88a', 6, (r.x1 - r.x0) * 1.1, 1.6); l.position.set(x, y - .1, -2.2);
     l.castShadow = false; ship.add(l); lamps.set(r.id, l);
   }
   return { ship, lamps, materials: { brass, oak, deck, section, black, paint } };

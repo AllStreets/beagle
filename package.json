@@ -16,12 +16,17 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
+    "d3-geo": "^3.1.2",
     "three": "^0.187.0",
-    "tsx": "^4.23.15"
+    "topojson-client": "^3.1.0",
+    "tsx": "^4.23.15",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.1",
     "@types/node": "^26.6.6",
     "@types/three": "^0.187.0",
+    "@types/topojson-client": "^3.1.5",
     "playwright": "^1.65.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.6"

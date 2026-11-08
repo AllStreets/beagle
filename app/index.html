@@ -10,11 +10,28 @@
   html, body { margin: 0; height: 100%; background: #121512; overflow: hidden; }
   #stage { position: fixed; inset: 0; }
   #stage canvas { display: block; }
+  #tags { position: fixed; inset: 0; pointer-events: none; }
+  #leaders { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #leaders path { fill: none; stroke: rgba(230,218,190,.55); stroke-width: 1; }
+  #leaders circle { fill: #e6dabe; }
+  .tag { position: absolute; left: 0; top: 0; pointer-events: auto; display: block; max-width: 250px; padding: 9px 13px 10px; background: #ece3cc; color: #241c14; text-decoration: none;
+    font: 15px/1.3 "EB Garamond", serif; box-shadow: 0 1px 0 rgba(0,0,0,.25), 0 10px 22px -12px rgba(0,0,0,.8); transition: opacity .25s, background .2s; border-left: 3px solid #8f2a1c; }
+  .tag b { display: block; font: 400 19px "IM Fell English", serif; margin-bottom: 1px; }
+  .tag span { color: #5b4a35; font-style: italic; }
+  .tag:hover, .tag:focus-visible { background: #f6efdb; outline: none; }
+  .tag:focus-visible { box-shadow: 0 0 0 2px #121512, 0 0 0 4px #e6dabe; }
+  .tag.dim { opacity: .45; }
+  #plaque { position: fixed; left: 50%; bottom: 3.2vh; transform: translateX(-50%); max-width: 640px; text-align: center; color: #d8ccb2; font: 16px/1.45 "EB Garamond", serif; }
+  #plaque b { display: block; font: 400 26px "IM Fell English SC", serif; letter-spacing: .04em; color: #ece3cc; }
+  #plaque span { font-style: italic; }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; color: #9a8f7a; font: italic 17px "EB Garamond", serif; }
 </style>
 </head>
 <body>
 <div id="stage"></div>
+<svg id="leaders"></svg>
+<nav id="tags" aria-label="The rooms of the ship"></nav>
+<div id="plaque"></div>
 <div id="loading">Bringing the Beagle up from the hold</div>
 <script type="module" src="/src/main.ts"></script>
 </body>
