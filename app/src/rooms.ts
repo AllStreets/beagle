@@ -19,7 +19,7 @@ const TERMS: Record<string, string> = {
 };
 const term = (k: keyof typeof TERMS, label = k) => `<dfn tabindex="0" title="${esc(TERMS[k])}">${label}<span role="tooltip">${esc(TERMS[k])}</span></dfn>`;
 
-export type Ctx = { voyage: Voyage; gen: Generation; genN: number; view: 'plain' | 'lab'; arena: Arena | null };
+export type Ctx = { voyage: Voyage; gen: Generation; genN: number; view: 'plain' | 'lab'; arena: Arena | null; others?: { id: string; spent: number; note: string | null }[] };
 
 export async function render(id: RoomId, el: HTMLElement, c: Ctx) {
   el.dataset.room = id;
@@ -137,6 +137,7 @@ function log(el: HTMLElement, c: Ctx) {
     <section><h2>Spent</h2><table class="ledger small"><tbody>${v.generations.filter(g => g.generation >= 0).map(g => `<tr><td>Generation ${g.generation + 1}</td><td class="n">${g.runs} runs</td><td class="n">${money(g.usd)}</td></tr>`).join('')}${(() => { const kept = v.generations.filter(g => g.generation >= 0).reduce((n, g) => n + g.usd, 0), extra = v.spent - kept; return extra > .005 ? `<tr><td>Paid for, but not kept</td><td></td><td class="n">${money(extra)}</td></tr>` : ''; })()}<tr><td><b>The voyage, every call paid for</b></td><td></td><td class="n"><b>${money(v.spent)}</b></td></tr></tbody></table>
   ${v.spent - v.generations.filter(g => g.generation >= 0).reduce((n, g) => n + g.usd, 0) > .005 ? `<p class="soft">Paid for but not kept: runs redone after a fault, and runs a second race process paid for twice on 2026-11-08 before Beagle learned to stop that. They are in the ledger because they were paid for.</p>` : ''}<p class="soft">Claude calls count at the cost Claude Code reports; calls to models on this Mac count as free. The voyage's cap is ${money(v.settings.capVoyage)}.</p></section>
     <section class="wide"><h2>Check it yourself</h2><p>Export the voyage as one file: every agent, every item with its truth, every answer. Then re-grade it from the answers alone, with no model calls:</p><pre>beagle export ${esc(v.id)}\nbeagle regrade ~/Library/Application\\ Support/Beagle/bundles/${esc(v.id)}.beagle.json</pre><p class="soft">On ${esc(new Date().toISOString().slice(0, 10))}, re-grading this voyage's first generation reproduced every recorded score.</p></section>
+    ${(c as any).others?.length ? `<section class="wide"><h2>Earlier voyages, withdrawn</h2><ul class="withdrawn">${(c as any).others.map((o: any) => `<li><b>${esc(o.id)}</b>, $${o.spent.toFixed(2)}: ${esc(o.note ?? 'withdrawn')}</li>`).join('')}</ul><p class="soft">Withdrawn voyages stay on record and their spend stays in the ledger. Their results are not compared with this one.</p></section>` : ''}
     <section class="wide"><h2>One thing it found</h2><p>Two answers in the first race matched the truth's Wikidata coordinate to six decimal places. The run's full record shows no access to it: Sonnet planned, looked up two villages the gazetteer did not have, and answered from memory. It had memorised the coordinate Wikipedia shows for southern Lebanon. That is real knowledge the model brings, not a leak, and Beagle reports it rather than hiding it.</p></section>
   </div>`;
 }

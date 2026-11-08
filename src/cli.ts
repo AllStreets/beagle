@@ -63,6 +63,8 @@ const commands: Record<string, () => Promise<void> | void> = {
     const r = await fossilise(args[0], args[1], { withBreeding: args.includes('--with-breeding'), log: console.log });
     console.log(`Fossil of ${args[1]}: ${r.race.items} race items, score ${Math.round(r.race.score * 100)} against its teacher's ${Math.round(r.race.teacher * 100)}; agrees with it on ${Math.round(r.race.agreement * 100)}%. ${r.bytes} bytes; ${r.ms_per_answer.toFixed(2)} ms per answer plus ${r.embed_ms} ms to embed. ${r.race.standsIn ? 'It stands in for its teacher.' : 'It does not stand in: more than 5 points behind.'}`);
   },
+  // a voyage that cannot stand is kept on record, marked, with the reason
+  withdraw() { open().prepare(`update voyages set status = 'withdrawn', note = ? where id = ?`).run(args.slice(1).join(' '), args[0]); console.log(`Voyage ${args[0]} withdrawn.`); },
   finish() { finishVoyage(args[0]); console.log(`Voyage ${args[0]} finished. Its sealed test can now be scored.`); },
   async sealed() { table(await sealedScore(args[0], args.slice(1), { onEvent: progress })); },
   export() { console.log(exportBundle(args[0])); },

@@ -87,6 +87,7 @@ export function open(): DatabaseSync {
   if (pk && !pk.includes('primary key (voyage, id)')) db.exec(`alter table genomes rename to genomes_old;`);
   db.exec(SCHEMA);
   try { db.exec('alter table ledger add column generation integer'); } catch { /* already there */ }
+  try { db.exec('alter table voyages add column note text'); } catch { /* already there */ }
   if (pk && !pk.includes('primary key (voyage, id)')) db.exec(`insert or ignore into genomes select id, voyage, generation, parent_ids, body, reason from genomes_old; drop table genomes_old;`);
   return db;
 }

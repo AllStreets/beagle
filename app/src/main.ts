@@ -22,7 +22,7 @@ const fill = new THREE.DirectionalLight('#aebfd6', .25); fill.position.set(20, 8
 
 // the voyage: the most recent one with a finished generation, read from the API
 const voyages = await api<Voyage[]>('/voyages', []);
-const voyage = voyages.find(v => (v as any).spent > 0 && v.arena === 'geotag') ?? voyages[0];
+const voyage = voyages.find(v => (v as any).spent > 0 && v.arena === 'geotag' && v.status !== 'withdrawn') ?? voyages[0];
 const full = voyage ? await api<Voyage>(`/voyages/${voyage.id}`) : null;
 const genN = full?.generations.filter(g => g.generation >= 0).at(-1)?.generation ?? 0;
 const gen = full ? await api<Generation>(`/voyages/${full.id}/generations/${genN}`) : null;
@@ -128,7 +128,7 @@ async function route() {
   document.body.classList.add('open'); folio.setAttribute('aria-hidden', 'false');
   if (id === 'run') { await runView(body, parts[1]); return; }
   openRoom = id; frame(); hover(id);
-  await render(id, body, { voyage: full, gen, genN, view: settingsNow.view, arena });
+  await render(id, body, { voyage: full, gen, genN, view: settingsNow.view, arena, others: voyages.filter(o => o.status === 'withdrawn' && (o as any).spent > 0) as any });
   folio.scrollTop = 0; (body.querySelector('h1') as HTMLElement | null)?.focus?.();
 }
 addEventListener('hashchange', route);

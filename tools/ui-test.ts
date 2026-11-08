@@ -9,7 +9,7 @@ const results: [string, boolean, string][] = [];
 const expect = (name: string, ok: boolean, detail = '') => { results.push([name, ok, detail]); console.log(`${ok ? 'pass' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
 const pct = (x: number) => Math.round(x * 100);
 
-const voyages = await api('/voyages'), v = voyages.find((x: any) => x.spent > 0 && x.arena === 'geotag') ?? voyages[0];
+const voyages = await api('/voyages'), v = voyages.find((x: any) => x.spent > 0 && x.arena === 'geotag' && x.status !== 'withdrawn') ?? voyages[0];
 const full = await api(`/voyages/${v.id}`), genN = full.generations.filter((g: any) => g.generation >= 0).at(-1).generation;
 const gen = await api(`/voyages/${v.id}/generations/${genN}`), telling = await api(`/voyages/${v.id}/generations/${genN}/telling`);
 const settingsBefore = await api('/settings');
