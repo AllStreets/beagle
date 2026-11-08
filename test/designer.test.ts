@@ -44,6 +44,10 @@ test('the designer sees breeding failures and race scores, never a race or seale
   assert.notEqual(child.id, 'a'); assert.deepEqual(out.parents[child.id], ['a']); assert.match(out.reasons[child.id], /missed items/);
   assert.equal(out.refused.length, 2);
   assert.match(out.refused.map(r => r.why).join(' '), /model must be|parent/);
+  // a kept agent is in both generations: breeding must not move it out of the one it raced in
+  const { open } = await import('../src/store.ts');
+  const gens = (open().prepare('select generation from genomes where voyage = ? and id = ? order by generation').all(v.id, 'a') as { generation: number }[]).map(r => r.generation);
+  assert.deepEqual(gens, [0, 1]);
   // the probe and the design are paid for, and counted against the next generation
   const L = await import('../src/ledger.ts');
   assert.ok(L.spentOnGeneration(v.id, 1) >= .5);

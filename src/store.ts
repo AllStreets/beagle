@@ -35,7 +35,7 @@ create table if not exists genomes (
   parent_ids text not null,      -- json array
   body text not null,            -- json: the genome
   reason text,                   -- why the designer made it
-  primary key (voyage, id)
+  primary key (voyage, generation, id)   -- a kept agent appears in every generation it races in
 );
 create table if not exists runs (
   id text primary key,
@@ -84,11 +84,12 @@ export function open(): DatabaseSync {
   db.exec('pragma journal_mode = wal; pragma busy_timeout = 5000;');
   // before 2026-11-08 genomes were keyed by id alone, so a second voyage lost its starters
   const pk = (db.prepare(`select sql from sqlite_master where name = 'genomes'`).get() as { sql: string } | undefined)?.sql ?? '';
-  if (pk && !pk.includes('primary key (voyage, id)')) db.exec(`alter table genomes rename to genomes_old;`);
+  const old = pk && !pk.includes('primary key (voyage, generation, id)');
+  if (old) db.exec(`alter table genomes rename to genomes_old;`);
   db.exec(SCHEMA);
   try { db.exec('alter table ledger add column generation integer'); } catch { /* already there */ }
   try { db.exec('alter table voyages add column note text'); } catch { /* already there */ }
-  if (pk && !pk.includes('primary key (voyage, id)')) db.exec(`insert or ignore into genomes select id, voyage, generation, parent_ids, body, reason from genomes_old; drop table genomes_old;`);
+  if (old) db.exec(`insert or ignore into genomes select id, voyage, generation, parent_ids, body, reason from genomes_old; drop table genomes_old;`);
   return db;
 }
 
