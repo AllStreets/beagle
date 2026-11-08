@@ -93,6 +93,26 @@
   .runs a { display: grid; grid-template-rows: 26px auto; text-decoration: none; font-size: 13px; text-align: center; }
   .runs .bar { align-self: end; height: calc(var(--w) * 26px); min-height: 1px; background: #241c14; }
   .runs em { font-size: 11px; color: #8f2a1c; }
+  .pages { display: flex; gap: 22px; margin: -14px 0 18px; font-size: 16px; }
+  .pages a { text-decoration: none; padding-bottom: 3px; color: #6a5a44; }
+  .pages a.on { color: #241c14; border-bottom: 1.5px solid #8f2a1c; }
+  .journal { position: relative; overflow: visible; margin-top: 10px; }
+  .cols .colhead { position: absolute; top: 0; font: 400 20px "IM Fell English", serif; }
+  .cols .colhead small { display: block; font: italic 14px "EB Garamond", serif; color: #6a5a44; }
+  svg.ink { position: absolute; left: 0; top: 0; }
+  svg.ink path { fill: none; stroke: #241c14; stroke-width: 1; opacity: .7; }
+  svg.ink path.kept { stroke-width: 3; opacity: .55; }
+  .node { position: absolute; display: flex; align-items: center; gap: 4px; width: 250px; text-decoration: none; }
+  .node canvas { width: 52px; height: 52px; }
+  .node span { display: grid; font-size: 14.5px; line-height: 1.25; }
+  .node em { font: 500 17px "EB Garamond", serif; font-style: normal; font-variant-numeric: lining-nums; }
+  .node.dead { opacity: .4; }
+  .node:hover b, .node:focus-visible b { text-decoration: underline; }
+  .why { margin-top: 30px !important; }
+  .reasons { max-width: 900px; padding-left: 22px; } .reasons li { margin: 8px 0; }
+  .fossil { display: grid; grid-template-columns: minmax(320px, 1fr) 1fr; gap: 30px; align-items: start; margin-bottom: 36px; }
+  .slab canvas { width: 100%; height: auto; box-shadow: 0 2px 0 rgba(0,0,0,.2), 0 18px 30px -18px rgba(0,0,0,.7); }
+  .facts .nums { grid-template-columns: repeat(3, auto); }
   /* the hold */
   .verdict { font-size: 20px; max-width: 820px; margin: 0 0 18px; }
   .ledger td.n:nth-child(2) { position: relative; width: 140px; }

@@ -70,14 +70,40 @@ function plate(e: Entrant, i: number, w = 300, h = 380) {
   scaleBar(k, 20, w - 20, h - 22, e.mean, e.lo, e.hi, 1.2);
   return cv;
 }
+type Node = { id: string; name: string; model: string; generation: number; parents: string[]; kept: boolean; reason: string | null; mean: number | null; lo: number | null; hi: number | null; genome: any };
 async function drawingRoom(el: HTMLElement, c: Ctx) {
+  if (location.hash.startsWith('#/drawing/lineage')) return lineage(el, c);
   const es = entrants(c.gen), focus = decodeURIComponent(location.hash.split('/')[2] ?? '');
-  el.innerHTML = `${head('The drawing room', `Every ${term('agent')} in generation ${c.genN + 1}, drawn from its design. The body is how its steps are wired, spines mean it may use the gazetteer, seeds are worked examples it was shown. The bar is its score out of 100, the fine line above it the ${term('interval')}.`)}
+  el.innerHTML = `<nav class="pages"><a class="on" href="#/drawing">The plates</a><a href="#/drawing/lineage">The lineage</a></nav>${head('The drawing room', `Every ${term('agent')} in generation ${c.genN + 1}, drawn from its design. The body is how its steps are wired, spines mean it may use the gazetteer, seeds are worked examples it was shown. The bar is its score out of 100, the fine line above it the ${term('interval')}.`)}
   <div class="plates">${es.map((e, i) => `<a class="plate ${e.control ? 'ctl' : ''}" href="#/drawing/${encodeURIComponent(e.genome)}" data-g="${esc(e.genome)}"><div class="cv"></div><div class="cap"><b>${e.control ? `Control ${'ABC'[es.filter(x => x.control).indexOf(e)]}` : `Fig. ${es.filter(x => !x.control).indexOf(e) + 1}`}.</b> ${esc(e.name)}<span class="big">${pct(e.mean)}</span><span class="soft">${pct(e.lo)} to ${pct(e.hi)}</span></div></a>`).join('')}</div>
   <aside class="glass" id="glass" hidden></aside>`;
   el.querySelectorAll<HTMLElement>('.plate').forEach((p, i) => p.querySelector('.cv')!.appendChild(plate(es[i], i)));
   if (focus) openGlass(el, c, es.find(e => e.genome === focus));
 }
+// the field journal: every generation in a column, each agent joined to the ones it came from
+async function lineage(el: HTMLElement, c: Ctx) {
+  const nodes = await api<Node[]>(`/voyages/${c.voyage.id}/lineage`, []);
+  const gens = [...new Set(nodes.map(n => n.generation))].sort((a, b) => a - b);
+  const colW = 300, rowH = 92, top = 70, H = top + Math.max(...gens.map(g => nodes.filter(n => n.generation === g).length)) * rowH + 30, W = gens.length * colW + 40;
+  const pos = new Map<string, { x: number; y: number }>();
+  gens.forEach((g, gi) => nodes.filter(n => n.generation === g).sort((a, b) => (b.mean ?? -1) - (a.mean ?? -1)).forEach((n, i) => pos.set(`${g}:${n.id}`, { x: 30 + gi * colW, y: top + i * rowH })));
+  const hasChild = new Set(nodes.flatMap(n => n.parents.map(p => `${n.generation - 1}:${p}`)).concat(nodes.filter(n => n.kept).map(n => `${n.generation - 1}:${n.id}`)));
+  const best = (g: number) => Math.max(...nodes.filter(n => n.generation === g && n.mean !== null).map(n => n.mean!));
+  let lines = '';
+  for (const n of nodes) {
+    const to = pos.get(`${n.generation}:${n.id}`)!;
+    for (const p of n.kept ? [n.id] : n.parents) { const from = pos.get(`${n.generation - 1}:${p}`); if (!from) continue; const x0 = from.x + 46, y0 = from.y + 26, x1 = to.x, y1 = to.y + 26, mx = (x0 + x1) / 2; lines += `<path d="M${x0},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1}" class="${n.kept ? 'kept' : ''}"/>`; }
+  }
+  el.innerHTML = `<nav class="pages"><a href="#/drawing">The plates</a><a class="on" href="#/drawing/lineage">The lineage</a></nav>${head('The lineage', `Every agent of the voyage, one column per generation, best at the top. A line joins each agent to the ones it was bred from; a double line means it was kept unchanged. Agents with no line onward died out.`)}
+  <div class="journal"><div class="cols">${gens.map((g, gi) => `<div class="colhead" style="left:${30 + gi * colW}px">Generation ${g + 1}<small>best ${best(g) >= 0 ? pct(best(g)) : 'not raced'}</small></div>`).join('')}</div>
+  <svg class="ink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${lines}</svg>
+  ${nodes.map(n => { const p = pos.get(`${n.generation}:${n.id}`)!, dead = n.generation < gens.at(-1)! && !hasChild.has(`${n.generation}:${n.id}`); return `<a class="node ${dead ? 'dead' : ''}" style="left:${p.x}px;top:${p.y}px" href="#/drawing/${encodeURIComponent(n.id)}" title="${esc(n.reason ?? '')}"><canvas width="104" height="104" data-n="${esc(n.id)}"></canvas><span><b>${esc(n.name)}</b><em>${n.mean === null ? 'racing' : pct(n.mean)}</em></span></a>`; }).join('')}
+  </div>
+  ${nodes.filter(n => n.generation > 0 && !n.kept).length ? `<h2 class="why">Why each child was made</h2><ol class="reasons">${nodes.filter(n => n.generation > 0 && !n.kept).map(n => `<li><b>${esc(n.name)}</b>, from ${n.parents.map(p => esc(nodes.find(x => x.id === p)?.name ?? p)).join(' and ')}: ${esc(n.reason ?? '')}</li>`).join('')}</ol>` : '<p class="soft">Only the first generation has raced so far. The designer breeds the next one from what it can see of this one.</p>'}`;
+  el.querySelector<HTMLElement>('.journal')!.style.height = `${H}px`; el.querySelector<HTMLElement>('.journal')!.style.width = `${W}px`;
+  el.querySelectorAll<HTMLCanvasElement>('.node canvas').forEach(cv => { const n = nodes.find(x => x.id === cv.dataset.n)!; const k = cv.getContext('2d')!; organism(k, n.genome ? { ...n.genome, id: n.id } : { id: n.id, tools: [], workflow: { shape: 'control' }, memory: { examples: 0 }, model: 'none' }, 52, 52, 30); });
+}
+
 async function openGlass(el: HTMLElement, c: Ctx, e?: Entrant) {
   const g = el.querySelector<HTMLElement>('#glass')!; if (!e) return;
   const runs = await api<{ id: string; task: string; score: number; status: string; usd: number; ms: number }[]>(`/voyages/${c.voyage.id}/runs?generation=${c.genN}&genome=${encodeURIComponent(e.genome)}`, []);
@@ -115,11 +141,33 @@ function log(el: HTMLElement, c: Ctx) {
   </div>`;
 }
 
-function fossils(el: HTMLElement, c: Ctx) {
-  const lead = entrants(c.gen).find(e => !e.control);
-  el.innerHTML = `${head('The fossil locker', 'Empty, for now.')}
-  <div class="prose"><p>A ${term('fossil')} is what Beagle makes once an agent is good and stable: it runs the winner over thousands of unlabelled news items, trains a small network on its answers here on this Mac, and checks that network honestly against the sealed test.</p>
-  <p>No skill has been fossilised yet. ${lead ? `The strongest candidate so far is ${esc(lead.name)}, at ${pct(lead.mean)}, but a fossil waits until a winner holds its place across generations.` : ''} When one is made, this locker will show its size, how fast it answers, what it costs to run, and how its score compares with the agent it learned from, including if it is worse.</p></div>`;
+async function fossils(el: HTMLElement, c: Ctx) {
+  const fs = await api<any[]>(`/voyages/${c.voyage.id}/fossils`, []), es = entrants(c.gen), lead = es.find(e => !e.control);
+  const nameOf = (id: string) => es.find(e => e.genome === id)?.name ?? id;
+  if (!fs.length) {
+    el.innerHTML = `${head('The fossil locker', 'Empty, for now.')}<div class="prose"><p>A ${term('fossil')} is what Beagle makes once an agent is good: the agent answers thousands of unlabelled news items, and a small network is trained on its answers here on this Mac, then checked honestly on the race items.</p><p>No skill has been fossilised yet. ${lead ? `The strongest candidate so far is ${esc(lead.name)}, at ${pct(lead.mean)}.` : ''}</p></div>`;
+    return;
+  }
+  el.innerHTML = `${head('The fossil locker', `${fs.length === 1 ? 'One skill has' : `${fs.length} skills have`} been pressed into a network that runs on this Mac.`)}${fs.map((f, i) => `
+    <section class="fossil">
+      <div class="slab"><canvas id="slab${i}" width="900" height="420"></canvas></div>
+      <div class="facts">
+        <h2>${esc(nameOf(f.genome))}, fossilised</h2>
+        <p class="lede">Taught on ${f.items.toLocaleString()} unlabelled news items it answered; trained in ${f.train_seconds.toFixed(1)} seconds on this Mac. On the ${f.race.items} race items it scores <b>${pct(f.race.score)}</b>, against its teacher's <b>${pct(f.race.teacher)}</b>, and gives the same verdict as its teacher on ${pct(f.race.agreement)}% of them. ${f.race.standsIn ? 'Within 5 points of its teacher, so it can stand in for it.' : `More than 5 points behind its teacher, so it does not stand in for it yet.`}</p>
+        <dl class="nums"><div><dt>Size</dt><dd>${(f.bytes / 1e6).toFixed(1)} MB</dd></div><div><dt>Network</dt><dd>${f.ms_per_answer.toFixed(2)} ms</dd></div><div><dt>With embedding</dt><dd>${Math.round(f.embed_ms + f.ms_per_answer)} ms</dd></div><div><dt>Cost to run</dt><dd>$0</dd></div><div><dt>Places it knows</dt><dd>${f.cells}</dd></div></dl>
+        <p class="soft">Time per answer measured on this Mac, warm. The embedding is a local model (nomic-embed-text in Ollama); the network itself is two layers, trained with MLX. Its teacher took ${secs((es.find(e => e.genome === f.genome)?.ms) ?? 0)} and cost money per item.</p>
+      </div>
+    </section>`).join('')}`;
+  fs.forEach((f, i) => {
+    const cv = el.querySelector<HTMLCanvasElement>(`#slab${i}`)!, k = cv.getContext('2d')!, W = cv.width, H = cv.height;
+    // stone: grey with grain, the curve cut into it as strata, the name incised
+    k.fillStyle = '#8c857a'; k.fillRect(0, 0, W, H);
+    for (let j = 0; j < 9000; j++) { k.fillStyle = `rgba(${Math.random() < .5 ? '40,36,30' : '230,224,210'},${Math.random() * .08})`; k.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
+    const curve = f.curve as { held_out_loss: number; held_out_agreement: number }[], maxL = Math.max(...curve.map(p => p.held_out_loss)), x = (j: number) => 60 + j / Math.max(1, curve.length - 1) * (W - 120);
+    for (let band = 0; band < 6; band++) { k.beginPath(); curve.forEach((p, j) => { const y = 120 + band * 34 + (p.held_out_loss / maxL) * 150; j ? k.lineTo(x(j), y) : k.moveTo(x(j), y); }); k.strokeStyle = `rgba(30,26,20,${.55 - band * .07})`; k.lineWidth = 3 - band * .3; k.stroke(); k.strokeStyle = 'rgba(240,235,222,.35)'; k.lineWidth = 1; k.stroke(); }
+    k.fillStyle = 'rgba(30,26,20,.75)'; k.font = '34px "IM Fell English SC"'; k.fillText(nameOf(f.genome), 60, 70);
+    k.font = 'italic 22px "EB Garamond"'; k.fillText(`held-out loss over ${curve.length} passes`, 60, H - 30);
+  });
 }
 
 async function settings(el: HTMLElement, c: Ctx) {
