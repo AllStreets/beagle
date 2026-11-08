@@ -1,7 +1,8 @@
 import { createRoom, THREE, canvas, grain } from './kit.ts';
 import { buildShip, ROOMS, BEAM, type RoomId } from './ship.ts';
 import { furnish } from './props.ts';
-import { api, entrants, pct, type Voyage, type Generation, type Telling } from './data.ts';
+import { api, entrants, pct, type Voyage, type Generation, type Telling, type Arena } from './data.ts';
+import { render, runView } from './rooms.ts';
 
 const room = createRoom(document.getElementById('stage')!);
 const { scene, camera, renderer, composer, tex } = room;
@@ -85,18 +86,63 @@ plaque.innerHTML = full && gen
   ? `<b>HMS Beagle</b><span>A section through the voyage ${full.id}. ${gen.racing ? `Generation ${genN + 1} is racing.` : `Generation ${genN + 1} has raced: ${gen.runs} runs on ${full.settings.raceTasks} news items with every place name hidden.`}${lead ? ` ${lead.name} leads, placing ${lead.within} of ${lead.tasks} items within 25 km.` : ''}</span>`
   : '<b>HMS Beagle</b><span>No voyage yet. Start one from the forecastle.</span>';
 
-function frame() {
-  const w = innerWidth, h = innerHeight; renderer.setSize(w, h); composer.setSize(w, h); camera.aspect = w / h;
+// the camera: the whole model, or close on one room when it opens
+const camAt = new THREE.Vector3(), lookAt = new THREE.Vector3(), camTo = new THREE.Vector3(), lookTo = new THREE.Vector3();
+let openRoom: RoomId | null = null;
+function wide() {
   const v = THREE.MathUtils.degToRad(camera.fov), needW = 34, needH = 21;
   const d = Math.max((needH / 2) / Math.tan(v / 2), (needW / 2) / (Math.tan(v / 2) * camera.aspect));
-  camera.position.set(.8, 5.4, d); camera.lookAt(.8, 5.0, -1); camera.updateProjectionMatrix();
+  camTo.set(.8, 5.4, d); lookTo.set(.8, 5.0, -1);
+}
+// close on one room: the room fills the strip left of the folio. The view is shifted sideways
+// (an off-centre frustum), so the room is centred in the strip, not behind the folio.
+const strip = () => Math.max(.18, 1 - Math.min(1240, innerWidth * .74) / innerWidth);
+function close(id: RoomId) {
+  const r = ROOMS.find(x => x.id === id)!, cx = (r.x0 + r.x1) / 2, cy = (r.y0 + r.y1) / 2;
+  const v = THREE.MathUtils.degToRad(camera.fov), visibleW = (r.x1 - r.x0 + 1.2) / strip();
+  const d = Math.max((visibleW / 2) / (Math.tan(v / 2) * camera.aspect), ((r.y1 - r.y0) * 2.4 / 2) / Math.tan(v / 2));
+  camTo.set(cx, cy + .3, d - BEAM / 2); lookTo.set(cx, cy, -BEAM / 2);
+}
+function offset() {
+  const w = innerWidth, h = innerHeight;
+  if (openRoom && w > 900) camera.setViewOffset(w, h, (.5 - strip() / 2) * w, 0, w, h); else camera.clearViewOffset();
+}
+function frame() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h); composer.setSize(w, h); camera.aspect = w / h; offset(); camera.updateProjectionMatrix();
+  openRoom ? close(openRoom) : wide();
   placeTags();
 }
+let settingsNow = full?.settings ?? { view: 'plain' } as any;
+document.addEventListener('settings', e => { settingsNow = (e as CustomEvent).detail; viewBtn(); route(); });
+let arena: Arena | null = null;
+if (full) arena = await api<Arena>(`/arenas/${full.arena}/sample`, null as any);
+const folio = document.getElementById('folio')!, body = document.getElementById('folio-body')!;
+const viewToggle = document.getElementById('view') as HTMLButtonElement;
+function viewBtn() { viewToggle.textContent = settingsNow.view === 'lab' ? 'Lab view' : 'Plain view'; viewToggle.setAttribute('aria-pressed', String(settingsNow.view === 'lab')); }
+viewToggle.addEventListener('click', () => { settingsNow = { ...settingsNow, view: settingsNow.view === 'lab' ? 'plain' : 'lab' }; viewBtn(); route(); });
+viewBtn();
+async function route() {
+  const parts = location.hash.replace(/^#\/?/, '').split('/'), id = parts[0] as RoomId | 'run' | '';
+  if (!id) { openRoom = null; document.body.classList.remove('open'); folio.setAttribute('aria-hidden', 'true'); frame(); hover(null); return; }
+  if (!full || !gen) return;
+  document.body.classList.add('open'); folio.setAttribute('aria-hidden', 'false');
+  if (id === 'run') { await runView(body, parts[1]); return; }
+  openRoom = id; frame(); hover(id);
+  await render(id, body, { voyage: full, gen, genN, view: settingsNow.view, arena });
+  folio.scrollTop = 0; (body.querySelector('h1') as HTMLElement | null)?.focus?.();
+}
+addEventListener('hashchange', route);
+addEventListener('keydown', e => { if (e.key === 'Escape' && location.hash) location.hash = ''; });
+document.getElementById('back')!.addEventListener('click', () => { location.hash = ''; });
 addEventListener('resize', frame);
 document.getElementById('loading')?.remove();
-frame();
+frame(); camAt.copy(camTo); lookAt.copy(lookTo); camera.position.copy(camAt); camera.lookAt(lookAt);
+await route();
 renderer.setAnimationLoop(() => {
   for (const l of lamps.values()) l.intensity += ((l.userData.target ?? 6) - l.intensity) * .12;
+  const k = settingsNow.reducedMotion ? 1 : .07;
+  camAt.lerp(camTo, k); lookAt.lerp(lookTo, k); camera.position.copy(camAt); camera.lookAt(lookAt);
+  if (!openRoom) placeTags();
   composer.render();
 });
 (window as any).beagle = { hover, rooms: () => ROOMS.map(r => r.id), hovered: () => hovered };

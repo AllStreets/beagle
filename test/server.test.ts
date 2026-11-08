@@ -83,3 +83,15 @@ test('the telling task: one task every entrant answered, the one their scores sp
   assert.equal(t.answers.length, gen.scores.length, 'one answer per entrant');
   for (const a of t.answers) assert.ok('score' in a && 'name' in a);
 });
+
+test('a generation lists its tasks with how the field did on each, and any one task opens with every answer', async () => {
+  const vs = await (await fetch(`${base}/api/voyages`)).json();
+  const v = vs.find((x: any) => x.arena === 'geotag');
+  const list = await (await fetch(`${base}/api/voyages/${v.id}/generations/0/tasks`)).json();
+  assert.ok(list.length > 0);
+  for (const t of list) { assert.ok(t.id && t.shown && typeof t.mean === 'number' && t.answered >= 1); assert.doesNotMatch(JSON.stringify(t), /SECRET/); }
+  const one = await (await fetch(`${base}/api/voyages/${v.id}/generations/0/telling?task=${list[0].id}`)).json();
+  assert.equal(one.task.id, list[0].id);
+  const bad = await fetch(`${base}/api/voyages/${v.id}/generations/0/telling?task=s0`);
+  assert.equal(bad.status, 404, 'a sealed task is never opened this way');
+});

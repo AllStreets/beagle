@@ -75,12 +75,19 @@ const routes: Route[] = [
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)$/, m => generation(m[1], Number(m[2]))],
   // the task that best shows a generation's differences: answered by everyone, scores most spread
-  ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)\/telling$/, m => {
+  ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)\/tasks$/, m => {
+    const v = getVoyage(m[1]), n = Number(m[2]), a = getArena(v.arena);
+    const rows = open().prepare(`select r.task, avg(r.score) mean, count(*) answered, t.input from runs r join tasks t on t.id = r.task where r.voyage = ? and r.generation = ? and t.split = 'race' group by r.task order by mean`).all(v.id, n) as { task: string; mean: number; answered: number; input: string }[];
+    return rows.map(r => { const input = json<{ date: string }>(r.input, { date: '' }); return { id: r.task, date: input.date, shown: a.show(input).split('\n').slice(1).join('\n'), mean: r.mean, answered: r.answered }; });
+  }],
+  ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)\/telling$/, (m, req) => {
     const v = getVoyage(m[1]), n = Number(m[2]), db = open(), gen = generation(v.id, n);
+    const asked = new URL(req.url ?? '', 'http://x').searchParams.get('task');
     const rows = db.prepare('select id, genome, task, score, answer, status from runs where voyage = ? and generation = ?').all(v.id, n) as { id: string; genome: string; task: string; score: number; answer: string; status: string }[];
     const byTask = new Map<string, typeof rows>(); for (const r of rows) byTask.set(r.task, [...(byTask.get(r.task) ?? []), r]);
     let best: string | null = null, spread = -1;
-    for (const [t, rs] of byTask) { if (rs.length < gen.scores.length) continue; const sc = rs.map(r => r.score), sp = Math.max(...sc) - Math.min(...sc); if (sp > spread || (sp === spread && best !== null && t < best)) { spread = sp; best = t; } }
+    if (asked) { const split = (db.prepare('select split from tasks where id = ?').get(asked) as { split: string } | undefined)?.split; if (split !== 'race' || !byTask.has(asked)) throw new Http(404, 'no such task in this race'); best = asked; }
+    else for (const [t, rs] of byTask) { if (rs.length < gen.scores.length) continue; const sc = rs.map(r => r.score), sp = Math.max(...sc) - Math.min(...sc); if (sp > spread || (sp === spread && best !== null && t < best)) { spread = sp; best = t; } }
     if (!best) throw new Http(404, 'no task has been answered by every entrant yet');
     const t = db.prepare('select id, split, input, truth from tasks where id = ?').get(best) as Record<string, string>;
     const names = new Map(gen.genomes.map(g => [g.id, g.name]));
