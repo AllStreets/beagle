@@ -1,0 +1,25 @@
+{
+  "name": "beagle",
+  "version": "0.1.0",
+  "description": "Agents that evolve agents: races on graded arenas, a designer that breeds the next generation, and skills fossilised into small networks trained on your Mac.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "bin": {
+    "beagle": "bin/beagle.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "test": "node --no-warnings --import tsx --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}
