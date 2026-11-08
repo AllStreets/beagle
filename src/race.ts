@@ -78,6 +78,7 @@ type Entrant = { id: string; model: string; baseline: boolean; exec(t: { id: str
 
 export async function race(voyageId: string, generation: number, genomes: Genome[], o: { baselines?: boolean; tasks?: TaskRow[]; onEvent?: (e: RaceEvent) => void } = {}): Promise<RaceResult> {
   const v = getVoyage(voyageId), s = v.settings, arena = getArena(v.arena), db = open();
+  if (v.status === 'withdrawn') throw new Error(`voyage ${v.id} is withdrawn and does not race`);
   const emit = o.onEvent ?? (() => {});
   const tasks = o.tasks ?? raceTasks(v);
   const examples = examplesFor(v.id);

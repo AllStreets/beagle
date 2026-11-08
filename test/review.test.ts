@@ -85,3 +85,10 @@ test('minor: the race lock cannot be taken twice', async () => {
   M.setDriver(async () => ({ text: '{"action":"answer","answer":{"lat":10,"lon":10}}', usd: 0, ms: 1 }));
   await assert.rejects(R.race(v.id, 0, [g('a')], { baselines: false }), /already racing/);
 });
+
+test('a withdrawn voyage refuses to race', async () => {
+  const v = R.startVoyage('geotag', { raceTasks: 4 });
+  store.open().prepare(`update voyages set status = 'withdrawn' where id = ?`).run(v.id);
+  M.setDriver(async () => { throw new Error('no model may be called'); });
+  await assert.rejects(R.race(v.id, 0, [g('a')], { baselines: false }), /withdrawn/);
+});

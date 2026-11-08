@@ -63,8 +63,14 @@ const commands: Record<string, () => Promise<void> | void> = {
     const r = await fossilise(args[0], args[1], { withBreeding: args.includes('--with-breeding'), log: console.log });
     console.log(`Fossil of ${args[1]}: ${r.race.items} race items, score ${Math.round(r.race.score * 100)} against its teacher's ${Math.round(r.race.teacher * 100)}; agrees with it on ${Math.round(r.race.agreement * 100)}%. ${r.bytes} bytes; ${r.ms_per_answer.toFixed(2)} ms per answer plus ${r.embed_ms} ms to embed. ${r.race.standsIn ? 'It stands in for its teacher.' : 'It does not stand in: more than 5 points behind.'}`);
   },
+  // stop whatever process is racing this voyage, by the lock it holds, whatever it is called
+  stop() {
+    const locks = open().prepare('select generation, pid from locks where voyage = ?').all(args[0]) as { generation: number; pid: number }[];
+    if (!locks.length) return console.log(`Nothing is racing ${args[0]}.`);
+    for (const l of locks) { try { process.kill(l.pid, 'SIGTERM'); console.log(`Stopped process ${l.pid}, racing generation ${l.generation + 1}.`); } catch { console.log(`Process ${l.pid} had already ended.`); } }
+  },
   // a voyage that cannot stand is kept on record, marked, with the reason
-  withdraw() { open().prepare(`update voyages set status = 'withdrawn', note = ? where id = ?`).run(args.slice(1).join(' '), args[0]); console.log(`Voyage ${args[0]} withdrawn.`); },
+  withdraw() { commands.stop(); open().prepare(`update voyages set status = 'withdrawn', note = ? where id = ?`).run(args.slice(1).join(' '), args[0]); console.log(`Voyage ${args[0]} withdrawn.`); },
   finish() { finishVoyage(args[0]); console.log(`Voyage ${args[0]} finished. Its sealed test can now be scored.`); },
   async sealed() { table(await sealedScore(args[0], args.slice(1), { onEvent: progress })); },
   export() { console.log(exportBundle(args[0])); },
