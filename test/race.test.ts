@@ -145,3 +145,25 @@ test('the count of answers within 25 km is taken on the same tasks as the score'
   assert.equal(scores.find(s => s.genome === 'a')!.within, 1, 'only t1 counts, as for the score');
   assert.equal(scores.find(s => s.genome === 'b')!.within, 0);
 });
+
+test('the cap counts money actually paid, not runs kept', async () => {
+  answers(.1);
+  const v = R.startVoyage('geotag', { raceTasks: 10, capGeneration: 1 });
+  // money already paid in this generation by a run that was later discarded
+  const L = await import('../src/ledger.ts');
+  L.add({ voyage: v.id, generation: 0, kind: 'race', model: 'claude:claude-haiku-4-5', usd: 1.2, ms: 1 });
+  const r = await R.race(v.id, 0, [g('good')], { baselines: false });
+  assert.equal(r.complete, false);
+  assert.equal(r.common.length, 0, 'nothing ran: the generation had already spent its cap');
+});
+
+test('a voyage cannot race the same generation twice at once', async () => {
+  M.setDriver(async () => { await new Promise(r => setTimeout(r, 30)); return { text: '{"action":"answer","answer":{"lat":10,"lon":10}}', usd: .01, ms: 2 }; });
+  const v = R.startVoyage('geotag', { raceTasks: 4, capGeneration: 100 });
+  const first = R.race(v.id, 0, [g('good')], { baselines: false });
+  await assert.rejects(R.race(v.id, 0, [g('good')], { baselines: false }), /already racing/);
+  await first;
+  // once the first has finished, racing again is allowed (and finds nothing left to do)
+  const again = await R.race(v.id, 0, [g('good')], { baselines: false });
+  assert.equal(again.complete, true);
+});

@@ -57,10 +57,19 @@ create table if not exists ledger (
   id integer primary key autoincrement,
   at text not null,
   voyage text,
+  generation integer,            -- which generation paid for it
   kind text not null,            -- race, design, baseline, teach
   model text not null,
   usd real not null,
   ms integer not null
+);
+-- a race in progress, so a second process cannot race the same generation and pay twice
+create table if not exists locks (
+  voyage text not null,
+  generation integer not null,
+  pid integer not null,
+  at text not null,
+  primary key (voyage, generation)
 );
 create table if not exists settings (
   key text primary key,
@@ -77,6 +86,7 @@ export function open(): DatabaseSync {
   const pk = (db.prepare(`select sql from sqlite_master where name = 'genomes'`).get() as { sql: string } | undefined)?.sql ?? '';
   if (pk && !pk.includes('primary key (voyage, id)')) db.exec(`alter table genomes rename to genomes_old;`);
   db.exec(SCHEMA);
+  try { db.exec('alter table ledger add column generation integer'); } catch { /* already there */ }
   if (pk && !pk.includes('primary key (voyage, id)')) db.exec(`insert or ignore into genomes select id, voyage, generation, parent_ids, body, reason from genomes_old; drop table genomes_old;`);
   return db;
 }

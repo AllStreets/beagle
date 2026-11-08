@@ -68,6 +68,9 @@ export function summarize(rows: { genome: string; task: string; score: number; s
   return { common, scores: raw.sort((a, b) => b.mean - a.mean || a.usd - b.usd) };
 }
 
+const racingHere = new Set<string>();
+const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+
 type Entrant = { id: string; model: string; baseline: boolean; exec(t: { id: string; input: unknown }): Promise<{ answer: unknown | null; trace: Step[]; usd: number; ms: number; status: 'done' | 'no-answer' }> };
 
 export async function race(voyageId: string, generation: number, genomes: Genome[], o: { baselines?: boolean; tasks?: TaskRow[]; onEvent?: (e: RaceEvent) => void } = {}): Promise<RaceResult> {
@@ -89,7 +92,7 @@ export async function race(voyageId: string, generation: number, genomes: Genome
   // task by task, so if the cap stops the race, every genome has done the same tasks
   const jobs = tasks.flatMap(t => entrants.map(e => ({ t, e }))).filter(j => !has.get(v.id, generation, j.e.id, j.t.id));
   const total = tasks.length * entrants.length;
-  const genSpent = () => (db.prepare('select coalesce(sum(usd), 0) n from runs where voyage = ? and generation = ?').get(v.id, generation) as { n: number }).n;
+  const genSpent = () => ledger.spentOnGeneration(v.id, generation);
   const putRun = db.prepare('insert or ignore into runs (id, voyage, generation, genome, task, answer, score, trace, usd, ms, status, at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const backoff = Number(process.env.BEAGLE_BACKOFF_MS ?? 30_000);
   let stop: string | null = null, done = total - jobs.length, next = 0;
@@ -113,13 +116,21 @@ export async function race(voyageId: string, generation: number, genomes: Genome
       if (!result) { stop = 'Claude usage limit; resume the race later'; break; }
       const score = result.status === 'done' ? arena.grade(result.answer, json(t.truth, null)) : 0;
       putRun.run(randomUUID(), v.id, generation, e.id, t.id, JSON.stringify(result.answer), score, JSON.stringify(result.trace), result.usd, result.ms, result.status, new Date().toISOString());
-      ledger.add({ voyage: v.id, kind: e.baseline ? 'baseline' : 'race', model: e.model, usd: result.usd, ms: result.ms });
+      ledger.add({ voyage: v.id, generation, kind: e.baseline ? 'baseline' : 'race', model: e.model, usd: result.usd, ms: result.ms });
       done++;
       emit({ type: 'run', generation, genome: e.id, task: t.id, score, status: result.status, usd: result.usd, ms: result.ms });
       emit({ type: 'progress', generation, done, total, spent: ledger.spent(v.id) });
     }
   }
-  await Promise.all(Array.from({ length: Math.max(1, s.concurrency) }, worker));
+  // one race per voyage and generation at a time, across processes; a lock left by a process
+  // that has since died is taken over
+  const held = db.prepare('select pid from locks where voyage = ? and generation = ?').get(v.id, generation) as { pid: number } | undefined;
+  if (held && held.pid !== process.pid && alive(held.pid)) throw new Error(`voyage ${v.id} is already racing generation ${generation} (process ${held.pid})`);
+  if (held && held.pid === process.pid && racingHere.has(`${v.id}:${generation}`)) throw new Error(`voyage ${v.id} is already racing generation ${generation}`);
+  db.prepare('insert or replace into locks (voyage, generation, pid, at) values (?, ?, ?, ?)').run(v.id, generation, process.pid, new Date().toISOString());
+  racingHere.add(`${v.id}:${generation}`);
+  try { await Promise.all(Array.from({ length: Math.max(1, s.concurrency) }, worker)); }
+  finally { racingHere.delete(`${v.id}:${generation}`); db.prepare('delete from locks where voyage = ? and generation = ? and pid = ?').run(v.id, generation, process.pid); }
   const ids = new Set(entrants.map(e => e.id)), taskIds = new Set(tasks.map(t => t.id));
   const rows = (db.prepare('select genome, task, score, status, usd, ms from runs where voyage = ? and generation = ?').all(v.id, generation) as { genome: string; task: string; score: number; status: string; usd: number; ms: number }[]).filter(r => ids.has(r.genome) && taskIds.has(r.task));
   const result: RaceResult = { complete: !stop && done >= total, ...(stop ? { reason: stop } : {}), ...summarize(rows, s.seed) };
