@@ -64,7 +64,12 @@ try {
   await go('#/log');
   expect('the log shows the sealed fingerprint recorded at launch', (await page.textContent('.hash'))!.trim() === full.sealed_hash);
   await go('#/fossils');
-  expect('the fossil locker says plainly that it is empty', (await page.textContent('#folio'))!.includes('No skill has been fossilised yet'));
+  const fossils = await api(`/voyages/${v.id}/fossils`), locker = (await page.textContent('#folio'))!;
+  if (!fossils.length) expect('the fossil locker says plainly that it is empty', locker.includes('No skill has been fossilised yet'));
+  else {
+    expect('the fossil locker names every fossil and gives its real race score', fossils.every((f: any) => locker.includes(`${f.name}, fossilised`) && locker.includes(`scores ${pct(f.race.score)}`)), fossils.map((f: any) => f.name).join(', '));
+    expect('each fossil slab is drawn from its training curve', fossils.every((f: any) => Array.isArray(f.curve) && f.curve.length > 1) && (await page.$$('.slab canvas')).length === fossils.length);
+  }
 
   await go('#/settings', 3000);
   await page.fill('input[name=capGeneration]', '4.5'); await page.click('.actions button'); await page.waitForTimeout(800);

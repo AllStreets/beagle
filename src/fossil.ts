@@ -3,7 +3,7 @@
 // local embedding model; MLX trains a network to say which cell of the globe the teacher would
 // answer in. The fossil is then judged on the race items, against the truth and its teacher.
 import { spawn } from 'node:child_process';
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, json } from './store.ts';
@@ -97,7 +97,9 @@ export async function fossilise(voyageId: string, genomeId: string, o: { epochs?
   const dir = join(paths.home, 'fossils', `${v.id}-${genomeId}`); mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'dataset.json'), JSON.stringify({ x: X, y: cells.of, n_cells: cells.centres.length }));
   log('  training with MLX...');
-  const report = JSON.parse(await py([join(dir, 'dataset.json'), dir, '--epochs', String(o.epochs ?? 40)]));
+  await py([join(dir, 'dataset.json'), dir, '--epochs', String(o.epochs ?? 40)]);
+  // the full report, with the training curve, is on disk; the printed one leaves the curve out
+  const report = JSON.parse(readFileSync(join(dir, 'report.json'), 'utf8'));
   // judge on the race items: the fossil's answer is its cell's centre
   const race = raceTasks(v), raceX = await embed(race.map(t => arena.show(json(t.input, null)).split('\n').slice(1).join(' ')));
   writeFileSync(join(dir, 'race.json'), JSON.stringify({ x: raceX }));
@@ -105,7 +107,9 @@ export async function fossilise(voyageId: string, genomeId: string, o: { epochs?
   const teacherScores = race.map(t => (db.prepare('select score from runs where voyage = ? and genome = ? and task = ? order by generation desc limit 1').get(v.id, genomeId, t.id) as { score: number } | undefined)?.score ?? null);
   const judged = judgeFossil({ predicted: pred.cells.map((c: number) => cells.centres[c]), truth: race.map(t => json<Truth>(t.truth, { places: [] })), teacherScores });
   const embedMs = await (async () => { const t0 = Date.now(); await embed([texts[0]]); return Date.now() - t0; })();
-  const record = { voyage: v.id, genome: genomeId, at: new Date().toISOString(), taught: rows.length, breeding: breeding.length, items: texts.length, cells: cells.centres.length, ...report, embed_ms: embedMs, race: { score: judged.score, teacher: judged.teacher, agreement: judged.agreement, standsIn: judged.standsIn, items: judged.items } };
+  const t = db.prepare('select avg(usd) usd, avg(ms) ms from runs where voyage = ? and genome = ?').get(v.id, genomeId) as { usd: number; ms: number };
+  const name = json<{ name?: string }>((db.prepare('select body from genomes where voyage = ? and id = ? limit 1').get(v.id, genomeId) as { body: string } | undefined)?.body ?? '{}', {}).name ?? genomeId;
+  const record = { voyage: v.id, genome: genomeId, name, teacher_ms: t.ms ?? 0, teacher_usd: t.usd ?? 0, at: new Date().toISOString(), taught: rows.length, breeding: breeding.length, items: texts.length, cells: cells.centres.length, ...report, embed_ms: embedMs, race: { score: judged.score, teacher: judged.teacher, agreement: judged.agreement, standsIn: judged.standsIn, items: judged.items } };
   writeFileSync(join(dir, 'fossil.json'), JSON.stringify({ ...record, centres: cells.centres }, null, 1));
   db.exec(`create table if not exists fossils (voyage text, genome text, at text, record text, primary key (voyage, genome))`);
   db.prepare('insert or replace into fossils (voyage, genome, at, record) values (?, ?, ?, ?)').run(v.id, genomeId, record.at, JSON.stringify(record));
