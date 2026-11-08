@@ -8,7 +8,7 @@ import type { Genome } from '../src/genome.ts';
 afterEach(() => setDriver(null));
 
 const arena: Arena = {
-  id: 'toy', name: 'Toy', describe: 'Say where it happened.',
+  id: 'toy', data: 'toy', name: 'Toy', describe: 'Say where it happened.',
   answer: { type: 'object', required: ['lat', 'lon'], properties: { lat: { type: 'number' }, lon: { type: 'number' } } },
   grade: () => 1, show: i => String((i as { text: string }).text),
   tools: [{ name: 'lookup_place', describe: 'look up', args: { type: 'object' }, run: (a: { name: string }) => ({ matches: [{ name: a.name, lat: 49.49, lon: 8.47 }] }) }],

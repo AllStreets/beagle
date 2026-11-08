@@ -19,7 +19,7 @@ export type Bundle = {
 
 export function exportBundle(voyageId: string): string {
   const v = getVoyage(voyageId), db = open();
-  const a = db.prepare('select hash, version from arenas where id = ?').get(v.arena) as { hash: string; version: string } | undefined;
+  const a = db.prepare('select hash, version from arenas where id = ?').get(getArena(v.arena).data) as { hash: string; version: string } | undefined;
   const runs = db.prepare('select generation, genome, task, answer, score, status, usd, ms from runs where voyage = ? order by generation, genome, task').all(v.id) as { generation: number; genome: string; task: string; answer: string; score: number; status: string; usd: number; ms: number }[];
   const taskIds = [...new Set(runs.map(r => r.task))];
   const tasks = Object.fromEntries((taskIds.length ? db.prepare(`select id, input, truth from tasks where id in (${taskIds.map(() => '?').join(',')})`).all(...taskIds) as { id: string; input: string; truth: string }[] : []).map(t => [t.id, { input: json(t.input, null), truth: json(t.truth, null) }]));

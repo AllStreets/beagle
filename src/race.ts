@@ -6,7 +6,7 @@ import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
 import { LimitError } from './models/index.ts';
 import { run, type Example, type Step } from './runner.ts';
-import { getArena } from './arenas/index.ts';
+import { getArena, dataOf } from './arenas/index.ts';
 import { baselines } from './baselines.ts';
 import { getSettings, type Settings } from './settings.ts';
 import { bootstrap, mean, pareto } from './stats.ts';
@@ -28,7 +28,7 @@ const order = (seed: number, salt: string) => (a: { id: string }, b: { id: strin
 
 // The sealed test's fingerprint: every sealed task's id, text and truth, in a fixed order.
 export function sealedHash(arena: string): string {
-  const rows = open().prepare(`select id, input, truth from tasks where arena = ? and split = 'sealed' order by id`).all(arena) as TaskRow[];
+  const rows = open().prepare(`select id, input, truth from tasks where arena = ? and split = 'sealed' order by id`).all(dataOf(arena)) as TaskRow[];
   return createHash('sha256').update(rows.map(r => `${r.id}|${r.input}|${r.truth}`).join('\n')).digest('hex');
 }
 
@@ -46,7 +46,7 @@ export function getVoyage(id: string): Voyage {
 }
 
 const sample = (v: Voyage, split: string, n: number, salt: string) =>
-  (open().prepare(`select id, input, truth from tasks where arena = ? and split = ?`).all(v.arena, split) as TaskRow[]).sort(order(v.settings.seed, salt)).slice(0, n);
+  (open().prepare(`select id, input, truth from tasks where arena = ? and split = ?`).all(dataOf(v.arena), split) as TaskRow[]).sort(order(v.settings.seed, salt)).slice(0, n);
 
 export const raceTasks = (v: Voyage) => sample(v, 'race', v.settings.raceTasks, 'race');
 // Worked examples: from the breeding split only, the same for every genome in the voyage
@@ -135,6 +135,6 @@ export async function sealedScore(voyageId: string, genomeIds: string[], o: { on
   if (v.status !== 'finished') throw new Error(`voyage ${v.id} is not finished; the sealed test stays sealed until it is`);
   if (sealedHash(v.arena) !== v.sealed_hash) throw new Error('the sealed test has changed since the voyage began');
   const rows = open().prepare(`select body from genomes where voyage = ? and id in (${genomeIds.map(() => '?').join(',')})`).all(v.id, ...genomeIds) as { body: string }[];
-  const sealed = open().prepare(`select id, input, truth from tasks where arena = ? and split = 'sealed'`).all(v.arena) as TaskRow[];
+  const sealed = open().prepare(`select id, input, truth from tasks where arena = ? and split = 'sealed'`).all(dataOf(v.arena)) as TaskRow[];
   return race(v.id, -1, rows.map(r => JSON.parse(r.body) as Genome), { baselines: true, tasks: sealed, onEvent: o.onEvent });
 }

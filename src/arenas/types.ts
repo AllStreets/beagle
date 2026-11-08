@@ -8,6 +8,7 @@ export type ToolSpec = {
 
 export type Arena = {
   id: string;
+  data: string;                              // whose tasks it uses: variants of one arena share them
   name: string;
   describe: string;                          // the task, in plain words, as an agent is told it
   answer: object;                            // JSON schema of an answer

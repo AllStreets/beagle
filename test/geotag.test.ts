@@ -105,3 +105,23 @@ test('the arena tells an agent the task, takes a point as the answer, and offers
   assert.deepEqual(r.matches, []);
   assert.equal(geotag.grade({ lat: 49.49, lon: 8.47 }, { places: [{ name: 'Mannheim', lat: 49.4891, lon: 8.4669 }] }), 1);
 });
+
+test('an item keeps each link\'s visible label, so place names can be hidden', async () => {
+  const { parseDay, hidePlaces } = await import('../src/arenas/geotag/parse.ts');
+  const m = parseDay(fixture).find(i => i.text.includes('Mannheim'))!;
+  assert.ok(m.labels.some(l => l.target === 'Mannheim' && l.label === 'Mannheim'));
+  const hidden = hidePlaces(m, new Set(['Mannheim', 'Germany']));
+  assert.equal(hidden, 'A car drives into a crowd of people near a Carnival market in [place], [place], killing two people and injuring 25 others, including fifteen seriously. A man has been arrested.');
+  // a label that differs from its target is hidden by its label; a word inside another word is left alone
+  const congo = parseDay(fixture).find(i => i.text.includes('Kwamouth'))!;
+  assert.doesNotMatch(hidePlaces(congo, new Set(['Kwamouth', 'Mai-Ndombe Province'])), /Kwamouth|Mai-Ndombe/);
+});
+
+test('the hidden variant shows the item with its places hidden; the named variant shows it whole', async () => {
+  const { geotag, geotagNamed } = await import('../src/arenas/geotag/index.ts');
+  const input = { text: 'A car drives into a crowd in Mannheim, Germany.', hidden: 'A car drives into a crowd in [place], [place].', date: '2025-03-03' };
+  assert.match(geotag.show(input), /\[place\], \[place\]/);
+  assert.doesNotMatch(geotag.show(input), /Mannheim/);
+  assert.match(geotagNamed.show(input), /Mannheim, Germany/);
+  assert.equal(geotag.id, 'geotag'); assert.equal(geotagNamed.id, 'geotag-named');
+});

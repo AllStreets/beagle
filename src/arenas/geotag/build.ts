@@ -4,7 +4,7 @@
 import { createHash } from 'node:crypto';
 import { open } from '../../store.ts';
 import { cachedJson } from '../../http.ts';
-import { parseDay } from './parse.ts';
+import { parseDay, hidePlaces, type Item } from './parse.ts';
 
 const WP = 'https://en.wikipedia.org/w/api.php';
 const WD = 'https://www.wikidata.org/w/api.php';
@@ -82,27 +82,29 @@ export async function buildGeotag(o: BuildOptions): Promise<{ counts: Record<str
   const before = labelled.filter(d => d < o.sealedFrom && parsed.has(d));
   const cut = Math.max(1, Math.round(before.length * (o.breedingShare ?? .75)));
   const splitOf = (d: string) => d >= o.sealedFrom ? 'sealed' : before.indexOf(d) < cut ? 'breeding' : 'race';
-  type Row = { id: string; split: string; text: string; date: string; links: string[]; truth: ReturnType<typeof truthOf> | null };
+  type Row = { id: string; split: string; text: string; hidden: string; date: string; links: string[]; truth: ReturnType<typeof truthOf> | null };
+  // every linked place is hidden, the countries that contain the truth included
+  const hide = (it: Item) => hidePlaces(it, new Set(it.links.filter(l => places.has(l))));
   const rows: Row[] = [];
   for (const d of labelled) for (const it of parsed.get(d) ?? []) {
     const truth = truthOf(it.links, places); if (!truth.length) continue;
-    rows.push({ id: '', split: splitOf(d), text: it.text, date: d, links: it.links, truth });
+    rows.push({ id: '', split: splitOf(d), text: it.text, hidden: hide(it), date: d, links: it.links, truth });
   }
   const sealedTexts = new Set(rows.filter(r => r.split === 'sealed').map(r => sameText(r.text)));
   for (const d of pool) for (const it of parsed.get(d) ?? []) {
     if (!truthOf(it.links, places).length || sealedTexts.has(sameText(it.text))) continue;
-    rows.push({ id: '', split: 'pool', text: it.text, date: d, links: it.links, truth: null });
+    rows.push({ id: '', split: 'pool', text: it.text, hidden: hide(it), date: d, links: it.links, truth: null });
   }
   // one row per item per day, even if a day repeats a line
   const seen = new Set<string>();
   const unique = rows.filter(r => { r.id = createHash('sha1').update(r.date + '\n' + r.text).digest('hex').slice(0, 16); return !seen.has(r.id) && seen.add(r.id); });
 
-  const hash = createHash('sha256').update(unique.map(r => `${r.id}|${r.split}|${r.text}|${JSON.stringify(r.truth)}`).sort().join('\n')).digest('hex');
+  const hash = createHash('sha256').update(unique.map(r => `${r.id}|${r.split}|${r.text}|${r.hidden}|${JSON.stringify(r.truth)}`).sort().join('\n')).digest('hex');
   const db = open();
   db.exec('begin');
   db.prepare(`delete from tasks where arena = 'geotag'`).run();
   const put = db.prepare('insert into tasks (id, arena, split, input, truth, meta) values (?, ?, ?, ?, ?, ?)');
-  for (const r of unique) put.run(r.id, 'geotag', r.split, JSON.stringify({ text: r.text, date: r.date }), r.truth ? JSON.stringify({ places: r.truth }) : null, JSON.stringify({ date: r.date, links: r.links }));
+  for (const r of unique) put.run(r.id, 'geotag', r.split, JSON.stringify({ text: r.text, hidden: r.hidden, date: r.date }), r.truth ? JSON.stringify({ places: r.truth }) : null, JSON.stringify({ date: r.date, links: r.links }));
   db.prepare(`insert or replace into arenas (id, name, version, hash, built_at) values ('geotag', 'Geotagging headlines', ?, ?, ?)`).run(`${o.from}..${o.to}; sealed from ${o.sealedFrom}; pool ${o.poolFrom}..${o.poolTo}`, hash, new Date().toISOString());
   db.exec('commit');
   const counts: Record<string, number> = { breeding: 0, race: 0, sealed: 0, pool: 0 };

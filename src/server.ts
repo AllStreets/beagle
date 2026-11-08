@@ -12,7 +12,7 @@ import * as ledger from './ledger.ts';
 import { startVoyage, race, getVoyage, summarize, type RaceEvent } from './race.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { starters } from './arenas/geotag/starters.ts';
-import { getArena } from './arenas/index.ts';
+import { getArena, dataOf } from './arenas/index.ts';
 import type { Genome } from './genome.ts';
 
 export const PORT = Number(process.env.BEAGLE_PORT ?? 4750);
@@ -59,12 +59,12 @@ const routes: Route[] = [
   ['GET', /^\/api\/settings$/, () => getSettings()],
   ['POST', /^\/api\/settings$/, async (_m, req) => { try { return saveSettings(await body(req)); } catch (e) { throw new Http(400, (e as Error).message); } }],
   ['GET', /^\/api\/arenas\/([^/]+)\/sample$/, m => {
-    const a = getArena(m[1]), db = open();
-    const counts = Object.fromEntries((db.prepare('select split, count(*) n from tasks where arena = ? group by split').all(a.id) as { split: string; n: number }[]).map(r => [r.split, r.n]));
-    const info = db.prepare('select hash, version, built_at from arenas where id = ?').get(a.id) ?? null;
+    const a = getArena(m[1]), db = open(), data = dataOf(a.id);
+    const counts = Object.fromEntries((db.prepare('select split, count(*) n from tasks where arena = ? group by split').all(data) as { split: string; n: number }[]).map(r => [r.split, r.n]));
+    const info = db.prepare('select hash, version, built_at from arenas where id = ?').get(data) ?? null;
     // a sample from the race split only: the sealed test's contents are never served
-    const tasks = (db.prepare(`select id, input, truth from tasks where arena = ? and split = 'race' order by id limit 12`).all(a.id) as { id: string; input: string; truth: string }[]).map(t => ({ id: t.id, input: json(t.input, null), truth: json(t.truth, null) }));
-    return { id: a.id, name: a.name, describe: a.describe, counts, info, tasks };
+    const tasks = (db.prepare(`select id, input, truth from tasks where arena = ? and split = 'race' order by id limit 12`).all(data) as { id: string; input: string; truth: string }[]).map(t => ({ id: t.id, input: json(t.input, null), truth: json(t.truth, null) }));
+    return { id: a.id, name: a.name, describe: a.describe, counts, info, tasks: tasks.map(t => ({ ...t, shown: a.show(t.input) })) };
   }],
   ['GET', /^\/api\/voyages$/, () => (open().prepare('select * from voyages order by started_at desc').all() as { id: string; settings: string }[]).map(v => ({ ...v, settings: json(v.settings, {}), spent: ledger.spent(v.id), racing: racing.has(v.id) }))],
   ['POST', /^\/api\/voyages$/, async (_m, req) => { const b = await body(req); const v = startVoyage(b.arena ?? 'geotag', b.raceTasks ? { raceTasks: Number(b.raceTasks) } : {}); return v; }],
