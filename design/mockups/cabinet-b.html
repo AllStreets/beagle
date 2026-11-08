@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beagle, concept B: the plate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root { --paper: #efe7d3; --ink: #2a2118; --soft: #6a5a44; --faint: #9a8a70; --rule: rgba(42,33,24,.55); }
+  html, body { margin: 0; background: #d9cfb8; color: var(--ink); font: 17px/1.5 "EB Garamond", serif; }
+  body { padding: 18px; }
+  .sheet { position: relative; max-width: 1400px; margin: 0 auto; background: var(--paper); padding: 26px 34px 22px; box-shadow: 0 1px 0 rgba(0,0,0,.08), 0 24px 50px -30px rgba(40,25,10,.6); }
+  .sheet::before { content: ""; position: absolute; inset: 0; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .2 0 0 0 0 .1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .frame { border: 1.5px solid var(--rule); outline: .5px solid var(--rule); outline-offset: 4px; padding: 20px 28px 16px; }
+  header { display: grid; grid-template-columns: 1fr auto; align-items: end; border-bottom: .5px solid var(--rule); padding-bottom: 14px; margin-bottom: 22px; }
+  h1 { font: 400 36px/1.1 "IM Fell English", serif; margin: 0; }
+  h1 i { font-style: italic; }
+  header p { margin: 6px 0 0; color: var(--soft); font-style: italic; }
+  header .voyage { text-align: right; color: var(--soft); font-size: 15px; }
+  main { display: grid; grid-template-columns: 1fr 290px; gap: 40px; }
+  .figs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px 22px; }
+  figure { margin: 0; cursor: pointer; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { font-size: 14.5px; line-height: 1.3; margin-top: 0; }
+  figcaption .row { display: flex; justify-content: space-between; align-items: baseline; }
+  figcaption .big { font: 500 22px "EB Garamond", serif; font-variant-numeric: lining-nums; }
+  figcaption b { font: 400 17px "IM Fell English", serif; }
+  figcaption .score { font-variant-numeric: lining-nums tabular-nums; font-weight: 500; }
+  figcaption .soft { color: var(--soft); font-style: italic; }
+  figure:hover b, figure:focus-visible b { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: .5px; }
+  figure:focus-visible { outline: 1px dotted var(--ink); outline-offset: 6px; }
+  h2 { font: 400 20px "IM Fell English", serif; margin: 14px 0 4px; border-top: .5px solid var(--rule); padding-top: 14px; }
+  .controls { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px 22px; }
+  aside { font-size: 16.5px; }
+  aside .now { font: 400 26px/1.25 "IM Fell English", serif; margin: 0 0 12px; }
+  aside p { margin: 0 0 12px; }
+  aside .key { border-top: .5px solid var(--rule); padding-top: 12px; margin-top: 18px; }
+  aside .key div { display: grid; grid-template-columns: 54px 1fr; align-items: center; gap: 8px; margin: 6px 0; font-size: 15px; line-height: 1.3; }
+  aside .seal { border-top: .5px solid var(--rule); padding-top: 12px; margin-top: 18px; font-size: 14px; color: var(--soft); }
+  aside .seal code { font: 14px "EB Garamond", serif; color: var(--ink); word-break: break-all; letter-spacing: .02em; }
+  footer { margin-top: 18px; display: flex; justify-content: space-between; color: var(--faint); font-size: 14px; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="sheet"><div class="frame">
+  <header>
+    <div><h1>Plate I. <i>The first generation</i></h1><p id="sub"></p></div>
+    <div class="voyage" id="voyage"></div>
+  </header>
+  <main>
+    <div><div class="figs" id="figs"></div><h2>Controls</h2><div class="controls" id="controls"></div></div>
+    <aside id="aside"></aside>
+  </main>
+  <footer><span>Drawn from the race as it stood; every figure is a real agent and every number a count of real runs.</span><span id="when"></span></footer>
+</div></div>
+<script type="module">
+const D = await (await fetch('data.json')).json();
+const pct = x => Math.round(x * 100);
+const INK = '#2a2118', SOFT = '#6a5a44';
+// a seeded generator, so a figure is drawn the same way every time
+const rng = s => { let a = s >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+const hash = s => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0;
+// Each figure is the agent's anatomy: its workflow is the body, the gazetteer is a crown of
+// spines, worked examples are seeds around it, the model sets how densely it is engraved.
+function figure(e, i) {
+  const r = rng(hash(e.genome)), cx = 110, cy = 92, W = 220, H = 196;
+  const dense = /sonnet/.test(e.model) ? 1 : /haiku/.test(e.model) ? .7 : /claude/.test(e.model) ? .7 : e.model === 'none' ? .25 : .45;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${e.name}">`;
+  const hatch = (x, y, rad) => { let h = ''; const n = Math.round(10 + 22 * dense); for (let k = 0; k < n; k++) { const a = r() * Math.PI * 2, d = rad * Math.sqrt(r()), x1 = x + Math.cos(a) * d, y1 = y + Math.sin(a) * d; h += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${(x1 + 3 + r() * 3).toFixed(1)}" y2="${(y1 + 2 + r() * 2).toFixed(1)}" stroke="${INK}" stroke-width=".55" opacity=".6"/>`; } return h; };
+  // an outline that wobbles a little, as a hand-cut line does
+  const blob = (x, y, rad, w = 1.1) => { let d = ''; const n = 64, ph = r() * 6, amp = rad * .035; for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2, rr = rad + Math.sin(a * 5 + ph) * amp + Math.sin(a * 3 - ph) * amp * .6; d += `${k ? 'L' : 'M'}${(x + Math.cos(a) * rr).toFixed(2)},${(y + Math.sin(a) * rr).toFixed(2)}`; } return `<path d="${d}Z" fill="none" stroke="${INK}" stroke-width="${w}"/>`; };
+  // stippling: dense on the side away from the light (upper left), thinning toward it
+  const stipple = (x, y, rad, n) => { let h = ''; for (let k = 0; k < n; k++) { const a = r() * Math.PI * 2, d = rad * Math.sqrt(r()), px = x + Math.cos(a) * d, py = y + Math.sin(a) * d; const shade = ((px - x) + (py - y)) / (2 * rad) + .5; if (r() < shade * shade) h += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(.35 + r() * .35).toFixed(2)}" fill="${INK}"/>`; } return h; };
+  const cell = (x, y, rad) => {
+    let h = blob(x, y, rad) + blob(x, y, rad * .93, .4);
+    const septa = Math.round(8 + dense * 8);
+    for (let k = 0; k < septa; k++) { const a = k / septa * Math.PI * 2 + r() * .1; h += `<line x1="${(x + Math.cos(a) * rad * .36).toFixed(1)}" y1="${(y + Math.sin(a) * rad * .36).toFixed(1)}" x2="${(x + Math.cos(a) * rad * .9).toFixed(1)}" y2="${(y + Math.sin(a) * rad * .9).toFixed(1)}" stroke="${INK}" stroke-width=".45" opacity=".85"/>`; }
+    h += blob(x, y, rad * .34, .8) + stipple(x, y, rad * .3, Math.round(30 + 60 * dense)) + stipple(x, y, rad * .92, Math.round(120 + 260 * dense));
+    return h;
+  };
+  const shape = e.shape;
+  // the gazetteer: a crown of fine tapering spines, each with a small knob
+  if (e.tools?.includes('lookup_place')) for (let k = 0; k < 22; k++) { const a = k / 22 * Math.PI * 2 + r() * .05, r0 = 33, r1 = 50 + (k % 2) * 9 + r() * 3, x1 = cx + Math.cos(a) * r1, y1 = cy + Math.sin(a) * r1; s += `<path d="M${(cx + Math.cos(a - .03) * r0).toFixed(1)},${(cy + Math.sin(a - .03) * r0).toFixed(1)} L${x1.toFixed(1)},${y1.toFixed(1)} L${(cx + Math.cos(a + .03) * r0).toFixed(1)},${(cy + Math.sin(a + .03) * r0).toFixed(1)}" fill="${INK}" opacity=".8"/><circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="1.1" fill="${INK}"/>`; }
+  if (shape === 'single') s += cell(cx, cy, 28);
+  if (shape === 'plan-then-answer') { s += cell(cx - 20, cy + 8, 18) + cell(cx + 16, cy - 10, 24); s += `<line x1="${cx - 6}" y1="${cy}" x2="${cx + 2}" y2="${cy - 4}" stroke="${INK}" stroke-width="2"/>`; }
+  if (shape === 'self-check') { s += cell(cx, cy, 21) + blob(cx, cy, 33, 1.2) + blob(cx, cy, 37, .5); for (let k = 0; k < 40; k++) { const a = k / 40 * Math.PI * 2; s += `<line x1="${(cx + Math.cos(a) * 33).toFixed(1)}" y1="${(cy + Math.sin(a) * 33).toFixed(1)}" x2="${(cx + Math.cos(a) * 37).toFixed(1)}" y2="${(cy + Math.sin(a) * 37).toFixed(1)}" stroke="${INK}" stroke-width=".4"/>`; } }
+  if (shape === 'vote') for (let k = 0; k < (e.n ?? 3); k++) { const a = k / (e.n ?? 3) * Math.PI * 2 - Math.PI / 2; s += cell(cx + Math.cos(a) * 20, cy + Math.sin(a) * 20, 15); }
+  if (shape === 'baseline') s += `<rect x="${cx - 22}" y="${cy - 22}" width="44" height="44" fill="none" stroke="${INK}" stroke-width="1.1" transform="rotate(${r() * 30} ${cx} ${cy})"/>${hatch(cx, cy, 16)}`;
+  for (let k = 0; k < (e.examples ?? 0); k++) { const a = k / e.examples * Math.PI * 2 + .3; s += `<ellipse cx="${cx + Math.cos(a) * 62}" cy="${cy + Math.sin(a) * 54}" rx="3.2" ry="2.2" fill="${INK}" transform="rotate(${a * 57} ${cx + Math.cos(a) * 62} ${cy + Math.sin(a) * 54})"/>`; }
+  // the scale bar: 0 to 100, engraved ticks, the score as a filled bar, the interval as a fine line above it
+  const x0 = 26, x1 = W - 26, y = 172, at = v => x0 + (x1 - x0) * v;
+  s += `<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${INK}" stroke-width=".7"/>`;
+  for (let t = 0; t <= 10; t++) s += `<line x1="${at(t / 10)}" y1="${y}" x2="${at(t / 10)}" y2="${y + (t % 5 ? 3 : 6)}" stroke="${INK}" stroke-width=".6"/>`;
+  s += `<rect x="${x0}" y="${y - 6}" width="${(x1 - x0) * e.mean}" height="5" fill="${INK}"/>`;
+  s += `<line x1="${at(e.lo)}" y1="${y - 10}" x2="${at(e.hi)}" y2="${y - 10}" stroke="${INK}" stroke-width=".8"/><line x1="${at(e.lo)}" y1="${y - 12.5}" x2="${at(e.lo)}" y2="${y - 7.5}" stroke="${INK}" stroke-width=".8"/><line x1="${at(e.hi)}" y1="${y - 12.5}" x2="${at(e.hi)}" y2="${y - 7.5}" stroke="${INK}" stroke-width=".8"/>`;
+  s += `<text x="${x0}" y="${y + 19}" font-family="EB Garamond" font-size="10.5" fill="${SOFT}">0</text><text x="${x1}" y="${y + 19}" font-family="EB Garamond" font-size="10.5" fill="${SOFT}" text-anchor="end">100</text>`;
+  return s + '</svg>';
+}
+const genomes = D.entrants.filter(e => e.kind === 'genome'), controls = D.entrants.filter(e => e.kind === 'baseline');
+const cap = (e, n) => `<figcaption><div><b>${n}.</b> ${e.name}</div><div class="row"><span class="big">${pct(e.mean)}</span><span class="soft">${pct(e.lo)} to ${pct(e.hi)}</span></div><div class="soft">${e.within25} of ${e.ran} within 25 km</div></figcaption>`;
+document.getElementById('figs').innerHTML = genomes.map((e, i) => `<figure tabindex="0">${figure(e, i)}${cap(e, `Fig. ${i + 1}`)}</figure>`).join('');
+document.getElementById('controls').innerHTML = controls.map((e, i) => `<figure tabindex="0">${figure(e, i)}${cap(e, ['A', 'B', 'C'][i])}</figure>`).join('');
+document.getElementById('sub').textContent = `Twelve agents and three controls, set to say where the news happened with every place name hidden.`;
+document.getElementById('voyage').innerHTML = `Voyage ${D.voyage.id}<br>${D.runs} of ${D.expected} runs, $${D.voyage.spent.toFixed(2)} of $${D.voyage.capGeneration}`;
+document.getElementById('when').textContent = `Generation one of ${5}`;
+const lead = genomes[0];
+const key = [
+  ['single', 'One look: it reads the item and answers.'], ['plan-then-answer', 'Plans first, then answers.'], ['self-check', 'Checks its own answer before giving it.'], ['vote', 'Answers several times and takes the middle.'],
+].map(([shape, text]) => `<div>${figure({ genome: shape, shape, n: 3, tools: [], examples: 0, model: 'claude:x', mean: 0, lo: 0, hi: 0 }).replace(/<line x1="26"[\s\S]*$/, '</svg>').replace('viewBox="0 0 220 196"', 'viewBox="50 30 120 125"')}<span>${text}</span></div>`).join('')
+  + `<div>${figure({ genome: 'spines', shape: 'single', tools: ['lookup_place'], examples: 4, model: 'claude:x', mean: 0, lo: 0, hi: 0 }).replace(/<line x1="26"[\s\S]*$/, '</svg>').replace('viewBox="0 0 220 196"', 'viewBox="40 22 140 140"')}<span>Spines: it may look places up in the gazetteer. Seeds: worked examples it was shown.</span></div>`;
+document.getElementById('aside').innerHTML = `
+  <p class="now">The first generation is racing.</p>
+  <p>${lead.name} leads. It has put ${lead.within25} of the ${lead.ran} items it has seen within 25 km of where they happened.</p>
+  <p>The bar under each figure is its score out of 100, and the fine line above it the range the score could truly lie in, given how few items it has seen so far.</p>
+  <p class="soft">An agent only counts as good if it beats the controls: a random point, the gazetteer alone, and one plain question to Claude.</p>
+  <div class="key">${key}</div>
+  <div class="seal">The sealed test, fingerprinted before the voyage began: <code>${D.voyage.sealed_hash}</code></div>`;
+</script>
+</body>
+</html>

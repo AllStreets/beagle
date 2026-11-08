@@ -122,3 +122,15 @@ test('two voyages racing the same starters each keep their own genomes', async (
   await R.race(v2.id, 0, [g('shared')], { baselines: false });
   for (const v of [v1, v2]) assert.equal((store_.prepare('select count(*) n from genomes where voyage = ? and id = ?').get(v.id, 'shared') as { n: number }).n, 1, `voyage ${v.id} lost its genome`);
 });
+
+test('the controls see the task exactly as the agents do', async () => {
+  const { baselines } = await import('../src/baselines.ts');
+  const seen: string[] = [];
+  M.setDriver(async (_p, _n, turns) => { seen.push(turns.map(t => t.content).join('\n')); return { text: '{"action":"answer","answer":{"lat":1,"lon":1}}', usd: 0, ms: 1 }; });
+  const task = { id: 't', input: { text: 'A car drives into a crowd in Mannheim, Germany.', hidden: 'A car drives into a crowd in [place], [place].', date: '2025-03-03' } };
+  for (const b of baselines('geotag')) {
+    const r = await b.answer(task);
+    if (b.name === 'gazetteer alone') assert.equal(r.answer, null, 'with every place hidden there is nothing to look up');
+  }
+  assert.ok(seen.length && seen.every(s => !s.includes('Mannheim') && s.includes('[place]')), 'Claude was shown the hidden text');
+});

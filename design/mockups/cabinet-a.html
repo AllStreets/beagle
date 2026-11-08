@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beagle, concept A: the specimen cabinet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:#0d0a07;overflow:hidden}#stage{position:fixed;inset:0}</style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module">
+import { THREE, room, fonts, canvas, mahogany, paperStock, wrap, grain, rng, data, FELL, FELL_SC, GARAMOND, pct } from './kit.js';
+await fonts();
+const D = await data();
+const R = room(document.getElementById('stage'), { background: '#14110d' });
+const { scene, tex } = R;
+
+// the wall: dark green distemper, a little uneven
+const wallC = canvas(1024, 1024, (k, w, h, r) => { k.fillStyle = '#232b26'; k.fillRect(0, 0, w, h); for (let i = 0; i < 1400; i++) { k.strokeStyle = `rgba(${r() < .5 ? '0,0,0' : '255,255,255'},${.012 + r() * .02})`; k.lineWidth = 1 + r() * 3; const x = r() * w, y = r() * h; k.beginPath(); k.moveTo(x, y); k.lineTo(x + (r() - .5) * 6, y + 20 + r() * 60); k.stroke(); } grain(k, w, h, 7, r); });
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(14, 8), new THREE.MeshStandardMaterial({ map: tex(wallC, { repeat: [2, 1.2] }), roughness: .95 }));
+wall.position.set(0, 1.2, -.5); wall.receiveShadow = true; scene.add(wall);
+
+const wood = new THREE.MeshPhysicalMaterial({ map: tex(mahogany(), { repeat: [1, 1] }), color: '#8a7068', roughness: .5, clearcoat: .25, clearcoatRoughness: .45 });
+const brass = new THREE.MeshPhysicalMaterial({ color: '#b08a4a', metalness: 1, roughness: .32 });
+const baizeC = canvas(256, 256, (k, w, h, r) => { k.fillStyle = '#1d3326'; k.fillRect(0, 0, w, h); grain(k, w, h, 22, r); });
+const baize = new THREE.MeshStandardMaterial({ map: tex(baizeC, { repeat: [6, 4] }), roughness: 1 });
+
+// the cabinet: frame, back, shelves, glazing
+const W = 3.4, H = 2.5, Dp = .5, cab = new THREE.Group(); scene.add(cab);
+const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = b.receiveShadow = true; cab.add(b); return b; };
+box(W + .16, .1, Dp + .08, wood, 0, H + .05, 0);              // top
+box(W + .26, .08, Dp + .14, wood, 0, H + .14, .02);            // cornice
+box(W + .16, .14, Dp + .08, wood, 0, -.07, 0);                 // base
+box(.08, H, Dp, wood, -W / 2 - .04, H / 2, 0); box(.08, H, Dp, wood, W / 2 + .04, H / 2, 0);
+const back = new THREE.Mesh(new THREE.PlaneGeometry(W, H), baize); back.position.set(0, H / 2, -Dp / 2 + .01); back.receiveShadow = true; cab.add(back);
+const shelfY = [1.78, 1.02, .3];
+for (const y of shelfY) { box(W, .035, Dp - .04, wood, 0, y - .0175, 0); const edge = box(W, .07, .02, wood, 0, y - .03, Dp / 2 - .03); }
+// glass doors: two panes with thin bars, almost invisible except where they catch the light
+// thin reflective glass, not transmission: a transmissive pane would hide every transparent jar behind it
+const glass = new THREE.MeshPhysicalMaterial({ color: '#ffffff', metalness: 0, roughness: .02, transparent: true, opacity: .025, clearcoat: 1, clearcoatRoughness: .02, envMapIntensity: 1.6, depthWrite: false });
+for (const s of [-1, 1]) {
+  const pane = new THREE.Mesh(new THREE.PlaneGeometry(W / 2 - .04, H - .06), glass); pane.position.set(s * W / 4, H / 2, Dp / 2 + .02); cab.add(pane);
+  box(.035, H - .02, .03, wood, s * (W / 2 - .02), H / 2, Dp / 2 + .025); box(.035, H - .02, .03, wood, s * .018, H / 2, Dp / 2 + .025);
+  for (const y of shelfY.slice(0, 2)) box(W / 2 - .04, .035, .02, wood, s * W / 4, y - .02, Dp / 2 + .025);
+}
+const knob = new THREE.Mesh(new THREE.SphereGeometry(.022, 16, 12), brass); knob.position.set(.06, H / 2, Dp / 2 + .05); cab.add(knob);
+
+// a jar per entrant: the fluid level is its score; what floats inside is how it works
+const glassJar = new THREE.MeshPhysicalMaterial({ color: '#e9f2ec', roughness: .05, metalness: 0, transparent: true, opacity: .1, clearcoat: .6, clearcoatRoughness: .05, specularIntensity: .6, envMapIntensity: .45, side: THREE.FrontSide, depthWrite: false });
+const fluid = new THREE.MeshPhysicalMaterial({ vertexColors: true, color: '#ffffff', roughness: .2, metalness: 0, transparent: true, opacity: .72, envMapIntensity: .2, emissive: '#5c2c04', emissiveIntensity: .35, depthWrite: false });
+const rimM = new THREE.MeshPhysicalMaterial({ color: '#eaf3ee', roughness: .05, transparent: true, opacity: .55, clearcoat: 1 });
+const bone = new THREE.MeshPhysicalMaterial({ color: '#eae0c8', roughness: .55, sheen: .3 });
+const corkC = canvas(128, 128, (k, w, h, r) => { k.fillStyle = '#9a7449'; k.fillRect(0, 0, w, h); for (let i = 0; i < 900; i++) { k.fillStyle = `rgba(${r() < .5 ? '60,40,20' : '200,160,110'},${.2 + r() * .3})`; k.fillRect(r() * w, r() * h, 1 + r() * 3, 1 + r() * 3); } });
+const cork = new THREE.MeshStandardMaterial({ map: tex(corkC), roughness: .95 });
+function specimen(shape, n) {
+  const g = new THREE.Group(), ball = (r, x, y) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), bone); m.position.set(x, y, 0); m.castShadow = true; g.add(m); };
+  if (shape === 'single') ball(.035, 0, 0);
+  if (shape === 'plan-then-answer') { ball(.026, -.03, -.02); ball(.032, .028, .025); const rod = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .07), bone); rod.rotation.z = -.95; g.add(rod); }
+  if (shape === 'self-check') { const t = new THREE.Mesh(new THREE.TorusGeometry(.034, .009, 12, 40), bone); t.rotation.x = .5; g.add(t); ball(.016, 0, 0); }
+  if (shape === 'vote') for (let i = 0; i < (n ?? 3); i++) { const a = i / (n ?? 3) * Math.PI * 2; ball(.019, Math.cos(a) * .03, Math.sin(a) * .03); }
+  if (shape === 'baseline') { const c = new THREE.Mesh(new THREE.BoxGeometry(.04, .04, .04), bone); c.rotation.set(.6, .7, 0); g.add(c); }
+  return g;
+}
+function jar(e, x, y) {
+  const jh = .4, jr = .11, g = new THREE.Group(); g.position.set(x, y, .02); cab.add(g);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(jr, jr, jh, 48, 1, true), glassJar); body.position.y = jh / 2; body.renderOrder = 2; g.add(body);
+  for (const yy of [.006, jh - .004]) { const rim = new THREE.Mesh(new THREE.TorusGeometry(jr, .0045, 8, 48), rimM); rim.rotation.x = Math.PI / 2; rim.position.y = yy; g.add(rim); }
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(jr, jr, .012, 48), rimM); base.position.y = .006; g.add(base);
+  const bottom = new THREE.Mesh(new THREE.CircleGeometry(jr, 48), glassJar); bottom.rotation.x = -Math.PI / 2; bottom.position.y = .004; g.add(bottom);
+  const lvl = Math.max(.012, e.mean * (jh - .06));
+  // darker at the sides, where the eye looks through more spirit, and lighter through the middle
+  const fg = new THREE.CylinderGeometry(jr - .006, jr - .006, lvl, 64, 4), fp = fg.attributes.position, fc = new Float32Array(fp.count * 3);
+  const edge = new THREE.Color('#3e1c03'), mid = new THREE.Color('#d08a26'), c = new THREE.Color();
+  for (let i = 0; i < fp.count; i++) { const t = 1 - Math.abs(fp.getX(i)) / (jr - .006), up = (fp.getY(i) + lvl / 2) / lvl; c.copy(edge).lerp(mid, Math.pow(Math.max(0, t), .55) * (.82 + .18 * up)); fc.set([c.r, c.g, c.b], i * 3); }
+  fg.setAttribute('color', new THREE.BufferAttribute(fc, 3));
+  const f = new THREE.Mesh(fg, fluid); f.position.y = lvl / 2 + .012; f.renderOrder = 1; g.add(f);
+  const meniscus = new THREE.Mesh(new THREE.CircleGeometry(jr - .006, 48), new THREE.MeshPhysicalMaterial({ color: '#b8701c', roughness: .02, clearcoat: 1, transparent: true, opacity: .7 })); meniscus.rotation.x = -Math.PI / 2; meniscus.position.y = lvl + .012; g.add(meniscus);
+  const s = specimen(e.shape, e.n); s.position.y = Math.min(lvl, jh * .55) * .55 + .05; g.add(s);
+  const stop = new THREE.Mesh(new THREE.CylinderGeometry(jr * .78, jr * .7, .07, 32), cork); stop.position.y = jh + .025; stop.castShadow = true; g.add(stop);
+  return g;
+}
+// the brass label strip under each jar: number, name and score, set like a museum label
+function label(e, i, x, y) {
+  const c = canvas(560, 220, (k, w, h, r) => {
+    k.drawImage(paperStock(560, 220, 20 + i), 0, 0);
+    k.fillStyle = '#2a2118'; k.font = `28px ${FELL_SC}`; k.fillText(e.kind === 'baseline' ? 'Control' : `Specimen ${genomes.indexOf(e) + 1}`, 22, 40);
+    k.font = `40px ${FELL}`; wrap(k, e.name, 22, 88, 330, 42, 2);
+    k.textAlign = 'right'; k.font = `500 76px ${GARAMOND}`; k.fillText(pct(e.mean), w - 22, 102);
+    k.font = `italic 24px ${GARAMOND}`; k.fillStyle = '#5b4a35'; k.fillText(`${pct(e.lo)} to ${pct(e.hi)}`, w - 22, 136);
+    k.textAlign = 'left'; k.font = `italic 25px ${GARAMOND}`; k.fillText(`${e.within25} of ${e.ran} within 25 km`, 22, 198);
+  }, 30 + i);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(.4, .157, .006), [brass, brass, brass, brass, new THREE.MeshStandardMaterial({ map: tex(c), roughness: .85 }), brass]);
+  plate.position.set(x, y - .135, Dp / 2 - .005); cab.add(plate);
+  const rim = new THREE.Mesh(new THREE.BoxGeometry(.416, .173, .004), brass); rim.position.set(x, y - .135, Dp / 2 - .01); cab.add(rim);
+}
+const genomes = D.entrants.filter(e => e.kind === 'genome'), controls = D.entrants.filter(e => e.kind === 'baseline');
+const rows = [genomes.slice(0, 6), genomes.slice(6, 12), controls];
+rows.forEach((row, ri) => row.forEach((e, ci) => {
+  // three jars behind each door, clear of the centre bar; the controls sit together on the right
+  const x = row.length === 6 ? (ci < 3 ? -(1.26 - ci * .48) : .3 + (ci - 3) * .48) : .3 + ci * .48;
+  jar(e, x, shelfY[ri]);
+  label(e, D.entrants.indexOf(e), x, shelfY[ri]);
+}));
+
+// the card on the wall: what is happening, in plain words, and the sealed fingerprint
+const lead = genomes[0];
+const card = canvas(900, 1180, (k, w, h) => {
+  k.drawImage(paperStock(900, 1180, 77), 0, 0);
+  k.fillStyle = '#2a2118'; k.font = `40px ${FELL_SC}`; k.fillText('The Beagle', 70, 110);
+  k.font = `italic 30px ${GARAMOND}`; k.fillStyle = '#5b4a35'; k.fillText(`Voyage ${D.voyage.id}`, 70, 156);
+  k.strokeStyle = 'rgba(60,40,20,.4)'; k.lineWidth = 2; k.beginPath(); k.moveTo(70, 196); k.lineTo(w - 70, 196); k.stroke();
+  k.fillStyle = '#2a2118'; k.font = `52px ${FELL}`;
+  let y = wrap(k, D.generation === 0 ? 'The first generation is racing.' : `Generation ${D.generation + 1} is racing.`, 70, 290, w - 140, 62);
+  k.font = `40px ${GARAMOND}`;
+  y = wrap(k, `${lead.name} leads: it has put ${lead.within25} of ${lead.ran} news items within 25 km of where they happened, with every place name hidden.`, 70, y + 20, w - 140, 54);
+  y = wrap(k, `${D.runs} of ${D.expected} runs are in. $${D.voyage.spent.toFixed(2)} spent of $${D.voyage.capGeneration} for this generation.`, 70, y + 26, w - 140, 54);
+  k.font = `italic 30px ${GARAMOND}`; k.fillStyle = '#5b4a35';
+  y = wrap(k, 'The bottom shelf holds the controls: a random point, the gazetteer alone, and one plain question to Claude. An agent only counts as good if it beats them.', 70, y + 30, w - 140, 42);
+  k.strokeStyle = 'rgba(60,40,20,.4)'; k.beginPath(); k.moveTo(70, h - 210); k.lineTo(w - 70, h - 210); k.stroke();
+  k.fillStyle = '#5b4a35'; k.font = `26px ${GARAMOND}`; k.fillText('The sealed test, fingerprinted before the voyage began:', 70, h - 160);
+  k.font = `24px ${GARAMOND}`; k.fillStyle = '#2a2118'; k.fillText(D.voyage.sealed_hash.slice(0, 32), 70, h - 118); k.fillText(D.voyage.sealed_hash.slice(32), 70, h - 84);
+}, 9);
+const cardM = new THREE.Mesh(new THREE.BoxGeometry(.9, 1.18, .01), [wood, wood, wood, wood, new THREE.MeshStandardMaterial({ map: tex(card), roughness: .9 }), wood]);
+cardM.position.set(-W / 2 - .75, 1.45, -.42); cardM.castShadow = true; scene.add(cardM);
+const frame = new THREE.Mesh(new THREE.BoxGeometry(.98, 1.26, .03), wood); frame.position.set(-W / 2 - .75, 1.45, -.44); scene.add(frame);
+
+// light: a gallery lamp from above and left, warm; a cool fill
+scene.add(new THREE.HemisphereLight('#d9d0bf', '#0b0907', .25));
+const lamp = new THREE.SpotLight('#ffe2b8', 70, 0, .7, .65, 1.4); lamp.position.set(-2.4, 4.6, 4); lamp.target.position.set(0, 1.2, 0); scene.add(lamp.target);
+lamp.castShadow = true; lamp.shadow.radius = 8; lamp.shadow.mapSize.set(2048, 2048); lamp.shadow.bias = -.0002; lamp.shadow.normalBias = .02; scene.add(lamp);
+const fill = new THREE.DirectionalLight('#aebfd6', .35); fill.position.set(4, 2, 3); scene.add(fill);
+const inside = new THREE.RectAreaLight ? null : null;
+
+R.fit(-.55, 1.28, 0, 5.1, 2.9, .05);
+R.renderer.setAnimationLoop(() => R.render());
+</script>
+</body>
+</html>

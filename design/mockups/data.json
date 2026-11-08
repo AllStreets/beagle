@@ -1,0 +1,392 @@
+{
+ "voyage": {
+  "id": "v-2026-11-08-e1e972",
+  "sealed_hash": "d80cff280ec80a1aaf29d9ddd1ee40277a5657e7954aed4a5cd17bd5688d3cb4",
+  "spent": 0.3279962,
+  "cap": 25,
+  "capGeneration": 5,
+  "started_at": "2026-11-08T18:28:08.190Z",
+  "raceTasks": 40
+ },
+ "arena": {
+  "name": "Where did it happen? (places hidden)",
+  "counts": {
+   "breeding": 4383,
+   "pool": 5764,
+   "race": 1873,
+   "sealed": 722
+  },
+  "describe": "You are given one news item from Wikipedia's Current Events, with its date. Every place it names has been replaced with [place]. Work out where on Earth it happened from everything else in it, and answer with a latitude and longitude. Answers within 25 km score full marks; the score falls with distance to nothing at 2,500 km."
+ },
+ "generation": 0,
+ "runs": 49,
+ "expected": 600,
+ "common": 3,
+ "entrants": [
+  {
+   "genome": "starter-sonnet-plain",
+   "mean": 1,
+   "lo": 1,
+   "hi": 1,
+   "usd": 0.0182936,
+   "ms": 4547,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 1,
+   "name": "Sonnet, one look",
+   "kind": "genome",
+   "model": "claude:claude-sonnet-5",
+   "shape": "single",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 4,
+   "ran": 4
+  },
+  {
+   "genome": "starter-sonnet-plan",
+   "mean": 1,
+   "lo": 1,
+   "hi": 1,
+   "usd": 0.0420268,
+   "ms": 9085,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 2,
+   "name": "Sonnet, plans first",
+   "kind": "genome",
+   "model": "claude:claude-sonnet-5",
+   "shape": "plan-then-answer",
+   "n": null,
+   "tools": [
+    "lookup_place"
+   ],
+   "examples": 0,
+   "within25": 3,
+   "ran": 3
+  },
+  {
+   "genome": "baseline:one Claude call",
+   "mean": 0.987056743491132,
+   "lo": 0.961170230473396,
+   "hi": 1,
+   "usd": 0.008284,
+   "ms": 3553,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 1,
+   "name": "one Claude call",
+   "kind": "baseline",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "baseline",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 2,
+   "ran": 3
+  },
+  {
+   "genome": "starter-haiku-gazetteer",
+   "mean": 0.9046509095867958,
+   "lo": 0.7403929750793892,
+   "hi": 1,
+   "usd": 0.036632,
+   "ms": 11437,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 2,
+   "name": "Haiku with the gazetteer",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "single",
+   "n": null,
+   "tools": [
+    "lookup_place"
+   ],
+   "examples": 0,
+   "within25": 1,
+   "ran": 4
+  },
+  {
+   "genome": "starter-haiku-vote",
+   "mean": 0.8993516049869975,
+   "lo": 0.6980548149609924,
+   "hi": 1,
+   "usd": 0.063546,
+   "ms": 29208,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 3,
+   "name": "Haiku, three votes",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "vote",
+   "n": 3,
+   "tools": [],
+   "examples": 0,
+   "within25": 2,
+   "ran": 3
+  },
+  {
+   "genome": "baseline:gazetteer alone",
+   "mean": 0.8883402896748834,
+   "lo": 0.6650208690246501,
+   "hi": 1,
+   "usd": 0,
+   "ms": 1,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 1,
+   "name": "gazetteer alone",
+   "kind": "baseline",
+   "model": "none",
+   "shape": "baseline",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 2,
+   "ran": 3
+  },
+  {
+   "genome": "starter-haiku-careful",
+   "mean": 0.8840139206706507,
+   "lo": 0.698051006693358,
+   "hi": 1,
+   "usd": 0.021422,
+   "ms": 10124,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 2,
+   "name": "Haiku, careful",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "single",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 1,
+   "ran": 4
+  },
+  {
+   "genome": "starter-haiku-check",
+   "mean": 0.8834469590909112,
+   "lo": 0.6984636925065706,
+   "hi": 1,
+   "usd": 0.061182,
+   "ms": 22678,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 3,
+   "name": "Haiku, checks its work",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "self-check",
+   "n": null,
+   "tools": [
+    "lookup_place"
+   ],
+   "examples": 0,
+   "within25": 1,
+   "ran": 3
+  },
+  {
+   "genome": "starter-haiku-examples",
+   "mean": 0.83035160456364,
+   "lo": 0.7403929750793892,
+   "hi": 1,
+   "usd": 0.017159,
+   "ms": 8142,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 2,
+   "name": "Haiku with four examples",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "single",
+   "n": null,
+   "tools": [],
+   "examples": 4,
+   "within25": 1,
+   "ran": 3
+  },
+  {
+   "genome": "starter-haiku-plain",
+   "mean": 0.7855480613537553,
+   "lo": 0.6585931773679079,
+   "hi": 1,
+   "usd": 0.024142999999999998,
+   "ms": 11318,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 3,
+   "name": "Haiku, one look",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "single",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 2,
+   "ran": 4
+  },
+  {
+   "genome": "starter-llama-careful",
+   "mean": 0.47858271221953874,
+   "lo": 0.2094657980224044,
+   "hi": 0.6393243384460752,
+   "usd": 0,
+   "ms": 694,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 2,
+   "name": "Llama 8B, careful",
+   "kind": "genome",
+   "model": "ollama:llama3.1:8b",
+   "shape": "single",
+   "n": null,
+   "tools": [],
+   "examples": 2,
+   "within25": 0,
+   "ran": 3
+  },
+  {
+   "genome": "starter-qwen-plain",
+   "mean": 0.36482248934024053,
+   "lo": 0.11339181978127555,
+   "hi": 0.5090007169679949,
+   "usd": 0,
+   "ms": 381,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 2,
+   "name": "Qwen 1.7B, one look",
+   "kind": "genome",
+   "model": "ollama:qwen3:1.7b",
+   "shape": "single",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 0,
+   "ran": 3
+  },
+  {
+   "genome": "starter-qwen-gazetteer",
+   "mean": 0.27655351362414343,
+   "lo": 0.05815817250619271,
+   "hi": 0.5170400668285285,
+   "usd": 0,
+   "ms": 532,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 3,
+   "name": "Qwen 1.7B with the gazetteer",
+   "kind": "genome",
+   "model": "ollama:qwen3:1.7b",
+   "shape": "single",
+   "n": null,
+   "tools": [
+    "lookup_place"
+   ],
+   "examples": 0,
+   "within25": 0,
+   "ran": 3
+  },
+  {
+   "genome": "baseline:random point",
+   "mean": 0.01174529819128082,
+   "lo": 0,
+   "hi": 0.03523589457384246,
+   "usd": 0,
+   "ms": 0,
+   "tasks": 3,
+   "noAnswer": 0,
+   "pareto": 1,
+   "name": "random point",
+   "kind": "baseline",
+   "model": "none",
+   "shape": "baseline",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 0,
+   "ran": 3
+  },
+  {
+   "genome": "starter-llama-gazetteer",
+   "mean": 0,
+   "lo": 0,
+   "hi": 0,
+   "usd": 0,
+   "ms": 3314,
+   "tasks": 3,
+   "noAnswer": 3,
+   "pareto": 4,
+   "name": "Llama 8B with the gazetteer",
+   "kind": "genome",
+   "model": "ollama:llama3.1:8b",
+   "shape": "single",
+   "n": null,
+   "tools": [
+    "lookup_place"
+   ],
+   "examples": 2,
+   "within25": 0,
+   "ran": 3
+  }
+ ],
+ "microscope": {
+  "genome": {
+   "id": "starter-sonnet-plain",
+   "name": "Sonnet, one look",
+   "model": "claude:claude-sonnet-5",
+   "instructions": "Read the news item and say where it happened, as the latitude and longitude of the most specific place it names: the town if a town is named, otherwise the region, otherwise the country.",
+   "tools": [],
+   "workflow": {
+    "shape": "single"
+   },
+   "memory": {
+    "examples": 0
+   }
+  },
+  "run": {
+   "task": {
+    "text": "A HAL Dhruv helicopter of the Indian Coast Guard crashes during a training flight in Porbandar, Gujarat, India, killing all the three crew members.",
+    "hidden": "A HAL Dhruv helicopter of the Indian Coast Guard crashes during a training flight in [place], [place], [place], killing all the three crew members.",
+    "date": "2025-01-05"
+   },
+   "shown": "A HAL Dhruv helicopter of the Indian Coast Guard crashes during a training flight in [place], [place], [place], killing all the three crew members.",
+   "answer": {
+    "lat": 21.6417,
+    "lon": 69.6293
+   },
+   "truth": {
+    "places": [
+     {
+      "name": "Porbandar",
+      "qid": "Q6419912",
+      "lat": 21.6425,
+      "lon": 69.604722222222
+     },
+     {
+      "name": "Gujarat",
+      "qid": "Q1061",
+      "lat": 23.156444444444446,
+      "lon": 71.838
+     }
+    ]
+   },
+   "score": 1,
+   "trace": [
+    {
+     "kind": "model",
+     "input": "2025-01-05\nA HAL Dhruv helicopter of the Indian Coast Guard crashes during a training flight in [place], [place], [place], killing all the three crew members.",
+     "output": "{\"action\":\"answer\",\"answer\":{\"lat\":21.6417,\"lon\":69.6293}}",
+     "usd": 0.0044048,
+     "ms": 5347
+    }
+   ],
+   "usd": 0.0044048,
+   "ms": 5347
+  }
+ }
+}
