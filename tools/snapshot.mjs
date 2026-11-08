@@ -23,3 +23,20 @@ writeFileSync('design/mockups/data.json', JSON.stringify({
   entrants, microscope: { genome: byId.get(leader.genome)?.genome, run: { task: run.task.input, shown: run.task.input.hidden, answer: run.answer, truth: run.task.truth, score: run.score, trace: run.trace, usd: run.usd, ms: run.ms } },
 }, null, 1));
 console.log(`${entrants.length} entrants, ${gen.runs} of ${gen.expected} runs, leader ${leader.name} at ${Math.round(leader.mean * 100)}`);
+
+// one task every entrant answered, with every answer, for the chart
+const counts = new Map();
+const perEntrant = {};
+for (const e of entrants) { const rs = await get(`/voyages/${V}/runs?generation=0&genome=${encodeURIComponent(e.genome)}`); perEntrant[e.genome] = rs; for (const r of rs) counts.set(r.task, (counts.get(r.task) ?? 0) + 1); }
+const shared = [...counts].filter(([, n]) => n === entrants.length).map(([t]) => t);
+// the most telling task: the one where scores spread the most
+let best = null, spread = -1;
+for (const t of shared) { const sc = entrants.map(e => perEntrant[e.genome].find(r => r.task === t).score); const sp = Math.max(...sc) - Math.min(...sc); if (sp > spread) { spread = sp; best = t; } }
+if (best) {
+  const answers = [];
+  for (const e of entrants) { const r = perEntrant[e.genome].find(x => x.task === best); const full = await get(`/runs/${r.id}`); answers.push({ genome: e.genome, name: e.name, kind: e.kind, answer: full.answer, score: full.score, status: full.status }); if (!globalThis.taskFull) globalThis.taskFull = full.task; }
+  const d = JSON.parse((await import('node:fs')).readFileSync('design/mockups/data.json', 'utf8'));
+  d.chart = { task: globalThis.taskFull, answers };
+  writeFileSync('design/mockups/data.json', JSON.stringify(d, null, 1));
+  console.log(`chart task: ${globalThis.taskFull.input.hidden.slice(0, 90)}  (truth ${globalThis.taskFull.truth.places.map(p => p.name).join(', ')})`);
+}

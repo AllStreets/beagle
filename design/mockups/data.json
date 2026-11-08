@@ -2,7 +2,7 @@
  "voyage": {
   "id": "v-2026-11-08-e1e972",
   "sealed_hash": "d80cff280ec80a1aaf29d9ddd1ee40277a5657e7954aed4a5cd17bd5688d3cb4",
-  "spent": 1.8726138,
+  "spent": 2.1137054,
   "cap": 25,
   "capGeneration": 5,
   "started_at": "2026-11-08T18:28:08.190Z",
@@ -19,19 +19,20 @@
   "describe": "You are given one news item from Wikipedia's Current Events, with its date. Every place it names has been replaced with [place]. Work out where on Earth it happened from everything else in it, and answer with a latitude and longitude. Answers within 25 km score full marks; the score falls with distance to nothing at 2,500 km."
  },
  "generation": 0,
- "runs": 211,
+ "runs": 246,
  "expected": 600,
- "common": 4,
+ "common": 16,
  "entrants": [
   {
    "genome": "starter-sonnet-plain",
-   "mean": 1,
-   "lo": 1,
-   "hi": 1,
-   "usd": 0.0226984,
-   "ms": 4747,
-   "tasks": 4,
+   "mean": 0.7813548434189902,
+   "lo": 0.5996260244979279,
+   "hi": 0.933894213750153,
+   "usd": 0.087532,
+   "ms": 5447,
+   "tasks": 16,
    "noAnswer": 0,
+   "within": 11,
    "pareto": 1,
    "name": "Sonnet, one look",
    "kind": "genome",
@@ -45,13 +46,14 @@
   },
   {
    "genome": "starter-sonnet-plan",
-   "mean": 1,
-   "lo": 1,
-   "hi": 1,
-   "usd": 0.055681,
-   "ms": 9745,
-   "tasks": 4,
-   "noAnswer": 0,
+   "mean": 0.7601446756169805,
+   "lo": 0.5544097097492862,
+   "hi": 0.9375,
+   "usd": 0.27281000000000005,
+   "ms": 15229,
+   "tasks": 16,
+   "noAnswer": 1,
+   "within": 11,
    "pareto": 2,
    "name": "Sonnet, plans first",
    "kind": "genome",
@@ -62,121 +64,20 @@
     "lookup_place"
    ],
    "examples": 0,
-   "within25": 10,
-   "ran": 15
-  },
-  {
-   "genome": "starter-haiku-plain",
-   "mean": 0.8391610460153165,
-   "lo": 0.678322092030633,
-   "hi": 1,
-   "usd": 0.030827999999999998,
-   "ms": 10550,
-   "tasks": 4,
-   "noAnswer": 0,
-   "pareto": 2,
-   "name": "Haiku, one look",
-   "kind": "genome",
-   "model": "claude:claude-haiku-4-5",
-   "shape": "single",
-   "n": null,
-   "tools": [],
-   "examples": 0,
-   "within25": 5,
-   "ran": 16
-  },
-  {
-   "genome": "starter-haiku-gazetteer",
-   "mean": 0.7068068785419801,
-   "lo": 0.3283460274758991,
-   "hi": 0.9867798768404992,
-   "usd": 0.051377,
-   "ms": 11559,
-   "tasks": 4,
-   "noAnswer": 0,
-   "pareto": 3,
-   "name": "Haiku with the gazetteer",
-   "kind": "genome",
-   "model": "claude:claude-haiku-4-5",
-   "shape": "single",
-   "n": null,
-   "tools": [
-    "lookup_place"
-   ],
-   "examples": 0,
-   "within25": 5,
-   "ran": 16
-  },
-  {
-   "genome": "starter-haiku-vote",
-   "mean": 0.7028324000921313,
-   "lo": 0.3349560890556495,
-   "hi": 1,
-   "usd": 0.08665,
-   "ms": 30149,
-   "tasks": 4,
-   "noAnswer": 0,
-   "pareto": 4,
-   "name": "Haiku, three votes",
-   "kind": "genome",
-   "model": "claude:claude-haiku-4-5",
-   "shape": "vote",
-   "n": 3,
-   "tools": [],
-   "examples": 0,
-   "within25": 5,
-   "ran": 15
-  },
-  {
-   "genome": "starter-haiku-careful",
-   "mean": 0.6914897969247914,
-   "lo": 0.3239357580950587,
-   "hi": 0.9769953776592969,
-   "usd": 0.030895,
-   "ms": 10918,
-   "tasks": 4,
-   "noAnswer": 0,
-   "pareto": 3,
-   "name": "Haiku, careful",
-   "kind": "genome",
-   "model": "claude:claude-haiku-4-5",
-   "shape": "single",
-   "n": null,
-   "tools": [],
-   "examples": 0,
-   "within25": 4,
-   "ran": 16
-  },
-  {
-   "genome": "starter-haiku-examples",
-   "mean": 0.6834714241303946,
-   "lo": 0.36978862177587657,
-   "hi": 0.9350982437698473,
-   "usd": 0.03904600000000001,
-   "ms": 14731,
-   "tasks": 4,
-   "noAnswer": 0,
-   "pareto": 4,
-   "name": "Haiku with four examples",
-   "kind": "genome",
-   "model": "claude:claude-haiku-4-5",
-   "shape": "single",
-   "n": null,
-   "tools": [],
-   "examples": 4,
-   "within25": 3,
+   "within25": 11,
    "ran": 16
   },
   {
    "genome": "starter-haiku-check",
-   "mean": 0.6625852193181834,
-   "lo": 0.23796929619154075,
-   "hi": 0.9759385923830814,
-   "usd": 0.081955,
-   "ms": 22060,
-   "tasks": 4,
-   "noAnswer": 0,
-   "pareto": 5,
+   "mean": 0.6632447998121282,
+   "lo": 0.4672875283144262,
+   "hi": 0.8433581915260489,
+   "usd": 0.421548,
+   "ms": 29566,
+   "tasks": 16,
+   "noAnswer": 1,
+   "within": 7,
+   "pareto": 3,
    "name": "Haiku, checks its work",
    "kind": "genome",
    "model": "claude:claude-haiku-4-5",
@@ -190,34 +91,122 @@
    "ran": 16
   },
   {
-   "genome": "baseline:one Claude call",
-   "mean": 0.4406578699275466,
-   "lo": 0.05719011535282814,
-   "hi": 0.824125624502265,
-   "usd": 0.026015,
-   "ms": 11141,
-   "tasks": 4,
+   "genome": "starter-haiku-plain",
+   "mean": 0.6576872232310679,
+   "lo": 0.49837063876701254,
+   "hi": 0.806962162434908,
+   "usd": 0.120158,
+   "ms": 10720,
+   "tasks": 16,
    "noAnswer": 1,
+   "within": 5,
    "pareto": 2,
-   "name": "one Claude call",
-   "kind": "baseline",
+   "name": "Haiku, one look",
+   "kind": "genome",
    "model": "claude:claude-haiku-4-5",
-   "shape": "baseline",
+   "shape": "single",
    "n": null,
    "tools": [],
    "examples": 0,
-   "within25": 1,
-   "ran": 4
+   "within25": 5,
+   "ran": 16
+  },
+  {
+   "genome": "starter-haiku-careful",
+   "mean": 0.6574749911989991,
+   "lo": 0.48691566435047773,
+   "hi": 0.8162198965227502,
+   "usd": 0.124036,
+   "ms": 11171,
+   "tasks": 16,
+   "noAnswer": 0,
+   "within": 4,
+   "pareto": 3,
+   "name": "Haiku, careful",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "single",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 4,
+   "ran": 16
+  },
+  {
+   "genome": "starter-haiku-examples",
+   "mean": 0.6381208350687319,
+   "lo": 0.48805778970859987,
+   "hi": 0.7777914355134568,
+   "usd": 0.16776,
+   "ms": 16182,
+   "tasks": 16,
+   "noAnswer": 0,
+   "within": 3,
+   "pareto": 4,
+   "name": "Haiku with four examples",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "single",
+   "n": null,
+   "tools": [],
+   "examples": 4,
+   "within25": 3,
+   "ran": 16
+  },
+  {
+   "genome": "starter-haiku-vote",
+   "mean": 0.6326513005308085,
+   "lo": 0.4498216481666319,
+   "hi": 0.807584010929845,
+   "usd": 0.38208099999999995,
+   "ms": 34250,
+   "tasks": 16,
+   "noAnswer": 1,
+   "within": 6,
+   "pareto": 5,
+   "name": "Haiku, three votes",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "vote",
+   "n": 3,
+   "tools": [],
+   "examples": 0,
+   "within25": 6,
+   "ran": 16
+  },
+  {
+   "genome": "starter-haiku-gazetteer",
+   "mean": 0.626668016047607,
+   "lo": 0.44100963340951777,
+   "hi": 0.8049594889369822,
+   "usd": 0.263111,
+   "ms": 18658,
+   "tasks": 16,
+   "noAnswer": 0,
+   "within": 5,
+   "pareto": 5,
+   "name": "Haiku with the gazetteer",
+   "kind": "genome",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "single",
+   "n": null,
+   "tools": [
+    "lookup_place"
+   ],
+   "examples": 0,
+   "within25": 5,
+   "ran": 16
   },
   {
    "genome": "starter-llama-careful",
-   "mean": 0.3891883621423218,
-   "lo": 0.1652355549665377,
-   "hi": 0.6131411693181059,
+   "mean": 0.5537148232054628,
+   "lo": 0.3781537001224823,
+   "hi": 0.7291842792919636,
    "usd": 0,
-   "ms": 663,
-   "tasks": 4,
+   "ms": 620,
+   "tasks": 16,
    "noAnswer": 0,
+   "within": 4,
    "pareto": 1,
    "name": "Llama 8B, careful",
    "kind": "genome",
@@ -231,13 +220,14 @@
   },
   {
    "genome": "starter-qwen-plain",
-   "mean": 0.3549294310974108,
-   "lo": 0.20306259765381943,
-   "hi": 0.490537824119723,
+   "mean": 0.3876096355681863,
+   "lo": 0.23785316136932594,
+   "hi": 0.5459673807447155,
    "usd": 0,
-   "ms": 358,
-   "tasks": 4,
+   "ms": 383,
+   "tasks": 16,
    "noAnswer": 0,
+   "within": 1,
    "pareto": 1,
    "name": "Qwen 1.7B, one look",
    "kind": "genome",
@@ -251,13 +241,14 @@
   },
   {
    "genome": "starter-qwen-gazetteer",
-   "mean": 0.28891249592507545,
-   "lo": 0.12511599008661242,
-   "hi": 0.4513956255058237,
+   "mean": 0.3647826151947429,
+   "lo": 0.22368929444919616,
+   "hi": 0.5145486822307148,
    "usd": 0,
-   "ms": 514,
-   "tasks": 4,
+   "ms": 551,
+   "tasks": 16,
    "noAnswer": 0,
+   "within": 0,
    "pareto": 2,
    "name": "Qwen 1.7B with the gazetteer",
    "kind": "genome",
@@ -272,14 +263,36 @@
    "ran": 16
   },
   {
+   "genome": "baseline:one Claude call",
+   "mean": 0.33539736855732316,
+   "lo": 0.1321487644191035,
+   "hi": 0.5562643072010027,
+   "usd": 0.11879600000000001,
+   "ms": 10678,
+   "tasks": 16,
+   "noAnswer": 9,
+   "within": 4,
+   "pareto": 3,
+   "name": "one Claude call",
+   "kind": "baseline",
+   "model": "claude:claude-haiku-4-5",
+   "shape": "baseline",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 4,
+   "ran": 16
+  },
+  {
    "genome": "baseline:gazetteer alone",
-   "mean": 0.16625521725616252,
-   "lo": 0,
-   "hi": 0.49876565176848753,
+   "mean": 0.17678424802843856,
+   "lo": 0.020440887428795837,
+   "hi": 0.36428424802843856,
    "usd": 0,
    "ms": 1,
-   "tasks": 4,
-   "noAnswer": 3,
+   "tasks": 16,
+   "noAnswer": 11,
+   "within": 2,
    "pareto": 1,
    "name": "gazetteer alone",
    "kind": "baseline",
@@ -288,38 +301,19 @@
    "n": null,
    "tools": [],
    "examples": 0,
-   "within25": 1,
-   "ran": 9
-  },
-  {
-   "genome": "baseline:random point",
-   "mean": 0.008808973643460616,
-   "lo": 0,
-   "hi": 0.026426920930381848,
-   "usd": 0,
-   "ms": 0,
-   "tasks": 4,
-   "noAnswer": 0,
-   "pareto": 1,
-   "name": "random point",
-   "kind": "baseline",
-   "model": "none",
-   "shape": "baseline",
-   "n": null,
-   "tools": [],
-   "examples": 0,
-   "within25": 0,
-   "ran": 9
+   "within25": 2,
+   "ran": 16
   },
   {
    "genome": "starter-llama-gazetteer",
-   "mean": 0,
+   "mean": 0.0625,
    "lo": 0,
-   "hi": 0,
+   "hi": 0.1875,
    "usd": 0,
-   "ms": 3261,
-   "tasks": 4,
-   "noAnswer": 4,
+   "ms": 3573,
+   "tasks": 16,
+   "noAnswer": 14,
+   "within": 1,
    "pareto": 3,
    "name": "Llama 8B with the gazetteer",
    "kind": "genome",
@@ -331,7 +325,28 @@
    ],
    "examples": 2,
    "within25": 1,
-   "ran": 15
+   "ran": 16
+  },
+  {
+   "genome": "baseline:random point",
+   "mean": 0.002202243410865154,
+   "lo": 0,
+   "hi": 0.006606730232595462,
+   "usd": 0,
+   "ms": 0,
+   "tasks": 16,
+   "noAnswer": 0,
+   "within": 0,
+   "pareto": 1,
+   "name": "random point",
+   "kind": "baseline",
+   "model": "none",
+   "shape": "baseline",
+   "n": null,
+   "tools": [],
+   "examples": 0,
+   "within25": 0,
+   "ran": 16
   }
  ],
  "microscope": {
@@ -382,5 +397,516 @@
    "usd": 0.004582800000000001,
    "ms": 4507
   }
+ },
+ "chart": {
+  "task": {
+   "id": "0dd1275341adf04b",
+   "split": "race",
+   "input": {
+    "text": "Six Israeli soldiers from the Golani Brigade are killed in a three-hour gun battle with Hezbollah militants in southern Lebanon.",
+    "hidden": "Six Israeli soldiers from the Golani Brigade are killed in a three-hour gun battle with Hezbollah militants in [place].",
+    "date": "2024-11-13"
+   },
+   "truth": {
+    "places": [
+     {
+      "name": "southern Lebanon",
+      "qid": "Q1480109",
+      "lat": 33.196959,
+      "lon": 35.345341
+     }
+    ]
+   },
+   "meta": {
+    "date": "2024-11-13",
+    "links": [
+     "Israel Defense Forces",
+     "Golani Brigade",
+     "Shootout",
+     "Hezbollah",
+     "southern Lebanon"
+    ]
+   }
+  },
+  "answers": [
+   {
+    "genome": "starter-sonnet-plain",
+    "name": "Sonnet, one look",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.2333,
+     "lon": 35.5833
+    },
+    "score": 1,
+    "status": "done"
+   },
+   {
+    "genome": "starter-sonnet-plan",
+    "name": "Sonnet, plans first",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.196959,
+     "lon": 35.345341
+    },
+    "score": 1,
+    "status": "done"
+   },
+   {
+    "genome": "starter-haiku-check",
+    "name": "Haiku, checks its work",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.33,
+     "lon": 35.27
+    },
+    "score": 1,
+    "status": "done"
+   },
+   {
+    "genome": "starter-haiku-plain",
+    "name": "Haiku, one look",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.35,
+     "lon": 35.4
+    },
+    "score": 1,
+    "status": "done"
+   },
+   {
+    "genome": "starter-haiku-careful",
+    "name": "Haiku, careful",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.2,
+     "lon": 35.4
+    },
+    "score": 1,
+    "status": "done"
+   },
+   {
+    "genome": "starter-haiku-examples",
+    "name": "Haiku with four examples",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.31,
+     "lon": 35.79
+    },
+    "score": 0.8811481750574961,
+    "status": "done"
+   },
+   {
+    "genome": "starter-haiku-vote",
+    "name": "Haiku, three votes",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.25,
+     "lon": 35.35
+    },
+    "score": 1,
+    "status": "done"
+   },
+   {
+    "genome": "starter-haiku-gazetteer",
+    "name": "Haiku with the gazetteer",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.145,
+     "lon": 35.195
+    },
+    "score": 1,
+    "status": "done"
+   },
+   {
+    "genome": "starter-llama-careful",
+    "name": "Llama 8B, careful",
+    "kind": "genome",
+    "answer": {
+     "lat": 33,
+     "lon": 35
+    },
+    "score": 0.9039027937792823,
+    "status": "done"
+   },
+   {
+    "genome": "starter-qwen-plain",
+    "name": "Qwen 1.7B, one look",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.5473,
+     "lon": 35.3453
+    },
+    "score": 0.9036817343910366,
+    "status": "done"
+   },
+   {
+    "genome": "starter-qwen-gazetteer",
+    "name": "Qwen 1.7B with the gazetteer",
+    "kind": "genome",
+    "answer": {
+     "lat": 33.5343,
+     "lon": 35.2742
+    },
+    "score": 0.9085757687427506,
+    "status": "done"
+   },
+   {
+    "genome": "baseline:one Claude call",
+    "name": "one Claude call",
+    "kind": "baseline",
+    "answer": null,
+    "score": 0,
+    "status": "no-answer"
+   },
+   {
+    "genome": "baseline:gazetteer alone",
+    "name": "gazetteer alone",
+    "kind": "baseline",
+    "answer": null,
+    "score": 0,
+    "status": "no-answer"
+   },
+   {
+    "genome": "starter-llama-gazetteer",
+    "name": "Llama 8B with the gazetteer",
+    "kind": "genome",
+    "answer": null,
+    "score": 0,
+    "status": "no-answer"
+   },
+   {
+    "genome": "baseline:random point",
+    "name": "random point",
+    "kind": "baseline",
+    "answer": {
+     "lat": -7.955421848521068,
+     "lon": 131.05511309579015
+    },
+    "score": 0,
+    "status": "done"
+   }
+  ],
+  "towns": [
+   {
+    "name": "Israel",
+    "country": "IL",
+    "lat": 32.10223239728965,
+    "lon": 34.98040073138815,
+    "population": 9361469,
+    "kind": "country"
+   },
+   {
+    "name": "Jordan",
+    "country": "JO",
+    "lat": 32.026707319217216,
+    "lon": 35.953969749307454,
+    "population": 5359461,
+    "kind": "country"
+   },
+   {
+    "name": "Lebanon",
+    "country": "LB",
+    "lat": 33.86461899652231,
+    "lon": 35.53831847521773,
+    "population": 4592966,
+    "kind": "country"
+   },
+   {
+    "name": "Beirut",
+    "country": "LB",
+    "lat": 33.89332,
+    "lon": 35.50157,
+    "population": 1916100,
+    "kind": "city"
+   },
+   {
+    "name": "Damascus",
+    "country": "SY",
+    "lat": 33.5102,
+    "lon": 36.29128,
+    "population": 1569394,
+    "kind": "city"
+   },
+   {
+    "name": "Ra’s Bayrūt",
+    "country": "LB",
+    "lat": 33.9,
+    "lon": 35.48333,
+    "population": 1251739,
+    "kind": "city"
+   },
+   {
+    "name": "Zarqa",
+    "country": "JO",
+    "lat": 32.07275,
+    "lon": 36.08796,
+    "population": 792665,
+    "kind": "city"
+   },
+   {
+    "name": "Irbid",
+    "country": "JO",
+    "lat": 32.55556,
+    "lon": 35.85,
+    "population": 569068,
+    "kind": "city"
+   },
+   {
+    "name": "Tel Aviv",
+    "country": "IL",
+    "lat": 32.08088,
+    "lon": 34.78057,
+    "population": 432892,
+    "kind": "city"
+   },
+   {
+    "name": "Haifa",
+    "country": "IL",
+    "lat": 32.81303,
+    "lon": 34.99928,
+    "population": 285316,
+    "kind": "city"
+   },
+   {
+    "name": "Petaẖ Tiqva",
+    "country": "IL",
+    "lat": 32.0888,
+    "lon": 34.88666,
+    "population": 270403,
+    "kind": "city"
+   },
+   {
+    "name": "Russeifa",
+    "country": "JO",
+    "lat": 32.01778,
+    "lon": 36.04639,
+    "population": 268237,
+    "kind": "city"
+   },
+   {
+    "name": "Bnei Brak",
+    "country": "IL",
+    "lat": 32.08074,
+    "lon": 34.8338,
+    "population": 229996,
+    "kind": "city"
+   },
+   {
+    "name": "Netanya",
+    "country": "IL",
+    "lat": 32.33294,
+    "lon": 34.85917,
+    "population": 228204,
+    "kind": "city"
+   },
+   {
+    "name": "H̱olon",
+    "country": "IL",
+    "lat": 32.0122,
+    "lon": 34.77826,
+    "population": 191829,
+    "kind": "city"
+   },
+   {
+    "name": "Ramat Gan",
+    "country": "IL",
+    "lat": 32.08227,
+    "lon": 34.81065,
+    "population": 172242,
+    "kind": "city"
+   },
+   {
+    "name": "Sidon",
+    "country": "LB",
+    "lat": 33.55751,
+    "lon": 35.37148,
+    "population": 163554,
+    "kind": "city"
+   },
+   {
+    "name": "Ar Ramthā",
+    "country": "JO",
+    "lat": 32.55873,
+    "lon": 36.00816,
+    "population": 155693,
+    "kind": "city"
+   },
+   {
+    "name": "Ṣuwayliḥ",
+    "country": "JO",
+    "lat": 32.0221,
+    "lon": 35.84394,
+    "population": 151016,
+    "kind": "city"
+   },
+   {
+    "name": "Tyre",
+    "country": "LB",
+    "lat": 33.27333,
+    "lon": 35.19389,
+    "population": 135204,
+    "kind": "city"
+   },
+   {
+    "name": "Nablus",
+    "country": "PS",
+    "lat": 32.22111,
+    "lon": 35.25444,
+    "population": 130326,
+    "kind": "city"
+   },
+   {
+    "name": "Aley",
+    "country": "LB",
+    "lat": 33.80528,
+    "lon": 35.6,
+    "population": 130000,
+    "kind": "city"
+   },
+   {
+    "name": "Bat Yam",
+    "country": "IL",
+    "lat": 32.01798,
+    "lon": 34.75003,
+    "population": 129494,
+    "kind": "city"
+   },
+   {
+    "name": "‘Ajlūn",
+    "country": "JO",
+    "lat": 32.33326,
+    "lon": 35.75279,
+    "population": 125557,
+    "kind": "city"
+   },
+   {
+    "name": "Nabatîyé et Tahta",
+    "country": "LB",
+    "lat": 33.37889,
+    "lon": 35.48389,
+    "population": 120000,
+    "kind": "city"
+   },
+   {
+    "name": "Dūmā",
+    "country": "SY",
+    "lat": 33.57175,
+    "lon": 36.4027,
+    "population": 111864,
+    "kind": "city"
+   },
+   {
+    "name": "Herzliya",
+    "country": "IL",
+    "lat": 32.16627,
+    "lon": 34.82536,
+    "population": 110884,
+    "kind": "city"
+   },
+   {
+    "name": "Hadera",
+    "country": "IL",
+    "lat": 32.44192,
+    "lon": 34.9039,
+    "population": 107974,
+    "kind": "city"
+   },
+   {
+    "name": "As Salţ",
+    "country": "JO",
+    "lat": 32.03917,
+    "lon": 35.72722,
+    "population": 107874,
+    "kind": "city"
+   },
+   {
+    "name": "Jaffa",
+    "country": "IL",
+    "lat": 32.05043,
+    "lon": 34.75224,
+    "population": 100000,
+    "kind": "city"
+   },
+   {
+    "name": "al-Yarmūk",
+    "country": "SY",
+    "lat": 33.4699,
+    "lon": 36.3018,
+    "population": 99999,
+    "kind": "city"
+   },
+   {
+    "name": "Jaramānā",
+    "country": "SY",
+    "lat": 33.4862,
+    "lon": 36.34614,
+    "population": 99999,
+    "kind": "city"
+   },
+   {
+    "name": "Kfar Saba",
+    "country": "IL",
+    "lat": 32.175,
+    "lon": 34.90694,
+    "population": 99410,
+    "kind": "city"
+   },
+   {
+    "name": "Habboûch",
+    "country": "LB",
+    "lat": 33.40753,
+    "lon": 35.48177,
+    "population": 98433,
+    "kind": "city"
+   },
+   {
+    "name": "Dar‘ā",
+    "country": "SY",
+    "lat": 32.61889,
+    "lon": 36.10213,
+    "population": 97969,
+    "kind": "city"
+   },
+   {
+    "name": "Jounieh",
+    "country": "LB",
+    "lat": 33.98083,
+    "lon": 35.61778,
+    "population": 96315,
+    "kind": "city"
+   },
+   {
+    "name": "Ra'anana",
+    "country": "IL",
+    "lat": 32.1836,
+    "lon": 34.87386,
+    "population": 82964,
+    "kind": "city"
+   },
+   {
+    "name": "Rosh Ha‘Ayin",
+    "country": "IL",
+    "lat": 32.09547,
+    "lon": 34.95444,
+    "population": 79023,
+    "kind": "city"
+   },
+   {
+    "name": "Zahlé",
+    "country": "LB",
+    "lat": 33.84675,
+    "lon": 35.90203,
+    "population": 78145,
+    "kind": "city"
+   },
+   {
+    "name": "Nazareth",
+    "country": "IL",
+    "lat": 32.70087,
+    "lon": 35.29719,
+    "population": 77445,
+    "kind": "city"
+   }
+  ]
  }
 }

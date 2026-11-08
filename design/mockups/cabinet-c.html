@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beagle, concept C: the chart table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3-array@3.2.4/dist/d3-array.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-geo@3.1.1/dist/d3-geo.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<style>
+  :root { --sea: #e3d9bf; --land: #efe6cf; --ink: #241c14; --soft: #6a5a44; --red: #8f2a1c; --rule: rgba(36,28,20,.5); }
+  html, body { margin: 0; background: #2b2119; color: var(--ink); font: 17px/1.5 "EB Garamond", serif; }
+  .table { min-height: 100vh; box-sizing: border-box; padding: 26px; display: grid; grid-template-columns: 1fr 360px; gap: 26px;
+    background: radial-gradient(120% 90% at 30% 20%, #4a3424, #24190f 75%); }
+  .chart { position: relative; background: var(--sea); box-shadow: 0 2px 0 rgba(0,0,0,.25), 0 30px 60px -25px rgba(0,0,0,.8); padding: 18px; }
+  .chart::after { content: ""; position: absolute; inset: 0; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .2 0 0 0 0 .1 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .chart .border { border: 1.5px solid var(--rule); outline: .5px solid var(--rule); outline-offset: 3px; height: 100%; box-sizing: border-box; position: relative; }
+  svg.map { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
+  .chart { height: calc(100vh - 52px); box-sizing: border-box; }
+  .cartouche { position: absolute; left: 22px; top: 22px; width: 380px; background: var(--land); border: 1px solid var(--rule); outline: .5px solid var(--rule); outline-offset: 3px; padding: 14px 18px 12px; }
+  .cartouche .sc { font: 15px "IM Fell English SC", serif; letter-spacing: .02em; color: var(--soft); }
+  .cartouche h1 { font: 400 25px/1.2 "IM Fell English", serif; margin: 4px 0 8px; }
+  .cartouche h1 .ph { font-style: italic; color: var(--red); white-space: nowrap; }
+  .cartouche p { margin: 0; color: var(--soft); font-style: italic; font-size: 15px; }
+  .inset { position: absolute; right: 22px; bottom: 22px; width: 300px; background: var(--land); border: 1px solid var(--rule); padding: 6px; }
+  .inset .cap { font: 13px "IM Fell English SC", serif; color: var(--soft); padding: 2px 4px 4px; }
+  aside { color: #eadfc7; }
+  aside .card { background: var(--land); color: var(--ink); padding: 16px 18px; box-shadow: 0 20px 40px -20px rgba(0,0,0,.8); }
+  aside h2 { font: 400 22px "IM Fell English", serif; margin: 0 0 6px; }
+  aside .lede { margin: 0 0 12px; font-size: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  td { padding: 4px 0; border-top: .5px solid var(--rule); vertical-align: baseline; }
+  td.n { width: 22px; font: 14px "IM Fell English SC", serif; color: var(--soft); }
+  td.s { text-align: right; font-variant-numeric: lining-nums tabular-nums; font-weight: 500; width: 40px; }
+  td.k { text-align: right; color: var(--soft); font-style: italic; width: 76px; font-size: 14px; }
+  tr.ctl td { color: var(--soft); }
+  tr:hover td { background: rgba(143,42,28,.06); }
+  .seal { margin-top: 14px; font-size: 13.5px; color: #bfb196; }
+  .seal code { font: 13.5px "EB Garamond", serif; color: #eadfc7; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="table">
+  <div class="chart"><div class="border">
+    <svg class="map" id="map"></svg>
+    <div class="cartouche" id="cart"></div>
+    <div class="inset"><div class="cap">The whole field, every answer</div><svg id="world" width="288" height="150"></svg></div>
+  </div></div>
+  <aside><div class="card" id="card"></div><div class="seal" id="seal"></div></aside>
+</div>
+<script type="module">
+const D = await (await fetch('data.json')).json();
+const C = D.chart, truth = C.task.truth.places[0];
+const world = await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json')).json();
+const land = topojson.feature(world, world.objects.countries), borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b);
+const km = (a, b) => d3.geoDistance([a.lon, a.lat], [b.lon, b.lat]) * 6371;
+const answered = C.answers.filter(a => a.answer);
+const all = C.answers.map((a, i) => ({ ...a, i: i + 1, d: a.answer ? km(a.answer, truth) : null }));
+// the main chart: centred on the truth, wide enough to hold every answer within 300 km
+const near = all.filter(a => a.d !== null && a.d < 300);
+const svg = document.getElementById('map'), box = svg.parentElement.getBoundingClientRect(), W = Math.round(box.width), H = Math.round(box.height);
+svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+const close = near.filter(a => a.d < 80);
+const ring25 = d3.geoCircle().center([truth.lon, truth.lat]).radius(60 / 6371 * 180 / Math.PI)();
+const fitTo = { type: 'GeometryCollection', geometries: [ring25, { type: 'MultiPoint', coordinates: close.map(a => [a.answer.lon, a.answer.lat]) }] };
+const proj = d3.geoMercator().fitExtent([[W * .42, 60], [W - 60, H - 70]], fitTo);
+// clip to the frame, and leave out Antarctica, whose outline would otherwise fill the whole chart
+proj.clipExtent([[0, 0], [W, H]]);
+// a few shapes in the detailed data are wound backwards and claim the whole globe (the Maldives,
+// at this scale); anything larger than half the planet is such an error
+land.features = land.features.filter(f => f.properties?.name !== 'Antarctica' && d3.geoArea(f) < 2 * Math.PI);
+const path = d3.geoPath(proj);
+const g = (tag, attrs, parent = svg) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent.appendChild(e); return e; };
+// sea hatching near the coast, the way engraved charts shade water
+const defs = g('defs', {});
+const pat = g('pattern', { id: 'sea', width: 7, height: 7, patternUnits: 'userSpaceOnUse' }, defs); g('rect', { width: 7, height: 7, fill: '#d7ccad' }, pat); g('line', { x1: 0, y1: 3.5, x2: 7, y2: 3.5, stroke: 'rgba(36,28,20,.22)', 'stroke-width': .6 }, pat);
+g('rect', { width: W, height: H, fill: 'url(#sea)' });
+g('path', { d: path(d3.geoGraticule().step([1, 1])()), fill: 'none', stroke: 'rgba(36,28,20,.18)', 'stroke-width': .5 });
+// land, with a doubled coastline
+g('path', { d: path(land), fill: '#f1e9d4', stroke: '#241c14', 'stroke-width': 1.2 });
+g('path', { d: path(land), fill: 'none', stroke: 'rgba(36,28,20,.35)', 'stroke-width': 3.5, 'stroke-dasharray': '.6 2.2', transform: 'translate(0,0)' });
+g('path', { d: path(borders), fill: 'none', stroke: '#241c14', 'stroke-width': .7, 'stroke-dasharray': '4 2 1 2' });
+// real towns from Beagle's gazetteer: a small circle and a name, as charts mark ports and towns
+const visible = (lon, lat) => { const [x, y] = proj([lon, lat]); return x > 30 && x < W - 30 && y > 30 && y < H - 30 && !(x < W * .36 && y < H * .38) ? [x, y] : null; };
+// answers are marked first in spirit: a town name never sits on an answer's mark or its number
+const marks = near.map(a => proj([a.answer.lon, a.answer.lat]));
+const taken = [...marks.flatMap(([x, y]) => [[x, y], [x + 26, y - 18]])];
+// towns first, then country names wherever they fit; nothing under the cartouche or the inset
+const towns = (C.towns ?? []).filter(t => t.kind !== 'country').concat((C.towns ?? []).filter(t => t.kind === 'country'));
+const underInset = (x, y) => x > W - 360 && y > H - 330;
+for (const t of towns) {
+  if (/^Ra[’']s /.test(t.name)) continue;
+  const at = visible(t.lon, t.lat); if (!at) continue;
+  const [x, y] = at;
+  if (underInset(x + 40, y)) continue;
+  if (t.kind === 'country') { if (taken.some(([a, b]) => Math.hypot(a - x, b - y) < 120)) continue; const e = g('text', { x, y, 'text-anchor': 'middle', 'font-family': 'IM Fell English SC', 'font-size': 26, 'letter-spacing': '.12em', fill: 'rgba(36,28,20,.5)' }); e.textContent = t.name; continue; }
+  if (taken.some(([a, b]) => Math.hypot(a - x, b - y) < 60)) continue;
+  taken.push([x, y]);
+  g('circle', { cx: x, cy: y, r: 3, fill: 'none', stroke: '#241c14', 'stroke-width': .9 }); g('circle', { cx: x, cy: y, r: .9, fill: '#241c14' });
+  const e = g('text', { x: x + 6, y: y - 5, 'font-family': 'EB Garamond', 'font-style': 'italic', 'font-size': 15, fill: '#241c14', 'paint-order': 'stroke', stroke: '#f1e9d4', 'stroke-width': 3 }); e.textContent = t.name;
+}
+// distance rings around the truth: 25 km (full marks), 250 km (half), 2,500 km (nothing)
+const ring = (r, label) => { const c = d3.geoCircle().center([truth.lon, truth.lat]).radius(r / 6371 * 180 / Math.PI)(); g('path', { d: path(c), fill: 'none', stroke: '#8f2a1c', 'stroke-width': .9, 'stroke-dasharray': '5 3' }); const [x, y] = proj([truth.lon - r / (111.2 * Math.cos(truth.lat * Math.PI / 180)), truth.lat]); const t = g('text', { x: x - 8, y: y + 4, 'text-anchor': 'end', 'font-family': 'EB Garamond', 'font-style': 'italic', 'font-size': 15, fill: '#8f2a1c', 'paint-order': 'stroke', stroke: '#f1e9d4', 'stroke-width': 4 }); t.textContent = label; };
+ring(25, '25 km, full marks'); ring(250, '250 km, half marks');
+// the truth: an engraved star
+const [tx, ty] = proj([truth.lon, truth.lat]);
+let star = ''; for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, r = k % 2 ? 6 : 16; star += `${k ? 'L' : 'M'}${(tx + Math.cos(a) * r).toFixed(1)},${(ty + Math.sin(a) * r).toFixed(1)}`; }
+g('path', { d: star + 'Z', fill: '#8f2a1c', stroke: '#241c14', 'stroke-width': .6 });
+// each answer: a numbered mark; leader lines fan out so numbers never sit on top of each other
+const placed = [];
+for (const a of near) {
+  const [x, y] = proj([a.answer.lon, a.answer.lat]);
+  let lx = x + 26, ly = y - 18;
+  for (let tries = 0; tries < 40 && placed.some(p => Math.hypot(p[0] - lx, p[1] - ly) < 24); tries++) { const ang = tries * 2.4, rad = 26 + tries * 3; lx = x + Math.cos(ang) * rad; ly = y + Math.sin(ang) * rad; }
+  placed.push([lx, ly]);
+  g('line', { x1: x, y1: y, x2: lx, y2: ly, stroke: '#241c14', 'stroke-width': .6 });
+  g('circle', { cx: x, cy: y, r: 3.4, fill: a.kind === 'baseline' ? '#efe6cf' : '#241c14', stroke: '#241c14', 'stroke-width': .9 });
+  g('circle', { cx: lx, cy: ly, r: 10.5, fill: '#efe6cf', stroke: '#241c14', 'stroke-width': .8 });
+  const t = g('text', { x: lx, y: ly + 4.5, 'text-anchor': 'middle', 'font-family': 'IM Fell English', 'font-size': 13, fill: '#241c14' }); t.textContent = a.i;
+}
+// a scale bar and north arrow, as on any chart
+const s0 = proj([truth.lon, truth.lat]), s1 = proj([truth.lon + 20 / (111.2 * Math.cos(truth.lat * Math.PI / 180)), truth.lat]);
+const sx = W * .42, sy = H - 40, sw = s1[0] - s0[0];
+for (let k = 0; k < 4; k++) g('rect', { x: sx + k * sw / 4, y: sy, width: sw / 4, height: 6, fill: k % 2 ? '#efe6cf' : '#241c14', stroke: '#241c14', 'stroke-width': .6 });
+const sl = g('text', { x: sx, y: sy - 6, 'font-family': 'EB Garamond', 'font-size': 13, fill: '#241c14' }); sl.textContent = '0';
+const sr = g('text', { x: sx + sw, y: sy - 6, 'text-anchor': 'middle', 'font-family': 'EB Garamond', 'font-size': 13, fill: '#241c14' }); sr.textContent = '20 km';
+g('path', { d: `M${W - 70},${H - 120} L${W - 62},${H - 80} L${W - 70},${H - 88} L${W - 78},${H - 80} Z`, fill: '#241c14' });
+const nt = g('text', { x: W - 70, y: H - 126, 'text-anchor': 'middle', 'font-family': 'IM Fell English', 'font-size': 16 }); nt.textContent = 'N';
+
+// the inset: the whole world, so the answer far off (the random point) is accounted for
+const ws = document.getElementById('world'), wp = d3.geoEquirectangular().fitExtent([[2, 2], [286, 148]], { type: 'Sphere' }), wpath = d3.geoPath(wp);
+const wg = (tag, attrs) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); ws.appendChild(e); return e; };
+wg('path', { d: wpath(topojson.feature(world, world.objects.land ?? world.objects.countries)), fill: '#e6dcc2', stroke: '#241c14', 'stroke-width': .4 });
+const [wx, wy] = wp([truth.lon, truth.lat]); wg('circle', { cx: wx, cy: wy, r: 3, fill: '#8f2a1c' });
+for (const a of all.filter(a => a.answer && a.d >= 300)) { const [x, y] = wp([a.answer.lon, a.answer.lat]); wg('line', { x1: wx, y1: wy, x2: x, y2: y, stroke: '#8f2a1c', 'stroke-width': .8, 'stroke-dasharray': '3 2' }); wg('circle', { cx: x, cy: y, r: 3.6, fill: '#241c14' }); const t = wg('text', { x: x + 6, y: y + 4, 'font-family': 'IM Fell English', 'font-size': 12, 'paint-order': 'stroke', stroke: '#f1e9d4', 'stroke-width': 3 }); t.textContent = a.i; }
+
+const hidden = C.task.input.hidden.replace(/\[place\]/g, '<span class="ph">[place]</span>');
+document.getElementById('cart').innerHTML = `<div class="sc">${C.task.input.date} &middot; one item from the race</div><h1>${hidden}</h1><p>Where it really happened: ${truth.name}, the red star. Each number is one agent's answer.</p>`;
+const fmt = d => d === null ? 'no answer' : d < 10 ? `${d.toFixed(1)} km` : `${Math.round(d).toLocaleString()} km`;
+const rows = all.map(a => `<tr class="${a.kind === 'baseline' ? 'ctl' : ''}"><td class="n">${a.i}</td><td>${a.name}</td><td class="k">${fmt(a.d)}</td><td class="s">${Math.round(a.score * 100)}</td></tr>`).join('');
+const lead = D.entrants.find(e => e.kind === 'genome');
+document.getElementById('card').innerHTML = `<h2>The first generation is racing</h2><p class="lede">${D.runs} of ${D.expected} runs are in. Across them all, ${lead.name} leads, with ${lead.within25} of ${lead.ran} items placed within 25 km.</p><table>${rows}</table>`;
+document.getElementById('seal').innerHTML = `Voyage ${D.voyage.id}, $${D.voyage.spent.toFixed(2)} of $${D.voyage.capGeneration} spent. The sealed test, fingerprinted before the voyage began: <code>${D.voyage.sealed_hash}</code>`;
+</script>
+</body>
+</html>
