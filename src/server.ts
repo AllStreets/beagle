@@ -11,6 +11,7 @@ import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
 import { startVoyage, race, getVoyage, summarize, type RaceEvent } from './race.ts';
 import { getSettings, saveSettings } from './settings.ts';
+import { baselines } from './baselines.ts';
 import { starters } from './arenas/geotag/starters.ts';
 import { getArena, dataOf } from './arenas/index.ts';
 import type { Genome } from './genome.ts';
@@ -36,7 +37,8 @@ function generation(voyageId: string, n: number) {
   const genomes = (db.prepare('select id, body, reason, parent_ids from genomes where voyage = ? and generation = ?').all(v.id, n) as { id: string; body: string; reason: string | null; parent_ids: string }[])
     .map(g => { const b = json<Genome>(g.body, null as unknown as Genome); return { id: g.id, name: b.name, model: b.model, genome: b, reason: g.reason, parents: json<string[]>(g.parent_ids, []) }; });
   const { common, scores } = summarize(rows, v.settings.seed);
-  const expected = (genomes.length + 3) * v.settings.raceTasks;
+  const controls = baselines(v.arena).filter(b => !(v.settings.localOnly && b.model.startsWith('claude:'))).length;
+  const expected = (genomes.length + controls) * v.settings.raceTasks;
   return { voyage: v.id, generation: n, genomes, scores, common: common.length, runs: rows.length, expected, racing: racing.has(v.id) };
 }
 
@@ -67,7 +69,7 @@ const routes: Route[] = [
     return { id: a.id, name: a.name, describe: a.describe, counts, info, tasks: tasks.map(t => ({ ...t, shown: a.show(t.input) })) };
   }],
   ['GET', /^\/api\/voyages$/, () => (open().prepare('select * from voyages order by started_at desc').all() as { id: string; settings: string }[]).map(v => ({ ...v, settings: json(v.settings, {}), spent: ledger.spent(v.id), racing: racing.has(v.id) }))],
-  ['POST', /^\/api\/voyages$/, async (_m, req) => { const b = await body(req); const v = startVoyage(b.arena ?? 'geotag', b.raceTasks ? { raceTasks: Number(b.raceTasks) } : {}); return v; }],
+  ['POST', /^\/api\/voyages$/, async (_m, req) => { const b = await body(req); const o: Record<string, unknown> = {}; if (b.raceTasks) o.raceTasks = Number(b.raceTasks); if (typeof b.localOnly === 'boolean') o.localOnly = b.localOnly; return startVoyage(b.arena ?? 'geotag', o); }],
   ['GET', /^\/api\/voyages\/([^/]+)$/, m => {
     const v = getVoyage(m[1]), db = open();
     const gens = db.prepare('select generation, count(*) runs, sum(usd) usd from runs where voyage = ? group by generation order by generation').all(v.id);

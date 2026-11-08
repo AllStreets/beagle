@@ -6,7 +6,8 @@ import { LimitError, type Turn } from './index.ts';
 // tools are left out (an MCP tool list alone can be tens of thousands of tokens), nothing is
 // saved as a session, and the whole conversation so far travels as one message: Beagle runs
 // its own tool loop, so Claude only ever answers one turn.
-const LIMIT = /usage limit|rate limit|limit reached|too many requests|\b429\b|overloaded/i;
+const LIMIT = /usage limit|session limit|weekly limit|rate limit|limit reached|too many requests|\b429\b|overloaded/i;
+export const isLimit = (s: string) => LIMIT.test(s);
 
 export function claude(name: string, turns: Turn[], o: { schema?: object; timeoutMs?: number }): Promise<{ text: string; usd: number; ms: number }> {
   const system = turns.filter(t => t.role === 'system').map(t => t.content).join('\n\n');

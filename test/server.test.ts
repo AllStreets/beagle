@@ -105,3 +105,10 @@ test('the lineage lists every genome of every generation with its parents and sc
   const f = await (await fetch(`${base}/api/voyages/${v.id}/fossils`)).json();
   assert.ok(Array.isArray(f));
 });
+
+test('minor: a voyage on local models only expects runs from the controls it really has', async () => {
+  const v = await (await fetch(`${base}/api/voyages`, { method: 'POST', headers: W, body: JSON.stringify({ arena: 'geotag', raceTasks: 4, localOnly: true }) })).json();
+  const g = await (await fetch(`${base}/api/voyages/${v.id}/generations/0`)).json();
+  // the one-Claude-call control is left out on a local-only voyage, so two controls, not three
+  assert.equal(g.expected, (g.genomes.length + 2) * 4);
+});

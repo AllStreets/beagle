@@ -33,3 +33,10 @@ test('a schema answer is parsed into json', async () => {
   const r = await complete('ollama:qwen3:1.7b', [{ role: 'user', content: 'where' }], { schema: { type: 'object' } });
   assert.deepEqual(r.json, { lat: 49.48, lon: 8.47 });
 });
+
+test('Claude Code\'s session-limit message is read as a usage limit', async () => {
+  const { isLimit } = await import('../src/models/claude.ts');
+  assert.ok(isLimit("You've hit your session limit · resets 4pm (America/Chicago)"));
+  assert.ok(isLimit('Claude AI usage limit reached|1762650000'));
+  assert.ok(!isLimit('claude exited 1: unknown option --foo'));
+});

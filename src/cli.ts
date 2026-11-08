@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { LimitError } from './models/index.ts';
 import { join } from 'node:path';
 import { paths } from './paths.ts';
 import { open } from './store.ts';
@@ -76,7 +77,7 @@ const commands: Record<string, () => Promise<void> | void> = {
   export() { console.log(exportBundle(args[0])); },
   regrade() {
     const r = regrade(args[0], flag('generation') ? Number(flag('generation')) : undefined);
-    console.log(`Generation ${r.generation} re-graded from the bundle alone. ${r.mismatches ? `${r.mismatches} recorded scores did NOT match.` : 'Every recorded score matched.'}`);
+    console.log(`Generation ${r.generation} re-graded from the bundle alone. ${r.missing ? `${r.missing} answers have no task in the bundle and cannot be checked. ` : ""}${r.mismatches ? `${r.mismatches} recorded scores did NOT match.` : 'Every recorded score matched.'}`);
     table(r);
   },
   status() {
@@ -102,4 +103,9 @@ const commands: Record<string, () => Promise<void> | void> = {
   settings [set <key> <json>] show or change settings`);
   },
 };
-await (commands[cmd ?? 'help'] ?? commands.help)();
+try { await (commands[cmd ?? 'help'] ?? commands.help)(); }
+catch (e) {
+  // a usage limit is not a fault: everything paid for is saved, and the same command picks up from there
+  if (e instanceof LimitError) { console.error(`\nStopped at Claude's usage limit: ${e.message}\nEvery finished run is saved. Run the same command again after the limit resets.`); process.exit(2); }
+  throw e;
+}
