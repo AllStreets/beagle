@@ -113,3 +113,12 @@ test('baselines race alongside on the same tasks', async () => {
   const names = r.scores.map(s => s.genome);
   for (const b of ['baseline:random point', 'baseline:gazetteer alone', 'baseline:one Claude call']) assert.ok(names.includes(b), `missing ${b}`);
 });
+
+test('two voyages racing the same starters each keep their own genomes', async () => {
+  answers();
+  const store_ = store.open();
+  const v1 = R.startVoyage('geotag', { raceTasks: 2, capGeneration: 100 }), v2 = R.startVoyage('geotag', { raceTasks: 2, capGeneration: 100 });
+  await R.race(v1.id, 0, [g('shared')], { baselines: false });
+  await R.race(v2.id, 0, [g('shared')], { baselines: false });
+  for (const v of [v1, v2]) assert.equal((store_.prepare('select count(*) n from genomes where voyage = ? and id = ?').get(v.id, 'shared') as { n: number }).n, 1, `voyage ${v.id} lost its genome`);
+});

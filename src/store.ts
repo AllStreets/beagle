@@ -29,12 +29,13 @@ create table if not exists voyages (
   status text not null           -- racing, paused, finished
 );
 create table if not exists genomes (
-  id text primary key,
+  id text not null,              -- the genome's own id; the same starter can sail in many voyages
   voyage text,
   generation integer not null,
   parent_ids text not null,      -- json array
   body text not null,            -- json: the genome
-  reason text                    -- why the designer made it
+  reason text,                   -- why the designer made it
+  primary key (voyage, id)
 );
 create table if not exists runs (
   id text primary key,
@@ -72,7 +73,11 @@ export function open(): DatabaseSync {
   ensureDirs();
   db = new DatabaseSync(paths.db);
   db.exec('pragma journal_mode = wal; pragma busy_timeout = 5000;');
+  // before 2026-11-08 genomes were keyed by id alone, so a second voyage lost its starters
+  const pk = (db.prepare(`select sql from sqlite_master where name = 'genomes'`).get() as { sql: string } | undefined)?.sql ?? '';
+  if (pk && !pk.includes('primary key (voyage, id)')) db.exec(`alter table genomes rename to genomes_old;`);
   db.exec(SCHEMA);
+  if (pk && !pk.includes('primary key (voyage, id)')) db.exec(`insert or ignore into genomes select id, voyage, generation, parent_ids, body, reason from genomes_old; drop table genomes_old;`);
   return db;
 }
 
