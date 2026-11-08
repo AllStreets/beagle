@@ -86,7 +86,7 @@ Every number on every screen comes from the local API, and a browser test checks
 
 ## Why you can trust the numbers
 
-- **The sealed test is fingerprinted before anything runs.** Its hash is printed when a voyage starts and checked again before the sealed items are ever used.
+- **The sealed test is fingerprinted before anything runs.** Its hash is printed when a voyage starts and checked again before the sealed items are ever used. Every voyage on an arena shares the same sealed set, so once it has been scored, later voyages on that arena are less independent of it. None of the voyages here has opened it yet.
 - **The designer never sees race or sealed items,** and a test checks that no race or sealed text reaches its prompt.
 - **Controls see exactly what agents see.** Getting this wrong once made the controls look far stronger than they are. The fix has a test, and the wrong runs were thrown away and redone.
 - **Ranges, not just scores.** Every score has a 95% bootstrap interval, and Beagle only calls one agent better than another when the ranges separate.
