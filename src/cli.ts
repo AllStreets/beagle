@@ -8,6 +8,7 @@ import { exportBundle, regrade } from './bundle.ts';
 import { starters } from './arenas/geotag/starters.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { breed } from './designer.ts';
+import { teach, fossilise } from './fossil.ts';
 import type { Genome } from './genome.ts';
 
 const [cmd, ...args] = process.argv.slice(2);
@@ -53,6 +54,14 @@ const commands: Record<string, () => Promise<void> | void> = {
       table(r);
       if (!r.complete) break;
     }
+  },
+  async teach() {
+    const r = await teach(args[0], args[1], { limit: Number(flag('limit') ?? 800), capUsd: Number(flag('cap') ?? 4.5), log: console.log });
+    console.log(`${r.taught} pool items taught by ${args[1]}; $${r.spent.toFixed(2)} this run.`);
+  },
+  async fossilise() {
+    const r = await fossilise(args[0], args[1], { log: console.log });
+    console.log(`Fossil of ${args[1]}: ${r.race.items} race items, score ${Math.round(r.race.score * 100)} against its teacher's ${Math.round(r.race.teacher * 100)}; agrees with it on ${Math.round(r.race.agreement * 100)}%. ${r.bytes} bytes; ${r.ms_per_answer.toFixed(2)} ms per answer plus ${r.embed_ms} ms to embed. ${r.race.standsIn ? 'It stands in for its teacher.' : 'It does not stand in: more than 5 points behind.'}`);
   },
   finish() { finishVoyage(args[0]); console.log(`Voyage ${args[0]} finished. Its sealed test can now be scored.`); },
   async sealed() { table(await sealedScore(args[0], args.slice(1), { onEvent: progress })); },
