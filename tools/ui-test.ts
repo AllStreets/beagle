@@ -24,6 +24,8 @@ try {
   const tags = await page.$$eval('.tag', els => els.map(e => e.textContent ?? ''));
   expect('the ship has a tag for each of its six rooms', tags.length === 6, tags.map(t => t.split(/[A-Z]/)[0]).join(''));
   expect('the drawing room tag names the real leader and score', tags.some(t => t.includes(leadName) && t.includes(String(pct(lead.mean)))), `${leadName} ${pct(lead.mean)}`);
+  const fossilsNow = await api(`/voyages/${v.id}/fossils`);
+  expect('the fossil locker tag tells the truth about its fossils', fossilsNow.length ? tags.some(t => fossilsNow.every((f: any) => t.includes(`${f.name}: ${pct(f.race.score)}`))) : tags.some(t => t.includes('Empty')));
   expect('the log tag shows the real spend', tags.some(t => t.includes(`$${full.spent.toFixed(2)}`)));
   const plaque = await page.textContent('#plaque');
   expect('the plaque gives the real run count', plaque!.includes(`${gen.runs} runs`), plaque!.slice(0, 90));

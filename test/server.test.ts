@@ -112,3 +112,11 @@ test('minor: a voyage on local models only expects runs from the controls it rea
   // the one-Claude-call control is left out on a local-only voyage, so two controls, not three
   assert.equal(g.expected, (g.genomes.length + 2) * 4);
 });
+
+test('a malformed path is refused, and the server keeps running', async () => {
+  const { request } = await import('node:http');
+  const port = (server.address() as { port: number }).port;
+  const status = await new Promise<number>((ok, fail) => { const r = request({ host: '127.0.0.1', port, path: '//' }, res => { res.resume(); ok(res.statusCode!); }); r.on('error', fail); r.end(); });
+  assert.equal(status, 400);
+  assert.equal((await fetch(`${base}/api/settings`)).status, 200);
+});

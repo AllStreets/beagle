@@ -146,7 +146,8 @@ async function file(res: ServerResponse, p: string) {
 
 export function serve(port = PORT): Server {
   const server = createServer(async (req, res) => {
-    const url = new URL(req.url ?? '/', 'http://x');
+    let url: URL;
+    try { url = new URL(req.url ?? '/', 'http://x'); } catch { res.writeHead(400); return res.end(); }
     const host = (req.headers.host ?? '').replace(/:\d+$/, '');
     if (!['127.0.0.1', 'localhost', '[::1]'].includes(host)) { res.writeHead(403); return res.end(); }
     if (req.method !== 'GET' && req.headers['x-beagle'] !== '1') return send(res, 403, { error: 'writes need the x-beagle header' });

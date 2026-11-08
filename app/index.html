@@ -102,7 +102,8 @@
   svg.ink { position: absolute; left: 0; top: 0; }
   svg.ink path { fill: none; stroke: #241c14; stroke-width: 1; opacity: .7; }
   svg.ink path.kept { stroke-width: 3; opacity: .55; }
-  .node { position: absolute; display: flex; align-items: center; gap: 4px; width: 260px; text-decoration: none; }
+  .journal-wrap { overflow-x: auto; overflow-y: visible; padding-bottom: 8px; }
+  .node { position: absolute; display: flex; align-items: center; gap: 4px; width: var(--node-w, 260px); text-decoration: none; }
   .journal { padding-right: 20px; }
   .node canvas { width: 52px; height: 52px; }
   .node span { display: grid; font-size: 14.5px; line-height: 1.25; }

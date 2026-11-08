@@ -84,7 +84,9 @@ async function drawingRoom(el: HTMLElement, c: Ctx) {
 async function lineage(el: HTMLElement, c: Ctx) {
   const nodes = await api<Node[]>(`/voyages/${c.voyage.id}/lineage`, []);
   const gens = [...new Set(nodes.map(n => n.generation))].sort((a, b) => a - b);
-  const colW = 440, rowH = 92, top = 70, H = top + Math.max(...gens.map(g => nodes.filter(n => n.generation === g).length)) * rowH + 30, W = gens.length * colW + 40;
+  // columns share the folio's width; past about four generations the journal scrolls sideways
+  const avail = Math.max(600, el.clientWidth - 40), colW = Math.max(300, Math.min(440, Math.floor((avail - 30) / gens.length))), nodeW = colW - 120;
+  const rowH = 92, top = 70, H = top + Math.max(...gens.map(g => nodes.filter(n => n.generation === g).length)) * rowH + 30, W = gens.length * colW + 40;
   const pos = new Map<string, { x: number; y: number }>();
   gens.forEach((g, gi) => nodes.filter(n => n.generation === g).sort((a, b) => (b.mean ?? -1) - (a.mean ?? -1)).forEach((n, i) => pos.set(`${g}:${n.id}`, { x: 30 + gi * colW, y: top + i * rowH })));
   const hasChild = new Set(nodes.flatMap(n => n.parents.map(p => `${n.generation - 1}:${p}`)).concat(nodes.filter(n => n.kept).map(n => `${n.generation - 1}:${n.id}`)));
@@ -92,13 +94,13 @@ async function lineage(el: HTMLElement, c: Ctx) {
   let lines = '';
   for (const n of nodes) {
     const to = pos.get(`${n.generation}:${n.id}`)!;
-    for (const p of n.kept ? [n.id] : n.parents) { const from = pos.get(`${n.generation - 1}:${p}`); if (!from) continue; const x0 = from.x + 266, y0 = from.y + 26, x1 = to.x - 6, y1 = to.y + 26, mx = (x0 + x1) / 2; lines += `<path d="M${x0},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1}" class="${n.kept ? 'kept' : ''}"/>`; }
+    for (const p of n.kept ? [n.id] : n.parents) { const from = pos.get(`${n.generation - 1}:${p}`); if (!from) continue; const x0 = from.x + nodeW + 6, y0 = from.y + 26, x1 = to.x - 6, y1 = to.y + 26, mx = (x0 + x1) / 2; lines += `<path d="M${x0},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1}" class="${n.kept ? 'kept' : ''}"/>`; }
   }
   el.innerHTML = `<nav class="pages"><a href="#/drawing">The plates</a><a class="on" href="#/drawing/lineage">The lineage</a></nav>${head('The lineage', `Every agent of the voyage, one column per generation, best at the top. A line joins each agent to the ones it was bred from; a double line means it was kept unchanged. Agents with no line onward died out.`)}
-  <div class="journal"><div class="cols">${gens.map((g, gi) => `<div class="colhead" style="left:${30 + gi * colW}px">Generation ${g + 1}<small>best ${best(g) >= 0 ? pct(best(g)) : 'not raced'}</small></div>`).join('')}</div>
+  <div class="journal-wrap"><div class="journal" style="--node-w:${nodeW}px"><div class="cols">${gens.map((g, gi) => `<div class="colhead" style="left:${30 + gi * colW}px">Generation ${g + 1}<small>best ${best(g) >= 0 ? pct(best(g)) : 'not raced'}</small></div>`).join('')}</div>
   <svg class="ink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${lines}</svg>
   ${nodes.map(n => { const p = pos.get(`${n.generation}:${n.id}`)!, dead = n.generation < gens.at(-1)! && !hasChild.has(`${n.generation}:${n.id}`); return `<a class="node ${dead ? 'dead' : ''}" style="left:${p.x}px;top:${p.y}px" href="#/drawing/${encodeURIComponent(n.id)}" title="${esc(n.reason ?? '')}"><canvas width="104" height="104" data-n="${esc(n.id)}"></canvas><span><b>${esc(n.name)}</b><em>${n.mean === null ? 'racing' : pct(n.mean)}</em></span></a>`; }).join('')}
-  </div>
+  </div></div>
   ${nodes.filter(n => n.generation > 0 && !n.kept).length ? `<h2 class="why">Why each child was made</h2><ol class="reasons">${nodes.filter(n => n.generation > 0 && !n.kept).map(n => `<li><b>${esc(n.name)}</b>, from ${n.parents.map(p => esc(nodes.find(x => x.id === p)?.name ?? p)).join(' and ')}: ${esc(n.reason ?? '')}</li>`).join('')}</ol>` : '<p class="soft">Only the first generation has raced so far. The designer breeds the next one from what it can see of this one.</p>'}`;
   el.querySelector<HTMLElement>('.journal')!.style.height = `${H}px`; el.querySelector<HTMLElement>('.journal')!.style.width = `${W}px`;
   el.querySelectorAll<HTMLCanvasElement>('.node canvas').forEach(cv => { const n = nodes.find(x => x.id === cv.dataset.n)!; const k = cv.getContext('2d')!; organism(k, n.genome ? { ...n.genome, id: n.id } : { id: n.id, tools: [], workflow: { shape: 'control' }, memory: { examples: 0 }, model: 'none' }, 52, 52, 30); });

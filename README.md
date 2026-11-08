@@ -9,7 +9,7 @@
 <img alt="fossils" src="https://img.shields.io/badge/fossils-trained_on_this_Mac_with_MLX-8f2a1c?style=for-the-badge&labelColor=14110d"/>
 <br/>
 <img alt="proof" src="https://img.shields.io/badge/every_score-re--gradable_with_no_model_calls-b08a4a?style=for-the-badge&labelColor=14110d"/>
-<img alt="tests" src="https://img.shields.io/badge/tests-61_engine_%C2%B7_23_in_the_browser-8f2a1c?style=for-the-badge&labelColor=14110d"/>
+<img alt="tests" src="https://img.shields.io/badge/tests-74_engine_%C2%B7_25_in_the_browser-8f2a1c?style=for-the-badge&labelColor=14110d"/>
 <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-b08a4a?style=for-the-badge&labelColor=14110d"/></a>
 <br/>
 <img alt="engine" src="https://img.shields.io/badge/engine-TypeScript_%C2%B7_Node_22_%C2%B7_node%3Asqlite-7d7262?style=flat-square&labelColor=14110d"/>
@@ -22,7 +22,7 @@
 &nbsp;
 
 <a href="#what-it-does"><kbd> &nbsp; <strong>What it does</strong> &nbsp; </kbd></a> &nbsp;
-<a href="#the-first-voyage"><kbd> &nbsp; <strong>The first voyage</strong> &nbsp; </kbd></a> &nbsp;
+<a href="#the-voyage"><kbd> &nbsp; <strong>The voyage</strong> &nbsp; </kbd></a> &nbsp;
 <a href="#the-ship"><kbd> &nbsp; <strong>The ship</strong> &nbsp; </kbd></a> &nbsp;
 <a href="#why-you-can-trust-the-numbers"><kbd> &nbsp; <strong>Why you can trust the numbers</strong> &nbsp; </kbd></a> &nbsp;
 <a href="#run-it"><kbd> &nbsp; <strong>Run it</strong> &nbsp; </kbd></a>
@@ -47,21 +47,23 @@ All of it happens inside a museum section model of HMS Beagle, the ship Darwin s
 
 **Fossils.** The winner answers hundreds of unlabelled items. A local embedding model turns each item into numbers, and MLX trains a two-layer network to answer the way the winner did. The fossil is then judged on the same race items as everyone else, and reported straight, including when it is worse.
 
-## The first voyage
+## The voyage
 
-Everything here is from one real voyage, `v-2026-11-08-e1e972`, raced on 2026-11-08 for $17.22.
+Everything here is from one real voyage, `v-2026-11-08-c5c0ba`: three generations raced on 2026-11-08 for $13.88 of Claude usage. Every agent and control in a generation answered the same 40 news items.
 
-**Generation one** raced twelve hand-written agents. Sonnet answering in one go led at 75 out of 100, placing 23 of 40 items within 25 km. A free local Llama 8B scored 56. Two designs collapsed: Llama with the gazetteer answered only 5 of 40 items.
+**Generation one** raced twelve hand-written agents. It hit its $5 cap with three items left, so it is scored on the 37 items every entrant finished. Sonnet answering in one go led at 71, placing 17 of 37 items within 25 km. A free local Llama 8B scored 59, level with most of the Haiku designs. Llama with the gazetteer answered only 7 items in 37, and the 1.7B Qwen models placed nothing within 25 km.
 
-**The controls told the first story.** One plain question to Claude scored 28, because with the places hidden, Haiku refuses to guess: *"I cannot reliably identify the specific location of this incident... providing coordinates would risk giving you inaccurate information."* The winning agents are told to reason from every clue that is left (the people, the groups, the institutions, the date) and to commit.
+**The controls told the first story.** One plain question to Claude scored 44, because with the places hidden, Haiku often refuses to guess: *"I cannot reliably identify the specific location of this incident... providing coordinates would risk giving you inaccurate information."* The winning agents are told to reason from every clue that is left (the people, the groups, the institutions, the date) and to commit.
 
-**Generation two** was written by the designer from evidence like this, quoted from its reasons:
+**Generations two and three** were written by the designer. Its reasons point at real misses, quoted here:
 
-> Best agent lost points by answering a sub-region for 'southeastern [place]' (Switzerland, 68 km), by missing that [place] = government → Jakarta (3467 km), by stereotyping a Luzon ambush as Mindanao (1118 km)...
+> The best agent missed by 3,500 km on the Jakarta item because it read 'accuses [place]' as Papua rather than the government. It missed by 9,400 km on the Swiss landslides by defaulting to China, and by 1,000 km on the Philippine ambush by guessing Mindanao.
 
-It crossed Sonnet with the worked examples that had lifted Haiku, and that child, *Sonnet, sharper rules, four examples*, scored 77.8, the voyage's best. Its range (68 to 87) still overlaps the old leader's, so Beagle does not call it a clear win. That is the point of the ranges.
+The voyage's best is generation three's *Sonnet self-check, slot audit* at 79 (range 69 to 87), bred to catch exactly those traps with a second look. But the plain result is a plateau, not a climb. *Sonnet, plans first* was kept unchanged through all three generations and scored 70, then 78, then 76 on the same design. With 40 items, a score moves about 8 points from noise alone, so no bred child has yet clearly beaten its parent. Beagle shows the ranges, and only calls a win when they separate. What did move was the field: by generation three, six Sonnet designs sat between 72 and 79, where generation one had two Sonnets at 70 and 71.
 
-**The first fossil** learned from 710 items its teacher answered plus 4,383 breeding items with their true places: a 2.4 MB network, trained in under a minute, answering in 16 ms with nothing to pay. It scores 30 against its teacher's 75, so it does not stand in for it, and the fossil locker says so. It does beat both text-reading controls.
+**The fossil.** Llama 8B, careful answered 800 unlabelled items for free. Those answers, plus 4,383 practice items with their true places, trained a 2.4 MB network in 3.3 seconds. It answers in 0.18 ms (16 ms with the embedding) and costs nothing to run. It scores 34 against its teacher's 59, so it does not stand in for it, and the fossil locker says so.
+
+**Two earlier voyages were withdrawn,** and the log keeps them with the reason. The first used an easier arena that named the places, and every agent scored near the top. The second, $21.92 of runs, had a fault the final review found: agents written to see no worked examples were shown eight. Its results described agents that did not match their designs, so they were thrown out and the voyage above was run from scratch.
 
 <img src="docs/media/chart-room.jpg" alt="The chart room: a list of news items, hardest first; an engraved chart of the Levant with every agent's answer numbered around a red star where the item really happened; a table of how far off each agent was" />
 
@@ -73,10 +75,12 @@ The home screen is the model. Point at a room, or its label, and the camera goes
 - **The drawing room** draws every agent as an engraved organism. Its body is how its steps are wired, spines mean it may use the gazetteer, seeds are worked examples, and the bar beneath is its score with the fine line of its likely range. The lineage page draws the whole voyage as a family tree in ink, with the designer's reason for every child.
 - **The hold** keeps a jar per agent, filled to its score, and a plain ledger of the field.
 - **The log** holds the proof (below).
-- **The fossil locker** shows each fossil pressed into stone, its training curve cut as strata.
+- **The fossil locker** shows each fossil pressed into stone: its training curve is cut as strata, and the pass that was kept is marked.
 - **The forecastle** is Settings: caps, models, evolution, plain or lab view.
 
-Every number on every screen comes from the local API, and a browser test checks 23 of them against it. Plain view explains every number in words; lab view adds cost, time, ranks and raw answers. Every term of art has its meaning a hover away.
+Every number on every screen comes from the local API, and a browser test checks 25 things against it. Plain view explains every number in words; lab view adds cost, time, ranks and raw answers. Every term of art has its meaning a hover away.
+
+<img src="docs/media/fossils.jpg" alt="The fossil locker: a limestone slab with the fossil's training curve cut as strata and an ammonite marking the kept pass; beside it the fossil's score against its teacher, its size and speed" />
 
 <img src="docs/media/lineage.jpg" alt="The drawing room's lineage page: generations as columns of small engraved organisms, ink lines joining each child to its parents, and the designer's reasons below" />
 
@@ -86,9 +90,10 @@ Every number on every screen comes from the local API, and a browser test checks
 - **The designer never sees race or sealed items,** and a test checks that no race or sealed text reaches its prompt.
 - **Controls see exactly what agents see.** Getting this wrong once made the controls look far stronger than they are. The fix has a test, and the wrong runs were thrown away and redone.
 - **Ranges, not just scores.** Every score has a 95% bootstrap interval, and Beagle only calls one agent better than another when the ranges separate.
-- **Re-grade it yourself.** `beagle export` writes a voyage as one file, and `beagle regrade` re-scores every answer from it with no model calls. On this voyage, every recorded score matched.
+- **Re-grade it yourself.** `beagle export` writes a voyage as one file, and `beagle regrade` re-scores every answer from it with no model calls. On this voyage, every recorded score matched. A run whose item is missing from the file is counted as a mismatch, never as a pass.
 - **Every call paid for is in the ledger,** including runs that were later thrown away. A spend cap holds per generation and per voyage, and one race per generation can run at a time. (Before that rule, a second process paid for the same runs twice. The log shows the money.)
-- **Memorisation is reported.** Two answers matched Wikidata's coordinate for southern Lebanon to six decimals. The run's full record shows no access to it: Sonnet recalled it from Wikipedia.
+- **A usage limit is not a fault.** When Claude's limit is hit, the race stops, keeps every finished run, and the same command picks up where it left off.
+- **Memorisation is reported.** In the withdrawn second voyage, two answers matched Wikidata's coordinate for southern Lebanon to six decimals. The run's full record shows no access to it: Sonnet recalled it from Wikipedia.
 
 ## Run it
 
@@ -112,8 +117,8 @@ Claude calls go through your own Claude Code, with your settings, plugins and MC
 ## Tests
 
 ```sh
-npm test                  # 61 engine tests: arena, runner, races, caps, locks, designer, fossils, API
-npx tsx tools/ui-test.ts  # 23 checks of the ship and its rooms against the live API
+npm test                  # 74 engine tests: arena, runner, races, caps, locks, designer, fossils, API
+npx tsx tools/ui-test.ts  # 25 checks of the ship and its rooms against the live API
 ```
 
 ## Data

@@ -28,6 +28,7 @@ const genN = full?.generations.filter(g => g.generation >= 0).at(-1)?.generation
 const gen = full ? await api<Generation>(`/voyages/${full.id}/generations/${genN}`) : null;
 const telling = full ? await api<Telling | null>(`/voyages/${full.id}/generations/${genN}/telling`, null) : null;
 const es = gen ? entrants(gen) : [];
+const fossilRecords = full ? await api<{ name: string; race: { score: number; teacher: number } }[]>(`/voyages/${full.id}/fossils`, []) : [];
 
 const { ship, lamps } = buildShip(room);
 if (full && gen) furnish(room, ship, { voyage: full, entrants: es, telling, generation: genN });
@@ -39,7 +40,7 @@ const TAGS: Record<RoomId, { name: string; line: string }> = {
   drawing: { name: 'The drawing room', line: lead ? `Leading: ${lead.name}, ${pct(lead.mean)} of 100` : 'No agents drawn yet' },
   specimens: { name: 'The hold', line: `${es.filter(e => !e.control).length} agents and ${es.filter(e => e.control).length} controls, each in its jar` },
   log: { name: 'The log', line: full ? `$${full.spent.toFixed(2)} spent; the sealed test fingerprinted` : 'No voyage yet' },
-  fossils: { name: 'The fossil locker', line: 'Empty: no skill has been fossilised yet' },
+  fossils: { name: 'The fossil locker', line: fossilRecords.length ? fossilRecords.map(f => `${f.name}: ${pct(f.race.score)} against its teacher's ${pct(f.race.teacher)}`).join('; ') : 'Empty: no skill has been fossilised yet' },
   settings: { name: 'The forecastle', line: 'Settings' },
 };
 const layer = document.getElementById('tags')!;
