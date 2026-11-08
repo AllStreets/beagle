@@ -30,7 +30,8 @@ def main(path, out, epochs=40, seed=1):
     opt = optim.AdamW(learning_rate=2e-3, weight_decay=1e-3)
     loss_fn = lambda m, x, t: nn.losses.cross_entropy(m(x), t).mean()
     step = nn.value_and_grad(model, loss_fn)
-    curve, t0 = [], time.time()
+    curve, t0, best, best_ep = [], time.time(), float("inf"), 0
+    os.makedirs(out, exist_ok=True)
     for ep in range(epochs):
         model.train(); perm = mx.array(rng.permutation(len(tr)))
         losses = []
@@ -38,15 +39,16 @@ def main(path, out, epochs=40, seed=1):
             b = perm[i:i + 128]; l, g = step(model, Xtr[b], ytr[b]); opt.update(model, g); mx.eval(model.parameters(), opt.state); losses.append(l.item())
         model.eval(); vl = loss_fn(model, Xva, yva).item(); acc = (mx.argmax(model(Xva), axis=1) == yva).mean().item()
         curve.append({"epoch": ep + 1, "train_loss": float(np.mean(losses)), "held_out_loss": vl, "held_out_agreement": acc})
+        # keep the pass with the lowest held-out loss: later passes only memorise
+        if vl < best: best, best_ep = vl, ep + 1; model.save_weights(os.path.join(out, "fossil.safetensors"))
     train_s = time.time() - t0
-    os.makedirs(out, exist_ok=True)
-    model.save_weights(os.path.join(out, "fossil.safetensors"))
+    model.load_weights(os.path.join(out, "fossil.safetensors"))
     # time per answer, warm, one item at a time as Beagle will ask
     x1 = Xva[:1]; mx.eval(model(x1)); t1 = time.time()
     for _ in range(500): mx.eval(model(x1))
     ms = (time.time() - t1) / 500 * 1000
     size = os.path.getsize(os.path.join(out, "fossil.safetensors"))
-    report = {"items": int(len(X)), "cells": n_cells, "epochs": epochs, "train_seconds": train_s, "ms_per_answer": ms, "bytes": size, "curve": curve}
+    report = {"items": int(len(X)), "cells": n_cells, "epochs": epochs, "kept_epoch": best_ep, "train_seconds": train_s, "ms_per_answer": ms, "bytes": size, "curve": curve}
     json.dump(report, open(os.path.join(out, "report.json"), "w"), indent=1)
     print(json.dumps({k: v for k, v in report.items() if k != "curve"}))
 

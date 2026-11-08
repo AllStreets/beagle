@@ -69,14 +69,17 @@ export async function teach(voyageId: string, genomeId: string, o: { limit: numb
 }
 
 // 2 and 3. embed, train, and judge on the race items; the fossil and its report are stored
-export async function fossilise(voyageId: string, genomeId: string, o: { epochs?: number; log?: (s: string) => void } = {}) {
+export async function fossilise(voyageId: string, genomeId: string, o: { epochs?: number; withBreeding?: boolean; log?: (s: string) => void } = {}) {
   const v = getVoyage(voyageId), db = open(), arena = getArena(v.arena), log = o.log ?? (() => {});
   if (!existsSync(PY)) throw new Error('the training environment is not set up: see trainer/README');
   const rows = db.prepare(`select t.input, te.answer from teachings te join tasks t on t.id = te.task where te.voyage = ? and te.genome = ?`).all(v.id, genomeId) as { input: string; answer: string }[];
   if (rows.length < 200) throw new Error(`only ${rows.length} taught items; teach at least 200 first`);
-  const texts = rows.map(r => arena.show(json(r.input, null)).split('\n').slice(1).join(' ')), answers = rows.map(r => JSON.parse(r.answer) as P);
+  // the teacher's answers; and, if asked, the breeding items with their true places as well
+  const breeding = o.withBreeding ? (db.prepare(`select input, truth from tasks where arena = ? and split = 'breeding'`).all(dataOf(v.arena)) as { input: string; truth: string }[]) : [];
+  const texts = [...rows, ...breeding].map(r => arena.show(json(r.input, null)).split('\n').slice(1).join(' '));
+  const answers = [...rows.map(r => JSON.parse(r.answer) as P), ...breeding.map(b => { const p = json<Truth>(b.truth, { places: [] }).places[0]; return { lat: p.lat, lon: p.lon }; })];
   const cells = makeCells(answers, 3);
-  log(`  ${rows.length} items in ${cells.centres.length} cells; embedding on this Mac...`);
+  log(`  ${rows.length} taught items${breeding.length ? ` and ${breeding.length} breeding items` : ''} in ${cells.centres.length} cells; embedding on this Mac...`);
   const X = await embed(texts);
   const dir = join(paths.home, 'fossils', `${v.id}-${genomeId}`); mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'dataset.json'), JSON.stringify({ x: X, y: cells.of, n_cells: cells.centres.length }));
@@ -89,7 +92,7 @@ export async function fossilise(voyageId: string, genomeId: string, o: { epochs?
   const teacherScores = race.map(t => (db.prepare('select score from runs where voyage = ? and genome = ? and task = ? order by generation desc limit 1').get(v.id, genomeId, t.id) as { score: number } | undefined)?.score ?? 0);
   const judged = judgeFossil({ predicted: pred.cells.map((c: number) => cells.centres[c]), truth: race.map(t => json<Truth>(t.truth, { places: [] })), teacherScores });
   const embedMs = await (async () => { const t0 = Date.now(); await embed([texts[0]]); return Date.now() - t0; })();
-  const record = { voyage: v.id, genome: genomeId, at: new Date().toISOString(), items: rows.length, cells: cells.centres.length, ...report, embed_ms: embedMs, race: { score: judged.score, teacher: judged.teacher, agreement: judged.agreement, standsIn: judged.standsIn, items: race.length } };
+  const record = { voyage: v.id, genome: genomeId, at: new Date().toISOString(), taught: rows.length, breeding: breeding.length, items: texts.length, cells: cells.centres.length, ...report, embed_ms: embedMs, race: { score: judged.score, teacher: judged.teacher, agreement: judged.agreement, standsIn: judged.standsIn, items: race.length } };
   writeFileSync(join(dir, 'fossil.json'), JSON.stringify({ ...record, centres: cells.centres }, null, 1));
   db.exec(`create table if not exists fossils (voyage text, genome text, at text, record text, primary key (voyage, genome))`);
   db.prepare('insert or replace into fossils (voyage, genome, at, record) values (?, ?, ?, ?)').run(v.id, genomeId, record.at, JSON.stringify(record));

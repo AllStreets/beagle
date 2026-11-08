@@ -60,7 +60,7 @@ const commands: Record<string, () => Promise<void> | void> = {
     console.log(`${r.taught} pool items taught by ${args[1]}; $${r.spent.toFixed(2)} this run.`);
   },
   async fossilise() {
-    const r = await fossilise(args[0], args[1], { log: console.log });
+    const r = await fossilise(args[0], args[1], { withBreeding: args.includes('--with-breeding'), log: console.log });
     console.log(`Fossil of ${args[1]}: ${r.race.items} race items, score ${Math.round(r.race.score * 100)} against its teacher's ${Math.round(r.race.teacher * 100)}; agrees with it on ${Math.round(r.race.agreement * 100)}%. ${r.bytes} bytes; ${r.ms_per_answer.toFixed(2)} ms per answer plus ${r.embed_ms} ms to embed. ${r.race.standsIn ? 'It stands in for its teacher.' : 'It does not stand in: more than 5 points behind.'}`);
   },
   finish() { finishVoyage(args[0]); console.log(`Voyage ${args[0]} finished. Its sealed test can now be scored.`); },
