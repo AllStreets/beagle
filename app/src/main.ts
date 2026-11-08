@@ -138,10 +138,20 @@ addEventListener('resize', frame);
 document.getElementById('loading')?.remove();
 frame(); camAt.copy(camTo); lookAt.copy(lookTo); camera.position.copy(camAt); camera.lookAt(lookAt);
 await route();
-renderer.setAnimationLoop(() => {
+// pointing at a room in the model lights it; clicking opens it
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), BEAM / 2), hit = new THREE.Vector3();
+const roomAt = (e: PointerEvent) => { ptr.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ptr, camera); if (!ray.ray.intersectPlane(plane, hit)) return null; return ROOMS.find(r => hit.x > r.x0 && hit.x < r.x1 && hit.y > r.y0 && hit.y < r.y1)?.id ?? null; };
+const stage = document.getElementById('stage')!;
+stage.addEventListener('pointermove', e => { if (openRoom) return; const id = roomAt(e); if (id !== hovered) hover(id); stage.style.cursor = id ? 'pointer' : 'default'; });
+stage.addEventListener('click', e => { if (openRoom) return; const id = roomAt(e); if (id) location.hash = `#/${id}`; });
+let t0 = performance.now();
+renderer.setAnimationLoop(now => {
   for (const l of lamps.values()) l.intensity += ((l.userData.target ?? 6) - l.intensity) * .12;
   const k = settingsNow.reducedMotion ? 1 : .07;
-  camAt.lerp(camTo, k); lookAt.lerp(lookTo, k); camera.position.copy(camAt); camera.lookAt(lookAt);
+  camAt.lerp(camTo, k); lookAt.lerp(lookTo, k);
+  // a slow drift on the whole model, as if walking past a case in a gallery
+  const t = (now - t0) / 1000, sway = openRoom || settingsNow.reducedMotion ? 0 : 1;
+  camera.position.set(camAt.x + Math.sin(t * .11) * 1.4 * sway, camAt.y + Math.sin(t * .07) * .35 * sway, camAt.z); camera.lookAt(lookAt);
   if (!openRoom) placeTags();
   composer.render();
 });

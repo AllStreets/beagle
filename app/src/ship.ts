@@ -132,6 +132,17 @@ export function buildShip(room: Room) {
   const step = add(new THREE.Mesh(new THREE.BoxGeometry(31.8, .2, 7.6), mahog)); step.position.set(.6, -2.35, -1.8);
   for (const cx of [-7, 6]) { const h = 1.55; const c = add(new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, h, 16), brass)); c.position.set(cx, -1.55 + h / 2, -BEAM / 2); const cr = add(new THREE.Mesh(new THREE.BoxGeometry(.9, .14, BEAM * .8), brass)); cr.position.set(cx, -.04, -BEAM / 2); }
 
+  // the plaque on the plinth: engraved brass
+  const pl = canvas(1024, 200, (k, w, h, r) => {
+    const g = k.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#c9a464'); g.addColorStop(.5, '#a8823f'); g.addColorStop(1, '#8a6a30'); k.fillStyle = g; k.fillRect(0, 0, w, h);
+    for (let i = 0; i < 3000; i++) { k.fillStyle = `rgba(${r() < .5 ? '60,40,10' : '255,240,200'},${r() * .08})`; k.fillRect(r() * w, r() * h, 3, 1); }
+    k.strokeStyle = 'rgba(50,34,10,.7)'; k.lineWidth = 3; k.strokeRect(14, 14, w - 28, h - 28);
+    k.fillStyle = 'rgba(40,26,8,.88)'; k.textAlign = 'center'; k.font = '64px "IM Fell English SC"'; k.fillText('HMS Beagle', w / 2, 96);
+    k.font = 'italic 34px "EB Garamond"'; k.fillText('A section through the voyage', w / 2, 150);
+  }, 12);
+  const plaque = add(new THREE.Mesh(new THREE.BoxGeometry(4.2, .82, .05), [brass, brass, brass, brass, new THREE.MeshStandardMaterial({ map: tex(pl), metalness: .85, roughness: .35 }), brass]));
+  plaque.position.set(.6, -1.9, 1.73);
+
   // a lamp in every room, hung from the deck above, so each reads as a lit space
   const lamps = new Map<RoomId, THREE.PointLight>();
   for (const r of ROOMS) {
