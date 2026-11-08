@@ -16,7 +16,7 @@ const seedOf = (s: string) => createHash('sha1').update(s).digest().readUInt32LE
 export function baselines(arenaId: string): Baseline[] {
   const arena = getArena(arenaId);
   if (arena.data !== 'geotag') return [];
-  const shown = (input: unknown) => arena.show(input).split('\n').slice(1).join('\n');
+  const shown = (input: unknown) => arena.show(input);
   return [
     {
       // a point drawn evenly over the whole globe, fixed by the task, so it is reproducible

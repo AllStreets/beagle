@@ -29,7 +29,9 @@ export async function cachedJson<T = any>(url: string): Promise<T> {
   const file = join(dir, createHash('sha1').update(url).digest('hex') + '.json');
   if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8')) as T;
   if (fetcher === real) await polite();
-  const body = await fetcher(url);
+  const body = await fetcher(url) as { error?: { code?: string; info?: string } };
+  // MediaWiki reports errors (rate limits, lag) as a normal reply: never cache those
+  if (body && typeof body === 'object' && body.error) throw new Error(`${new URL(url).host}: ${body.error.code ?? 'error'} ${body.error.info ?? ''}`.trim());
   writeFileSync(file, JSON.stringify(body));
   return body as T;
 }

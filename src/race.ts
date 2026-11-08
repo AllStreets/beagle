@@ -5,7 +5,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
 import { LimitError } from './models/index.ts';
-import { run, type Example, type Step } from './runner.ts';
+import { run, RunError, type Example, type Step } from './runner.ts';
 import { getArena, dataOf } from './arenas/index.ts';
 import { baselines } from './baselines.ts';
 import { getSettings, type Settings } from './settings.ts';
@@ -69,7 +69,10 @@ export function summarize(rows: { genome: string; task: string; score: number; s
 }
 
 const racingHere = new Set<string>();
-const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+// EPERM means the process exists but belongs to someone else: it is alive
+const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === 'EPERM'; } };
+// timeouts, overloads and dropped connections pass; they are retried rather than scored
+export const passing = (e: unknown) => /timed out|\b5\d\d\b|overloaded|ECONNRESET|ECONNREFUSED|fetch failed|socket hang up/i.test((e as Error)?.message ?? '');
 
 type Entrant = { id: string; model: string; baseline: boolean; exec(t: { id: string; input: unknown }): Promise<{ answer: unknown | null; trace: Step[]; usd: number; ms: number; status: 'done' | 'no-answer' }> };
 
@@ -106,10 +109,13 @@ export async function race(voyageId: string, generation: number, genomes: Genome
       let result: Awaited<ReturnType<Entrant['exec']>> | null = null;
       for (let attempt = 0; attempt < 6 && !result; attempt++) {
         try { result = await e.exec(task); }
-        catch (err) {
-          if (!(err instanceof LimitError)) { result = { answer: null, trace: [{ kind: 'note', input: null, output: `error: ${(err as Error).message}`, usd: 0, ms: 0 }], usd: 0, ms: 0, status: 'no-answer' }; break; }
+        catch (thrown) {
+          // what was paid before the fault is counted; passing faults are waited out like limits
+          const err = thrown instanceof RunError ? thrown.cause : thrown, paid = thrown instanceof RunError ? thrown.spent : 0;
+          if (paid > 0) ledger.add({ voyage: v.id, generation, kind: e.baseline ? 'baseline' : 'race', model: e.model, usd: paid, ms: 0 });
+          if (!(err instanceof LimitError) && !passing(err)) { result = { answer: null, trace: [{ kind: 'note', input: null, output: `error: ${(err as Error).message}`, usd: 0, ms: 0 }], usd: 0, ms: 0, status: 'no-answer' }; break; }
           const wait = backoff * 2 ** attempt;
-          emit({ type: 'waiting', until: new Date(Date.now() + wait).toISOString(), reason: err.message });
+          emit({ type: 'waiting', until: new Date(Date.now() + wait).toISOString(), reason: (err as Error).message });
           await new Promise(r => setTimeout(r, wait));
         }
       }
@@ -127,7 +133,9 @@ export async function race(voyageId: string, generation: number, genomes: Genome
   const held = db.prepare('select pid from locks where voyage = ? and generation = ?').get(v.id, generation) as { pid: number } | undefined;
   if (held && held.pid !== process.pid && alive(held.pid)) throw new Error(`voyage ${v.id} is already racing generation ${generation} (process ${held.pid})`);
   if (held && held.pid === process.pid && racingHere.has(`${v.id}:${generation}`)) throw new Error(`voyage ${v.id} is already racing generation ${generation}`);
-  db.prepare('insert or replace into locks (voyage, generation, pid, at) values (?, ?, ?, ?)').run(v.id, generation, process.pid, new Date().toISOString());
+  // take the lock in one statement: a dead holder's lock is cleared first, then only one insert can win
+  if (held && !alive(held.pid)) db.prepare('delete from locks where voyage = ? and generation = ? and pid = ?').run(v.id, generation, held.pid);
+  if (!(held && held.pid === process.pid) && db.prepare('insert or ignore into locks (voyage, generation, pid, at) values (?, ?, ?, ?)').run(v.id, generation, process.pid, new Date().toISOString()).changes === 0) throw new Error(`voyage ${v.id} is already racing generation ${generation}`);
   racingHere.add(`${v.id}:${generation}`);
   try { await Promise.all(Array.from({ length: Math.max(1, s.concurrency) }, worker)); }
   finally { racingHere.delete(`${v.id}:${generation}`); db.prepare('delete from locks where voyage = ? and generation = ? and pid = ?').run(v.id, generation, process.pid); }

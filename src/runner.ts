@@ -46,7 +46,7 @@ async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[]): Prom
     const reply = r.json as { action?: string; args?: unknown; answer?: unknown } | undefined;
     trace.push({ kind: 'model', input: turns.at(-1)!.content, output: r.text, usd: r.usd, ms: r.ms });
     turns.push({ role: 'assistant', content: r.text });
-    if (reply?.action === 'answer' && reply.answer && typeof reply.answer === 'object') return reply.answer;
+    if (reply?.action === 'answer' && asPoint(reply.answer)) return reply.answer;
     const tool = reply?.action ? arena.tools.find(t => t.name === reply.action) : undefined;
     if (tool && g.tools.includes(tool.name)) {
       const t0 = Date.now(); let out: unknown;
@@ -72,9 +72,15 @@ function middle(answers: unknown[]): unknown | null {
   return best;
 }
 
+// If a call fails partway, what was already paid for travels with the error, so it is counted.
+export class RunError extends Error { constructor(public cause: unknown, public spent: number, public trace: Step[]) { super((cause as Error)?.message ?? String(cause)); } }
 export async function run(g: Genome, task: { id: string; input: unknown }, arena: Arena, o: { examples?: Example[] } = {}): Promise<RunResult> {
   const trace: Step[] = [];
-  const sys: Turn = { role: 'system', content: system(g, arena, (o.examples ?? []).slice(0, g.memory.examples || (o.examples?.length ?? 0))) };
+  try { return await runInner(g, task, arena, o, trace); }
+  catch (e) { throw new RunError(e, trace.reduce((n, s) => n + s.usd, 0), trace); }
+}
+async function runInner(g: Genome, task: { id: string; input: unknown }, arena: Arena, o: { examples?: Example[] }, trace: Step[]): Promise<RunResult> {
+  const sys: Turn = { role: 'system', content: system(g, arena, (o.examples ?? []).slice(0, g.memory.examples)) };
   const ask = (): Turn[] => [sys, { role: 'user', content: arena.show(task.input) }];
   let answer: unknown | null = null;
   const shape = g.workflow.shape;

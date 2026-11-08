@@ -9,9 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { open, json } from './store.ts';
 import { paths } from './paths.ts';
 import * as ledger from './ledger.ts';
-import { run } from './runner.ts';
+import { run, RunError } from './runner.ts';
 import { getArena, dataOf } from './arenas/index.ts';
-import { getVoyage, raceTasks, examplesFor } from './race.ts';
+import { getVoyage, raceTasks, examplesFor, passing } from './race.ts';
 import { km, asPoint, grade, type Truth } from './arenas/geotag/grade.ts';
 import { LimitError } from './models/index.ts';
 import type { Genome } from './genome.ts';
@@ -35,12 +35,15 @@ export function makeCells(pts: P[], min = 3): { centres: P[]; of: number[] } {
   return { centres, of };
 }
 
-export function judgeFossil(o: { predicted: P[]; truth: Truth[]; teacherScores: number[] }) {
+export function judgeFossil(o: { predicted: P[]; truth: Truth[]; teacherScores: (number | null)[] }) {
+  // only items the teacher actually ran: an item it never ran says nothing about it
+  const keep = o.teacherScores.map((t, i) => t === null ? -1 : i).filter(i => i >= 0);
+  o = { predicted: keep.map(i => o.predicted[i]), truth: keep.map(i => o.truth[i]), teacherScores: keep.map(i => o.teacherScores[i]) };
   const scores = o.predicted.map((p, i) => grade(p, o.truth[i]));
   const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
-  const score = mean(scores), teacher = mean(o.teacherScores);
-  const agreement = mean(scores.map((s, i) => Math.abs(s - o.teacherScores[i]) < .1 ? 1 : 0));
-  return { score, teacher, agreement, scores, standsIn: score >= teacher - .05 };
+  const score = mean(scores), teacher = mean(o.teacherScores as number[]);
+  const agreement = mean(scores.map((s, i) => Math.abs(s - (o.teacherScores[i] as number)) < .1 ? 1 : 0));
+  return { score, teacher, agreement, scores, items: scores.length, standsIn: score >= teacher - .05 };
 }
 
 async function embed(texts: string[]): Promise<number[][]> {
@@ -63,7 +66,17 @@ export async function teach(voyageId: string, genomeId: string, o: { limit: numb
   const pool = db.prepare(`select id, input from tasks where arena = ? and split = 'pool' and id not in (select task from teachings where voyage = ? and genome = ?) order by id limit ?`).all(dataOf(v.arena), v.id, genomeId, o.limit) as { id: string; input: string }[];
   const put = db.prepare('insert or replace into teachings (voyage, genome, task, answer) values (?, ?, ?, ?)');
   const examples = examplesFor(v.id); let spent = 0, done = 0, next = 0;
-  const worker = async () => { while (next < pool.length && spent < o.capUsd) { const t = pool[next++]; try { const r = await run(g, { id: t.id, input: json(t.input, null) }, arena, { examples }); spent += r.usd; ledger.add({ voyage: v.id, generation: null, kind: 'teach', model: g.model, usd: r.usd, ms: r.ms }); if (asPoint(r.answer)) put.run(v.id, genomeId, t.id, JSON.stringify(r.answer)); } catch (e) { if (e instanceof LimitError) { await new Promise(r => setTimeout(r, 30_000)); next--; } } if (++done % 100 === 0) log(`  taught ${done} of ${pool.length}, $${spent.toFixed(2)}`); } };
+  // each worker retries its own item; the teaching cap and the voyage's cap both hold
+  const worker = async () => {
+    while (next < pool.length && spent < o.capUsd && ledger.spent(v.id) < v.settings.capVoyage) {
+      const t = pool[next++];
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try { const r = await run(g, { id: t.id, input: json(t.input, null) }, arena, { examples }); spent += r.usd; ledger.add({ voyage: v.id, generation: null, kind: 'teach', model: g.model, usd: r.usd, ms: r.ms }); if (asPoint(r.answer)) put.run(v.id, genomeId, t.id, JSON.stringify(r.answer)); break; }
+        catch (e) { const paid = e instanceof RunError ? e.spent : 0; if (paid) { spent += paid; ledger.add({ voyage: v.id, generation: null, kind: 'teach', model: g.model, usd: paid, ms: 0 }); } const c = e instanceof RunError ? e.cause : e; if (!(c instanceof LimitError || passing(c))) break; await new Promise(r => setTimeout(r, 30_000 * 2 ** attempt)); }
+      }
+      if (++done % 100 === 0) log(`  taught ${done} of ${pool.length}, $${spent.toFixed(2)}`);
+    }
+  };
   await Promise.all(Array.from({ length: o.concurrency ?? 4 }, worker));
   return { taught: (db.prepare('select count(*) n from teachings where voyage = ? and genome = ?').get(v.id, genomeId) as { n: number }).n, spent };
 }
@@ -89,10 +102,10 @@ export async function fossilise(voyageId: string, genomeId: string, o: { epochs?
   const race = raceTasks(v), raceX = await embed(race.map(t => arena.show(json(t.input, null)).split('\n').slice(1).join(' ')));
   writeFileSync(join(dir, 'race.json'), JSON.stringify({ x: raceX }));
   const pred = JSON.parse(await py(['predict', join(dir, 'fossil.safetensors'), String(X[0].length), String(cells.centres.length), join(dir, 'race.json')]));
-  const teacherScores = race.map(t => (db.prepare('select score from runs where voyage = ? and genome = ? and task = ? order by generation desc limit 1').get(v.id, genomeId, t.id) as { score: number } | undefined)?.score ?? 0);
+  const teacherScores = race.map(t => (db.prepare('select score from runs where voyage = ? and genome = ? and task = ? order by generation desc limit 1').get(v.id, genomeId, t.id) as { score: number } | undefined)?.score ?? null);
   const judged = judgeFossil({ predicted: pred.cells.map((c: number) => cells.centres[c]), truth: race.map(t => json<Truth>(t.truth, { places: [] })), teacherScores });
   const embedMs = await (async () => { const t0 = Date.now(); await embed([texts[0]]); return Date.now() - t0; })();
-  const record = { voyage: v.id, genome: genomeId, at: new Date().toISOString(), taught: rows.length, breeding: breeding.length, items: texts.length, cells: cells.centres.length, ...report, embed_ms: embedMs, race: { score: judged.score, teacher: judged.teacher, agreement: judged.agreement, standsIn: judged.standsIn, items: race.length } };
+  const record = { voyage: v.id, genome: genomeId, at: new Date().toISOString(), taught: rows.length, breeding: breeding.length, items: texts.length, cells: cells.centres.length, ...report, embed_ms: embedMs, race: { score: judged.score, teacher: judged.teacher, agreement: judged.agreement, standsIn: judged.standsIn, items: judged.items } };
   writeFileSync(join(dir, 'fossil.json'), JSON.stringify({ ...record, centres: cells.centres }, null, 1));
   db.exec(`create table if not exists fossils (voyage text, genome text, at text, record text, primary key (voyage, genome))`);
   db.prepare('insert or replace into fossils (voyage, genome, at, record) values (?, ?, ?, ?)').run(v.id, genomeId, record.at, JSON.stringify(record));

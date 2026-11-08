@@ -5,10 +5,10 @@
 import { randomUUID } from 'node:crypto';
 import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
-import { complete } from './models/index.ts';
-import { run } from './runner.ts';
+import { complete, LimitError } from './models/index.ts';
+import { run, RunError } from './runner.ts';
 import { getArena, dataOf } from './arenas/index.ts';
-import { getVoyage, summarize, examplesFor } from './race.ts';
+import { getVoyage, summarize, examplesFor, passing } from './race.ts';
 import { validate, type Genome } from './genome.ts';
 import { km, asPoint } from './arenas/geotag/grade.ts';
 
@@ -32,8 +32,22 @@ const SYSTEM = `You design agents for a task, the way a breeder selects and cros
 Each child changes one or two things from its parent, or crosses two parents, and the reason must point at evidence you were given. Keep a spread: some children cheap and fast (local ollama models), some aimed at the top score. Prefer changes that fix the failures you can see over rewording for its own sake.
 Allowed models: claude:claude-haiku-4-5, claude:claude-sonnet-5, ollama:qwen3:1.7b, ollama:llama3.1:8b, ollama:qwen2.5-coder:7b. Allowed tools: lookup_place. Workflow shapes: single, plan-then-answer, self-check, vote (with n from 2 to 7). Worked examples: 0 to 8.`;
 
+// wait out usage limits and passing faults, counting anything paid before a fault
+async function patient<T>(f: () => Promise<T>, paid: (usd: number) => void): Promise<T> {
+  const backoff = Number(process.env.BEAGLE_BACKOFF_MS ?? 30_000);
+  for (let attempt = 0; ; attempt++) {
+    try { return await f(); }
+    catch (thrown) {
+      const err = thrown instanceof RunError ? thrown.cause : thrown; if (thrown instanceof RunError && thrown.spent) paid(thrown.spent);
+      if (attempt >= 5 || !(err instanceof LimitError || passing(err))) throw err;
+      await new Promise(r => setTimeout(r, backoff * 2 ** attempt));
+    }
+  }
+}
+
 export async function breed(voyageId: string, generation: number, o: { children: number; elites: number; probe: number; log?: (s: string) => void }): Promise<Bred> {
   const v = getVoyage(voyageId), arena = getArena(v.arena), db = open(), log = o.log ?? (() => {}), next = generation + 1;
+  if (v.settings.localOnly) throw new Error('this voyage uses only models on this Mac, and the designer is a Claude model; breed by hand or turn that setting off');
   const rows = db.prepare('select genome, task, score, status, usd, ms from runs where voyage = ? and generation = ?').all(v.id, generation) as { genome: string; task: string; score: number; status: string; usd: number; ms: number }[];
   const { scores } = summarize(rows, v.settings.seed);
   const bodies = new Map((db.prepare('select id, body from genomes where voyage = ? and generation = ?').all(v.id, generation) as { id: string; body: string }[]).map(g => [g.id, json<Genome>(g.body, null as unknown as Genome)]));
@@ -49,7 +63,7 @@ export async function breed(voyageId: string, generation: number, o: { children:
     const g = bodies.get(s.genome)!;
     for (const t of probeItems) {
       const input = json(t.input, null), truth = json<{ places: { name: string; lat: number; lon: number }[] }>(t.truth, { places: [] });
-      const r = await run(g, { id: t.id, input }, arena, { examples });
+      const r = await patient(() => run(g, { id: t.id, input }, arena, { examples }), paid => { usd += paid; ledger.add({ voyage: v.id, generation: next, kind: 'design', model: g.model, usd: paid, ms: 0 }); });
       usd += r.usd; ledger.add({ voyage: v.id, generation: next, kind: 'design', model: g.model, usd: r.usd, ms: r.ms });
       const score = r.status === 'done' ? arena.grade(r.answer, truth) : 0;
       if (score >= 1) continue;
@@ -63,7 +77,7 @@ export async function breed(voyageId: string, generation: number, o: { children:
   const table = ranked.map(s => `${s.genome} "${bodies.get(s.genome)!.name}": score ${Math.round(s.mean * 100)} (range ${Math.round(s.lo * 100)} to ${Math.round(s.hi * 100)}), $${s.usd.toFixed(3)}, ${(s.ms / 1000).toFixed(1)} s per item, ${s.noAnswer} unanswered\n  design: ${JSON.stringify({ model: bodies.get(s.genome)!.model, tools: bodies.get(s.genome)!.tools, workflow: bodies.get(s.genome)!.workflow, memory: bodies.get(s.genome)!.memory })}\n  told: ${bodies.get(s.genome)!.instructions}`).join('\n');
   const controls = scores.filter(s => s.genome.startsWith('baseline:')).map(s => `${s.genome.slice(9)}: ${Math.round(s.mean * 100)}`).join(', ');
   const prompt = `The task: ${arena.describe}\n\nGeneration ${generation + 1}, best first, on the race items (you do not see those items):\n${table}\n\nControls on the same items: ${controls}\n\nWhere the best agents went wrong on practice items:\n${evidence.join('\n') || '(no misses)'}\n\nNow design the next generation: ${o.children} children.`;
-  const r = await complete(DESIGNER, [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }], { schema: SCHEMA, timeoutMs: 600_000 });
+  const r = await patient(() => complete(DESIGNER, [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }], { schema: SCHEMA, timeoutMs: 600_000 }), () => {});
   usd += r.usd; ledger.add({ voyage: v.id, generation: next, kind: 'design', model: DESIGNER, usd: r.usd, ms: r.ms });
 
   const out: Bred = { next: [...elites], parents: {}, reasons: {}, refused: [], usd };

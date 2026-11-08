@@ -82,6 +82,6 @@ test('plan-then-answer plans before it acts, and the plan is in the trace', asyn
 
 test('worked examples are shown to the model', async () => {
   const seen = scripted(['{"action":"answer","answer":{"lat":1,"lon":1}}']);
-  await run(genome(), task, arena, { examples: [{ input: { text: 'Floods in Haifa.' }, truth: { places: [{ name: 'Haifa', lat: 32.8, lon: 35 }] } }] });
+  await run(genome({ memory: { examples: 1 } }), task, arena, { examples: [{ input: { text: 'Floods in Haifa.' }, truth: { places: [{ name: 'Haifa', lat: 32.8, lon: 35 }] } }] });
   assert.match(seen[0].map(t => t.content).join('\n'), /Floods in Haifa[\s\S]*32\.8/);
 });
