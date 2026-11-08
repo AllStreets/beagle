@@ -167,3 +167,12 @@ test('a voyage cannot race the same generation twice at once', async () => {
   const again = await R.race(v.id, 0, [g('good')], { baselines: false });
   assert.equal(again.complete, true);
 });
+
+test('a control keeps what the model replied, so a missing answer can be checked', async () => {
+  const { baselines } = await import('../src/baselines.ts');
+  M.setDriver(async () => ({ text: 'I cannot tell where this happened.', usd: 0, ms: 1 }));
+  const b = baselines('geotag').find(x => x.name === 'one Claude call')!;
+  const r = await b.answer({ id: 't', input: { text: 'x', hidden: 'A storm hits [place].', date: '2025-01-01' } });
+  assert.equal(r.answer, null);
+  assert.match(r.note, /I cannot tell/);
+});

@@ -44,7 +44,9 @@ export function baselines(arenaId: string): Baseline[] {
           { role: 'system', content: 'Reply with JSON only: {"action": "answer", "answer": {"lat": <number>, "lon": <number>}}.' },
           { role: 'user', content: `Where did this happen? ${shown(t.input)}` },
         ], { schema: { type: 'object', required: ['action', 'answer'], properties: { action: { enum: ['answer'] }, answer: { type: 'object', required: ['lat', 'lon'], properties: { lat: { type: 'number' }, lon: { type: 'number' } } } } } });
-        return { answer: (r.json as { answer?: unknown } | undefined)?.answer ?? null, usd: r.usd, ms: r.ms, note: 'one call to Haiku, no instructions or tools' };
+        const answer = (r.json as { answer?: unknown } | undefined)?.answer ?? null;
+        // the reply itself is kept, so a missing answer can be checked
+        return { answer, usd: r.usd, ms: r.ms, note: `one call to Haiku, no instructions or tools. It replied: ${r.text.slice(0, 600)}` };
       },
     },
   ];
