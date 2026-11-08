@@ -74,6 +74,21 @@ const routes: Route[] = [
     return { ...v, spent: ledger.spent(v.id), time: ledger.time(v.id), generations: gens, racing: racing.has(v.id) };
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)$/, m => generation(m[1], Number(m[2]))],
+  // the task that best shows a generation's differences: answered by everyone, scores most spread
+  ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)\/telling$/, m => {
+    const v = getVoyage(m[1]), n = Number(m[2]), db = open(), gen = generation(v.id, n);
+    const rows = db.prepare('select id, genome, task, score, answer, status from runs where voyage = ? and generation = ?').all(v.id, n) as { id: string; genome: string; task: string; score: number; answer: string; status: string }[];
+    const byTask = new Map<string, typeof rows>(); for (const r of rows) byTask.set(r.task, [...(byTask.get(r.task) ?? []), r]);
+    let best: string | null = null, spread = -1;
+    for (const [t, rs] of byTask) { if (rs.length < gen.scores.length) continue; const sc = rs.map(r => r.score), sp = Math.max(...sc) - Math.min(...sc); if (sp > spread || (sp === spread && best !== null && t < best)) { spread = sp; best = t; } }
+    if (!best) throw new Http(404, 'no task has been answered by every entrant yet');
+    const t = db.prepare('select id, split, input, truth from tasks where id = ?').get(best) as Record<string, string>;
+    const names = new Map(gen.genomes.map(g => [g.id, g.name]));
+    const answers = byTask.get(best)!.map(r => ({ run: r.id, genome: r.genome, name: names.get(r.genome) ?? r.genome.replace('baseline:', ''), control: r.genome.startsWith('baseline:'), answer: json(r.answer, null), score: r.score, status: r.status }));
+    const order = new Map(gen.scores.map((s, i) => [s.genome, i]));
+    answers.sort((a, b) => (order.get(a.genome) ?? 99) - (order.get(b.genome) ?? 99));
+    return { task: { id: t.id, input: json(t.input, null), truth: json(t.truth, null), shown: getArena(v.arena).show(json(t.input, null)) }, answers };
+  }],
   ['GET', /^\/api\/voyages\/([^/]+)\/runs$/, (m, req) => {
     const u = new URL(req.url ?? '', 'http://x');
     return open().prepare('select id, task, score, status, usd, ms from runs where voyage = ? and generation = ? and genome = ? order by task').all(m[1], Number(u.searchParams.get('generation') ?? 0), u.searchParams.get('genome') ?? '');

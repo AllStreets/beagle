@@ -73,3 +73,13 @@ test('a race started through the API streams each run as it finishes, and its nu
   const one = await (await fetch(`${base}/api/runs/${runs[0].id}`)).json();
   assert.ok(Array.isArray(one.trace) && one.task.input.text);
 });
+
+test('the telling task: one task every entrant answered, the one their scores spread most on, with every answer', async () => {
+  const vs = await (await fetch(`${base}/api/voyages`)).json();
+  const v = vs.find((x: any) => x.arena === 'geotag');
+  const t = await (await fetch(`${base}/api/voyages/${v.id}/generations/0/telling`)).json();
+  assert.ok(t.task.input.text && t.task.truth.places.length);
+  const gen = await (await fetch(`${base}/api/voyages/${v.id}/generations/0`)).json();
+  assert.equal(t.answers.length, gen.scores.length, 'one answer per entrant');
+  for (const a of t.answers) assert.ok('score' in a && 'name' in a);
+});
