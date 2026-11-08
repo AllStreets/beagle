@@ -34,7 +34,7 @@ function generation(voyageId: string, n: number) {
   const v = getVoyage(voyageId), db = open();
   const rows = db.prepare('select genome, task, score, status, usd, ms from runs where voyage = ? and generation = ?').all(v.id, n) as { genome: string; task: string; score: number; status: string; usd: number; ms: number }[];
   const genomes = (db.prepare('select id, body, reason, parent_ids from genomes where voyage = ? and generation = ?').all(v.id, n) as { id: string; body: string; reason: string | null; parent_ids: string }[])
-    .map(g => { const b = json<Genome>(g.body, null as unknown as Genome); return { id: g.id, name: b.name, model: b.model, genome: b, reason: g.reason, parents: json(g.parent_ids, []) }; });
+    .map(g => { const b = json<Genome>(g.body, null as unknown as Genome); return { id: g.id, name: b.name, model: b.model, genome: b, reason: g.reason, parents: json<string[]>(g.parent_ids, []) }; });
   const { common, scores } = summarize(rows, v.settings.seed);
   const expected = (genomes.length + 3) * v.settings.raceTasks;
   return { voyage: v.id, generation: n, genomes, scores, common: common.length, runs: rows.length, expected, racing: racing.has(v.id) };
@@ -95,6 +95,16 @@ const routes: Route[] = [
     const order = new Map(gen.scores.map((s, i) => [s.genome, i]));
     answers.sort((a, b) => (order.get(a.genome) ?? 99) - (order.get(b.genome) ?? 99));
     return { task: { id: t.id, input: json(t.input, null), truth: json(t.truth, null), shown: getArena(v.arena).show(json(t.input, null)) }, answers };
+  }],
+  // every genome across the voyage, with its parents and its score in the generation it raced
+  ['GET', /^\/api\/voyages\/([^/]+)\/lineage$/, m => {
+    const v = getVoyage(m[1]), db = open();
+    const gens = (db.prepare('select distinct generation g from genomes where voyage = ? and generation >= 0 order by g').all(v.id) as { g: number }[]).map(r => r.g);
+    return gens.flatMap(n => { const g = generation(v.id, n), sc = new Map(g.scores.map(s => [s.genome, s])); return g.genomes.map(x => ({ id: x.id, name: x.name, model: x.model, generation: n, parents: x.parents.filter((p: string) => p !== x.id), kept: x.parents.includes(x.id), reason: x.reason, mean: sc.get(x.id)?.mean ?? null, lo: sc.get(x.id)?.lo ?? null, hi: sc.get(x.id)?.hi ?? null, genome: x.genome })); });
+  }],
+  ['GET', /^\/api\/voyages\/([^/]+)\/fossils$/, m => {
+    const db = open(); db.exec(`create table if not exists fossils (voyage text, genome text, at text, record text, primary key (voyage, genome))`);
+    return (db.prepare('select record from fossils where voyage = ?').all(m[1]) as { record: string }[]).map(r => json(r.record, null));
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/runs$/, (m, req) => {
     const u = new URL(req.url ?? '', 'http://x');

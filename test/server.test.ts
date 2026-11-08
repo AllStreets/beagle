@@ -95,3 +95,13 @@ test('a generation lists its tasks with how the field did on each, and any one t
   const bad = await fetch(`${base}/api/voyages/${v.id}/generations/0/telling?task=s0`);
   assert.equal(bad.status, 404, 'a sealed task is never opened this way');
 });
+
+test('the lineage lists every genome of every generation with its parents and score, and fossils are listed', async () => {
+  const vs = await (await fetch(`${base}/api/voyages`)).json();
+  const v = vs.find((x: any) => x.arena === 'geotag');
+  const l = await (await fetch(`${base}/api/voyages/${v.id}/lineage`)).json();
+  assert.ok(l.length >= 1);
+  for (const n of l) assert.ok(n.id && n.name && typeof n.generation === 'number' && Array.isArray(n.parents) && 'mean' in n);
+  const f = await (await fetch(`${base}/api/voyages/${v.id}/fossils`)).json();
+  assert.ok(Array.isArray(f));
+});
