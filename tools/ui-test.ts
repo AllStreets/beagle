@@ -1,0 +1,82 @@
+// Acceptance test of the app in a real browser against the running server (127.0.0.1:4750).
+// It reads the latest voyage and checks that what the screen says matches what the API says.
+// Settings it changes are put back.   npx tsx tools/ui-test.ts
+import { chromium } from 'playwright';
+
+const URL = process.env.BEAGLE_URL ?? 'http://127.0.0.1:4750/';
+const api = (p: string) => fetch(URL + 'api' + p).then(r => r.json());
+const results: [string, boolean, string][] = [];
+const expect = (name: string, ok: boolean, detail = '') => { results.push([name, ok, detail]); console.log(`${ok ? 'pass' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
+const pct = (x: number) => Math.round(x * 100);
+
+const voyages = await api('/voyages'), v = voyages.find((x: any) => x.spent > 0 && x.arena === 'geotag') ?? voyages[0];
+const full = await api(`/voyages/${v.id}`), genN = full.generations.filter((g: any) => g.generation >= 0).at(-1).generation;
+const gen = await api(`/voyages/${v.id}/generations/${genN}`), telling = await api(`/voyages/${v.id}/generations/${genN}/telling`);
+const settingsBefore = await api('/settings');
+const lead = gen.scores.find((s: any) => !s.genome.startsWith('baseline:')), leadName = gen.genomes.find((g: any) => g.id === lead.genome).name;
+
+const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+const go = async (hash: string, wait = 2500) => { await page.evaluate(h => { location.hash = h; }, hash); await page.waitForTimeout(wait); };
+try {
+  await page.goto(URL); await page.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 60000 }); await page.waitForTimeout(1500);
+  const tags = await page.$$eval('.tag', els => els.map(e => e.textContent ?? ''));
+  expect('the ship has a tag for each of its six rooms', tags.length === 6, tags.map(t => t.split(/[A-Z]/)[0]).join(''));
+  expect('the drawing room tag names the real leader and score', tags.some(t => t.includes(leadName) && t.includes(String(pct(lead.mean)))), `${leadName} ${pct(lead.mean)}`);
+  expect('the log tag shows the real spend', tags.some(t => t.includes(`$${full.spent.toFixed(2)}`)));
+  const plaque = await page.textContent('#plaque');
+  expect('the plaque gives the real run count', plaque!.includes(`${gen.runs} runs`), plaque!.slice(0, 90));
+  await page.hover('.tag:nth-child(1)'); await page.waitForTimeout(300);
+  expect('hovering a tag dims the others', (await page.$$('.tag.dim')).length === 5);
+
+  await go('#/chart', 4000);
+  expect('the chart room opens', (await page.textContent('#folio h1')) === 'The chart room');
+  expect('the chart room lists every answer to its item', (await page.$$('#answers tbody tr')).length === telling.answers.length, `${telling.answers.length} answers`);
+  const items = await page.$$('.items button');
+  expect('the chart room lists the race items', items.length === full.settings.raceTasks || items.length === gen.common, `${items.length}`);
+  const cap1 = await page.textContent('#cap');
+  await items[0].click(); await page.waitForTimeout(1500);
+  expect('choosing another item redraws the chart and its caption', (await page.textContent('#cap')) !== cap1);
+  expect('the canvas is drawn', await page.$eval('#chart', (c: any) => c.width > 400));
+
+  await go('#/specimens');
+  const rows = await page.$$eval('.ledger tbody tr', trs => trs.map(t => t.textContent ?? ''));
+  expect('the hold lists every specimen', rows.length === gen.scores.length, `${rows.length}`);
+  expect('the hold\'s first row has the API\'s top score', rows[0].includes(String(pct(gen.scores[0].mean))));
+  const plainCols = (await page.$$('.ledger thead th')).length;
+  await page.click('#view'); await page.waitForTimeout(800);
+  expect('lab view adds cost, time, rank and answered columns', (await page.$$('.ledger thead th')).length === plainCols + 4);
+  await page.click('#view'); await page.waitForTimeout(500);
+
+  await go('#/drawing');
+  expect('the drawing room draws every specimen', (await page.$$('.plate canvas')).length === gen.scores.length);
+  await page.click('.plate'); await page.waitForTimeout(2000);
+  const glass = await page.textContent('#glass');
+  expect('a plate opens under the glass with its real score and range', glass!.includes(String(pct(gen.scores[0].mean))) && glass!.includes(`${pct(gen.scores[0].lo)} to ${pct(gen.scores[0].hi)}`));
+  const runLinks = await page.$$('#glass .runs a');
+  expect('the glass lists every item the agent answered', runLinks.length === gen.scores[0].tasks, `${runLinks.length}`);
+  await runLinks[0].click(); await page.waitForTimeout(2000);
+  expect('a run opens with its steps', (await page.$$('.trace li')).length >= 1);
+
+  await go('#/log');
+  expect('the log shows the sealed fingerprint recorded at launch', (await page.textContent('.hash'))!.trim() === full.sealed_hash);
+  await go('#/fossils');
+  expect('the fossil locker says plainly that it is empty', (await page.textContent('#folio'))!.includes('No skill has been fossilised yet'));
+
+  await go('#/settings', 3000);
+  await page.fill('input[name=capGeneration]', '4.5'); await page.click('.actions button'); await page.waitForTimeout(800);
+  expect('settings save, and the API reads them back', (await api('/settings')).capGeneration === 4.5, await page.textContent('#saved') ?? '');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(1200);
+  expect('Escape returns to the ship', !(await page.evaluate(() => document.body.classList.contains('open'))));
+  const forged = await fetch(URL + 'api/settings', { method: 'POST', body: '{"seed":9}' });
+  expect('a write without the header is refused', forged.status === 403);
+  expect('no errors in the page', errors.length === 0, errors.join(' | '));
+} catch (e) { expect('the test ran to the end', false, (e as Error).message); }
+finally {
+  await fetch(URL + 'api/settings', { method: 'POST', headers: { 'content-type': 'application/json', 'x-beagle': '1' }, body: JSON.stringify(settingsBefore) });
+  await browser.close();
+}
+const failed = results.filter(r => !r[1]).length;
+console.log(`\n${results.length - failed} of ${results.length} passed.`);
+process.exitCode = failed ? 1 : 0;
