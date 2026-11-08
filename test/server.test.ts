@@ -1,0 +1,75 @@
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import type { Server } from 'node:http';
+
+process.env.BEAGLE_HOME = mkdtempSync(join(tmpdir(), 'beagle-server-'));
+let server: Server, base = '';
+const W = { 'x-beagle': '1', 'content-type': 'application/json' };
+
+before(async () => {
+  const { open } = await import('../src/store.ts');
+  const db = open(), put = db.prepare('insert into tasks (id, arena, split, input, truth, meta) values (?, ?, ?, ?, ?, ?)');
+  for (let i = 0; i < 4; i++) put.run(`r${i}`, 'geotag', 'race', JSON.stringify({ text: `race item ${i}`, date: '2024-06-01' }), JSON.stringify({ places: [{ name: 'X', lat: 10, lon: 10 }] }), '{}');
+  put.run('s0', 'geotag', 'sealed', JSON.stringify({ text: 'SECRET sealed item', date: '2025-05-01' }), JSON.stringify({ places: [{ name: 'Z', lat: 30, lon: 30 }] }), '{}');
+  put.run('b0', 'geotag', 'breeding', JSON.stringify({ text: 'breeding item', date: '2024-01-01' }), JSON.stringify({ places: [{ name: 'Y', lat: 20, lon: 20 }] }), '{}');
+  const M = await import('../src/models/index.ts');
+  M.setDriver(async () => ({ text: '{"action":"answer","answer":{"lat":10,"lon":10}}', usd: .01, ms: 2 }));
+  const { serve } = await import('../src/server.ts');
+  server = serve(0);
+  await new Promise(r => server.once('listening', r));
+  base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+});
+after(() => server.close());
+
+test('a write without the x-beagle header is refused', async () => {
+  const r = await fetch(`${base}/api/settings`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"seed":2}' });
+  assert.equal(r.status, 403);
+});
+
+test('a request addressed to another host is refused', async () => {
+  // fetch drops a custom Host header, so this goes through http.request, which sends it
+  const { request } = await import('node:http');
+  const status = await new Promise<number>((ok, fail) => { const r = request(`${base}/api/voyages`, { headers: { host: 'evil.example' } }, res => { res.resume(); ok(res.statusCode!); }); r.on('error', fail); r.end(); });
+  assert.equal(status, 403);
+});
+
+test('settings are read back as saved, and bad ones refused with a reason', async () => {
+  const ok = await fetch(`${base}/api/settings`, { method: 'POST', headers: W, body: JSON.stringify({ capGeneration: 3, view: 'lab' }) });
+  assert.equal(ok.status, 200);
+  const s = await (await fetch(`${base}/api/settings`)).json();
+  assert.equal(s.capGeneration, 3); assert.equal(s.view, 'lab');
+  const bad = await fetch(`${base}/api/settings`, { method: 'POST', headers: W, body: JSON.stringify({ capGeneration: 'lots' }) });
+  assert.equal(bad.status, 400);
+  assert.match((await bad.json()).error, /must be a number/);
+});
+
+test('an arena sample never shows a sealed task', async () => {
+  const r = await (await fetch(`${base}/api/arenas/geotag/sample`)).json();
+  assert.ok(r.tasks.length > 0);
+  assert.doesNotMatch(JSON.stringify(r), /SECRET/);
+  assert.equal(r.counts.sealed, 1, 'the count of sealed tasks may be shown, never their contents');
+});
+
+test('a race started through the API streams each run as it finishes, and its numbers match the generation endpoint', async () => {
+  const v = await (await fetch(`${base}/api/voyages`, { method: 'POST', headers: W, body: JSON.stringify({ arena: 'geotag', raceTasks: 4 }) })).json();
+  assert.match(v.sealed_hash, /^[0-9a-f]{64}$/);
+  const events: any[] = [];
+  const stream = await fetch(`${base}/api/voyages/${v.id}/events`);
+  const reader = stream.body!.getReader(); const dec = new TextDecoder();
+  const reading = (async () => { let buf = ''; for (;;) { const { value, done } = await reader.read(); if (done) break; buf += dec.decode(value); let i; while ((i = buf.indexOf('\n\n')) >= 0) { const chunk = buf.slice(0, i); buf = buf.slice(i + 2); const line = chunk.split('\n').find(l => l.startsWith('data: ')); if (line) { const e = JSON.parse(line.slice(6)); events.push(e); if (e.type === 'finished' || e.type === 'stopped') return; } } } })();
+  const started = await fetch(`${base}/api/voyages/${v.id}/race`, { method: 'POST', headers: W, body: JSON.stringify({ generation: 0, genomes: 'starters', baselines: false }) });
+  assert.equal(started.status, 202);
+  await reading; await reader.cancel();
+  assert.ok(events.filter(e => e.type === 'run').length >= 4);
+  const gen = await (await fetch(`${base}/api/voyages/${v.id}/generations/0`)).json();
+  const fin = events.find(e => e.type === 'finished');
+  assert.deepEqual(gen.scores.map((s: any) => [s.genome, s.mean]), fin.result.scores.map((s: any) => [s.genome, s.mean]));
+  assert.ok(gen.genomes.every((g: any) => g.name && g.model), 'each genome comes with its name and model');
+  // and any run's trace can be opened
+  const runs = await (await fetch(`${base}/api/voyages/${v.id}/runs?generation=0&genome=${encodeURIComponent(gen.scores[0].genome)}`)).json();
+  const one = await (await fetch(`${base}/api/runs/${runs[0].id}`)).json();
+  assert.ok(Array.isArray(one.trace) && one.task.input.text);
+});
