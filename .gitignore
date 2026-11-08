@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.superpowers/
+trainer/.venv/
+*.log
+.DS_Store
+.beagle-local/
