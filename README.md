@@ -73,6 +73,24 @@ The voyage's best is generation three's *Sonnet self-check, slot audit* at 79 (r
 
 <img src="docs/media/chart-room.jpg" alt="The chart room: a list of news items, hardest first; an engraved chart of the Levant with every agent's answer numbered around a red star where the item really happened; a table of how far off each agent was" />
 
+## The other arenas
+
+Each raced on 2026-11-09, one generation each, with its controls beside it.
+
+**Read the receipt** ($3.01, 30 receipts). The best agent, Sonnet planning first, scored 96; the free local models scored 82 to 84, Qwen 1.7B among them; the two simple controls, the largest number and the number after TOTAL, scored 20 and 30. Reading a receipt is nearly solved by any model, which makes it a good place for a cheap local agent, and a candidate for the next fossil.
+
+**Fix the failing test** ($4.69, 12 bugs). Tools are the whole difference. Haiku, reading the code, running the tests on its fix and checking it, mended all 12 bugs. Both Sonnets mended 11. Haiku with no tools mended none, nor did one plain Claude call: from the failing tests alone, neither found the line. The local models mended none either, and their runs show why: Qwen coder never opened a file, answering straight away with an invented edit to a file that does not exist.
+
+<img src="docs/media/test-bench.jpg" alt="The test bench: a bug planted in a function called similar, the broken line struck through above the original; below, each agent's edit, stamped mended" />
+
+**What day of the week was it?** (an arena defined from a folder, $4.36, 30 dates). Every Claude agent, and the one-call control, named all 30 weekdays. The local models managed 10 to 20. So a second voyage raced only local agents, with the designer still free to breed them, to ask whether a designer can teach an 8B model to do it ($3.17 for four generations, nearly all of it the Claude control).
+
+It cannot, by instruction alone. The designer's reading of the failures was exact: "The coder model answered Friday on every practice item, which means it wasn't computing anything." It taught the doomsday method, then a numeric template "reducing diff mod 7 early to keep sums small", then voting, then lookup tables "checked against the practice truths" to leave "one addition to do". The best local agent went 23, 20, 30, 27: inside the noise each time. The method was right and the sums were wrong. A third voyage gives the same dates a calculator tool to see whether that is the missing piece.
+
+<img src="docs/media/weekday-reasons.jpg" alt="The lineage page's reasons, by generation: the designer teaching local models the doomsday method, numeric templates and voting, each child's score beside its reason" />
+
+<img src="docs/media/receipt-desk.jpg" alt="The receipt desk: a thermal receipt, each amount an agent read correctly ticked in the margin; beside it what is printed and how every agent read it" />
+
 ## The ship
 
 The home screen is the model. Point at a room, or its label, and the camera goes in and a folio opens beside it. Each room is printed the way its object would have been in 1831, in its own type, and each one has a working tool in it.
