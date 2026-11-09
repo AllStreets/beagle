@@ -34,7 +34,7 @@ const turnSchema = (g: Genome, arena: Arena) => ({
 });
 
 // One loop of turns until an answer, a run of malformed replies, or the turn limit.
-async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[]): Promise<unknown | null> {
+async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[], task: { id: string; input: unknown }): Promise<unknown | null> {
   let malformed = 0, used = 0;
   const h = hooks(arena);
   while (used < h.maxTurns) {
@@ -47,7 +47,7 @@ async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[]): Prom
     const tool = reply?.action ? arena.tools.find(t => t.name === reply.action) : undefined;
     if (tool && g.tools.includes(tool.name)) {
       const t0 = Date.now(); let out: unknown;
-      try { out = await tool.run(reply!.args ?? {}); } catch (e) { out = { error: (e as Error).message }; }
+      try { out = await tool.run(reply!.args ?? {}, { task }); } catch (e) { out = { error: (e as Error).message }; }
       trace.push({ kind: 'tool', input: { name: tool.name, args: reply!.args }, output: out, usd: 0, ms: Date.now() - t0 });
       turns.push({ role: 'user', content: `Result of ${tool.name}: ${JSON.stringify(out)}` });
       continue;
@@ -73,20 +73,20 @@ async function runInner(g: Genome, task: { id: string; input: unknown }, arena: 
   const shape = g.workflow.shape;
   if (shape === 'vote') {
     const all: unknown[] = [];
-    for (let i = 0; i < (g.workflow.n ?? 3); i++) all.push(await loop(g, arena, ask(), trace));
+    for (let i = 0; i < (g.workflow.n ?? 3); i++) all.push(await loop(g, arena, ask(), trace, task));
     const got = all.filter(a => a !== null); answer = got.length ? hooks(arena).merge(got) : null;
   } else if (shape === 'plan-then-answer') {
     const turns = ask(); turns[1] = { role: 'user', content: `${turns[1].content}\n\nFirst, before acting, reply {"plan": "..."} with a short plan.` };
     const r = await complete(g.model, turns, { schema: { type: 'object', required: ['plan'], properties: { plan: { type: 'string' } } } });
     trace.push({ kind: 'model', input: turns.at(-1)!.content, output: r.text, usd: r.usd, ms: r.ms });
     const plan = (r.json as { plan?: string } | undefined)?.plan ?? r.text;
-    answer = await loop(g, arena, [sys, { role: 'user', content: `${arena.show(task.input)}\n\nYour plan: ${plan}\nNow carry it out.` }], trace);
+    answer = await loop(g, arena, [sys, { role: 'user', content: `${arena.show(task.input)}\n\nYour plan: ${plan}\nNow carry it out.` }], trace, task);
   } else {
     const turns = ask();
-    answer = await loop(g, arena, turns, trace);
+    answer = await loop(g, arena, turns, trace, task);
     if (shape === 'self-check' && answer !== null) {
       turns.push({ role: 'user', content: `You answered ${JSON.stringify(answer)}. Check it: is that really where this happened, and the most specific place named? Reply with your final answer.` });
-      answer = (await loop(g, arena, turns, trace)) ?? answer;
+      answer = (await loop(g, arena, turns, trace, task)) ?? answer;
     }
   }
   if (answer === null) trace.push({ kind: 'note', input: null, output: 'no answer: the agent never gave an answer in the required shape', usd: 0, ms: 0 });

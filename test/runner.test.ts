@@ -86,3 +86,11 @@ test('worked examples are shown to the model', async () => {
   await run(genome({ memory: { examples: 1 } }), task, arena, { examples: [{ input: { text: 'Floods in Haifa.' }, truth: { places: [{ name: 'Haifa', lat: 32.8, lon: 35 }] } }] });
   assert.match(seen[0].map(t => t.content).join('\n'), /Floods in Haifa[\s\S]*32\.8/);
 });
+
+test('a tool is told which task it is working on', async () => {
+  let seen: unknown = null;
+  const a: Arena = { ...arena, tools: [{ name: 'lookup_place', describe: 'x', args: { type: 'object' }, run: (_a: unknown, ctx?: { task: { id: string } }) => { seen = ctx?.task.id; return {}; } }] };
+  scripted(['{"action":"lookup_place","args":{"name":"x"}}', '{"action":"answer","answer":{"lat":1,"lon":1}}']);
+  await run(genome(), task, a);
+  assert.equal(seen, 't1');
+});

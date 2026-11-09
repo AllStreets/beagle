@@ -1,0 +1,23 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { rng, mean, bootstrap, pareto } from '../src/stats.ts';
+
+test('rng gives the same sequence for the same seed', () => { const a = rng(7), b = rng(7); for (let i = 0; i < 5; i++) assert.equal(a(), b()); });
+test('rng gives different sequences for different seeds', () => assert.notEqual(rng(1)(), rng(2)()));
+test('rng stays between 0 and 1', () => { const r = rng(3); for (let i = 0; i < 1000; i++) { const x = r(); assert.ok(x >= 0 && x < 1); } });
+test('rng is roughly even', () => { const r = rng(5); let s = 0; for (let i = 0; i < 10000; i++) s += r(); assert.ok(Math.abs(s / 10000 - .5) < .02); });
+test('mean of numbers', () => assert.equal(mean([1, 2, 3, 6]), 3));
+test('mean of nothing is 0', () => assert.equal(mean([]), 0));
+test('mean of one number is that number', () => assert.equal(mean([4.5]), 4.5));
+test('bootstrap of nothing is 0 to 0', () => assert.deepEqual(bootstrap([], 1), { lo: 0, hi: 0 }));
+test('bootstrap of identical values is that value', () => { const r = bootstrap([.4, .4, .4], 1); assert.ok(Math.abs(r.lo - .4) < 1e-12 && Math.abs(r.hi - .4) < 1e-12); });
+test('bootstrap brackets the mean', () => { const xs = [0, 1, 1, 0, 1, 1, 1, 0, 1, 1]; const r = bootstrap(xs, 1); assert.ok(r.lo < mean(xs) && mean(xs) < r.hi); });
+test('bootstrap is narrower with more data', () => { const few = bootstrap([0, 1, 0, 1], 1), many = bootstrap(Array.from({ length: 400 }, (_, i) => i % 2), 1); assert.ok(many.hi - many.lo < few.hi - few.lo); });
+test('bootstrap is seeded', () => assert.deepEqual(bootstrap([0, .3, .9, 1], 9), bootstrap([0, .3, .9, 1], 9)));
+test('bootstrap stays within the data', () => { const r = bootstrap([.2, .5, .8], 4); assert.ok(r.lo >= .2 - 1e-12 && r.hi <= .8 + 1e-12); });
+test('pareto: one item is the front', () => assert.deepEqual(pareto([{ mean: .5, usd: 1, ms: 1 }]), [1]));
+test('pareto: better and cheaper wins', () => assert.deepEqual(pareto([{ mean: .9, usd: 1, ms: 1 }, { mean: .5, usd: 2, ms: 2 }]), [1, 2]));
+test('pareto: a trade-off keeps both on the front', () => assert.deepEqual(pareto([{ mean: .9, usd: 2, ms: 1 }, { mean: .5, usd: 1, ms: 1 }]), [1, 1]));
+test('pareto: equals share a rank', () => assert.deepEqual(pareto([{ mean: .5, usd: 1, ms: 1 }, { mean: .5, usd: 1, ms: 1 }]), [1, 1]));
+test('pareto: ranks go down in layers', () => assert.deepEqual(pareto([{ mean: .3, usd: 3, ms: 3 }, { mean: .9, usd: 1, ms: 1 }, { mean: .6, usd: 2, ms: 2 }]), [3, 1, 2]));
+test('pareto: faster at the same score and cost wins', () => assert.deepEqual(pareto([{ mean: .5, usd: 1, ms: 9 }, { mean: .5, usd: 1, ms: 1 }]), [2, 1]));

@@ -3,7 +3,7 @@ export type ToolSpec = {
   name: string;
   describe: string;                          // what the tool does, for the model
   args: object;                              // JSON schema of its arguments
-  run(args: any): Promise<unknown> | unknown;
+  run(args: any, ctx?: { task: { id: string; input: unknown } }): Promise<unknown> | unknown;   // ctx: the task the run is on
 };
 
 export type Arena = {

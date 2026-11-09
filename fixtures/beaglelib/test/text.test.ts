@@ -1,0 +1,22 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { money, secs, dist, nice, sentenceDiff, bucket, splitOf } from '../src/text.ts';
+
+test('money under a dollar shows three places', () => assert.equal(money(.0234), '$0.023'));
+test('money over a dollar shows two places', () => assert.equal(money(13.876), '$13.88'));
+test('money of exactly a dollar shows two places', () => assert.equal(money(1), '$1.00'));
+test('secs under a second are milliseconds', () => assert.equal(secs(340.4), '340 ms'));
+test('secs over a second are seconds', () => assert.equal(secs(1450), '1.4 s'));
+test('dist of no answer says so', () => assert.equal(dist(null), 'no answer'));
+test('dist under 10 km keeps a decimal', () => assert.equal(dist(6.94), '6.9 km'));
+test('dist over 10 km is whole, with a separator', () => assert.equal(dist(3522.4), '3,522 km'));
+test('nice rounds to 1, 2 or 5', () => { assert.equal(nice(1.2), 1); assert.equal(nice(2.9), 2); assert.equal(nice(6), 5); assert.equal(nice(8), 10); });
+test('nice keeps the power of ten', () => { assert.equal(nice(180), 200); assert.equal(nice(.04), .05); });
+test('sentenceDiff of the same text is all kept', () => assert.ok(sentenceDiff('A. B.', 'A. B.').every(x => x.t === 'same')));
+test('sentenceDiff marks a new sentence written in', () => assert.deepEqual(sentenceDiff('A. B.', 'A. C. B.'), [{ t: 'same', w: 'A.' }, { t: 'ins', w: 'C.' }, { t: 'same', w: 'B.' }]));
+test('sentenceDiff marks a dropped sentence struck out', () => assert.deepEqual(sentenceDiff('A. B. C.', 'A. C.'), [{ t: 'same', w: 'A.' }, { t: 'del', w: 'B.' }, { t: 'same', w: 'C.' }]));
+test('sentenceDiff splits on questions and colons too', () => assert.equal(sentenceDiff('Why? Rules: one.', '').length, 3));
+test('sentenceDiff from nothing is all written in', () => assert.ok(sentenceDiff('', 'A. B.').every(x => x.t === 'ins')));
+test('bucket is between 0 and 99', () => { for (const id of ['a', 'b', 'c', 'long id 123']) { const b = bucket(id); assert.ok(b >= 0 && b < 100); } });
+test('bucket is the same for the same id', () => assert.equal(bucket('x1'), bucket('x1')));
+test('splitOf spreads ids roughly 60, 25, 15', () => { const n = { breeding: 0, race: 0, sealed: 0 } as Record<string, number>; for (let i = 0; i < 2000; i++) n[splitOf(`t${i}`)]++; assert.ok(Math.abs(n.breeding / 2000 - .6) < .05 && Math.abs(n.race / 2000 - .25) < .05 && Math.abs(n.sealed / 2000 - .15) < .05, JSON.stringify(n)); });
