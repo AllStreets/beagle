@@ -1,0 +1,6 @@
+{
+  "id": "weekday",
+  "name": "What day of the week was it?",
+  "describe": "You are given a date between the years 1600 and 2200, written out in words. Say which day of the week it fell on in the Gregorian calendar.",
+  "answer": { "type": "object", "required": ["day"], "properties": { "day": { "type": "string", "enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] } } }
+}

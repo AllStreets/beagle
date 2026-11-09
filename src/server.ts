@@ -13,6 +13,7 @@ import { startVoyage, race, getVoyage, summarize, sealedHash, examplesFor, type 
 import { run, RunError } from './runner.ts';
 import { buildBundle } from './bundle.ts';
 import { askFossil } from './fossil.ts';
+import { loadCustomArenas } from './arenas/custom.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { baselines } from './baselines.ts';
 import { getArena, dataOf, arenaIds, startersFor } from './arenas/index.ts';
@@ -214,4 +215,4 @@ export function serve(port = PORT): Server {
   return server;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) { serve(); console.log(`Beagle on http://127.0.0.1:${PORT}`); }
+if (import.meta.url === `file://${process.argv[1]}`) { await loadCustomArenas(); serve(); console.log(`Beagle on http://127.0.0.1:${PORT}`); }

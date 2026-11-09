@@ -30,7 +30,9 @@ export function hooks(a: Arena) {
 export async function gradeSafely(a: Arena, answer: unknown, truth: unknown): Promise<number> {
   try {
     const ms = a.graderTimeoutMs ?? 120_000;
-    const s = await Promise.race([Promise.resolve().then(() => a.grade(answer, truth)), new Promise<number>((_, no) => setTimeout(() => no(new Error('the grader ran out of time')), ms).unref())]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // the timer holds the process open, so a grader that never returns cannot end a race silently
+    const s = await Promise.race([Promise.resolve().then(() => a.grade(answer, truth)), new Promise<number>((_, no) => { timer = setTimeout(() => no(new Error('the grader ran out of time')), ms); })]).finally(() => clearTimeout(timer));
     return typeof s === 'number' && isFinite(s) ? Math.max(0, Math.min(1, s)) : 0;
   } catch { return 0; }
 }
@@ -38,3 +40,4 @@ export async function gradeSafely(a: Arena, answer: unknown, truth: unknown): Pr
 // generation one's agents: the arena's own, or for geotagging, its hand-written starters
 import { starters as geoStarters } from './geotag/starters.ts';
 export const startersFor = (id: string) => getArena(id).starters?.() ?? (getArena(id).data === 'geotag' ? geoStarters() : []);
+export function unregisterArena(id: string) { delete ARENAS[id]; }

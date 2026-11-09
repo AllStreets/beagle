@@ -1,3 +1,4 @@
+import { addArena, loadCustomArenas } from './arenas/custom.ts';
 import { startersFor } from './arenas/index.ts';
 import { existsSync } from 'node:fs';
 import { LimitError } from './models/index.ts';
@@ -13,6 +14,7 @@ import { teach, fossilise } from './fossil.ts';
 import type { Genome } from './genome.ts';
 
 const [cmd, ...args] = process.argv.slice(2);
+await loadCustomArenas();
 const flag = (k: string) => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : undefined; };
 
 function table(r: RaceResult) {
@@ -28,7 +30,9 @@ const progress = (e: RaceEvent) => {
 
 const commands: Record<string, () => Promise<void> | void> = {
   async arena() {
-    if (args[0] !== 'build' || args[1] !== 'geotag') return console.log('beagle arena build geotag');
+    if (args[0] === 'add' && args[1]) { const r = await addArena(args[1]); return console.log(`Arena "${r.id}" added: ${r.counts.breeding} items to learn from, ${r.counts.race} to race on, ${r.counts.sealed} sealed.\nStart a voyage: beagle voyage start ${r.id}`); }
+    if (args[0] === 'build' && args[1] && args[1] !== 'geotag') { await import(`../scripts/build-${args[1]}.ts`); return; }
+    if (args[0] !== 'build' || args[1] !== 'geotag') return console.log('beagle arena build <geotag|receipts|fixtest>\nbeagle arena add <folder>     a folder with arena.json, tasks.jsonl and grade.ts');
     if (!existsSync(join(paths.arenas, 'gazetteer.db'))) await import('../scripts/fetch-geonames.ts');
     await import('../scripts/build-geotag.ts');
   },
@@ -92,8 +96,9 @@ const commands: Record<string, () => Promise<void> | void> = {
   help() {
     console.log(`beagle <command>
 
-  arena build geotag          build the geotagging arena from Wikipedia and GeoNames
-  voyage start geotag         start a voyage; prints the sealed test's fingerprint
+  arena build <arena>         build an arena: geotag, receipts or fixtest
+  arena add <folder>          add your own arena: arena.json, tasks.jsonl and grade.ts
+  voyage start <arena>        start a voyage; prints the sealed test's fingerprint
   race <voyage>               race the starters and baselines (generation 0)
   status <voyage>             what has run and what it cost
   export <voyage>             write the voyage as a bundle anyone can re-grade
