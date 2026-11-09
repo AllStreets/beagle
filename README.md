@@ -63,7 +63,7 @@ Everything here is from one real voyage, `v-2026-11-08-c5c0ba`: three generation
 
 **Generations two and three** were written by the designer. Its reasons point at real misses, quoted here:
 
-> The best agent missed by 3,500 km on the Jakarta item because it read 'accuses [place]' as Papua rather than the government. It missed by 9,400 km on the Swiss landslides by defaulting to China, and by 1,000 km on the Philippine ambush by guessing Mindanao.
+> The best agent missed by 3,500 km on the Jakarta item because it read 'accuses [place]' as Papua rather than the government. It missed by 9,400 km on the Swiss landslides by defaulting to China.
 
 The voyage's best is generation three's *Sonnet self-check, slot audit* at 79 (range 69 to 87), bred to catch exactly those traps with a second look. But the plain result is a plateau, not a climb. *Sonnet, plans first* was kept unchanged through all three generations and scored 70, then 78, then 76 on the same design. With 40 items, a score moves about 8 points from noise alone, so no bred child has yet clearly beaten its parent. Beagle shows the ranges, and only calls a win when they separate. What did move was the field: by generation three, six Sonnet designs sat between 72 and 79, where generation one had two Sonnets at 70 and 71.
 
@@ -71,7 +71,7 @@ The voyage's best is generation three's *Sonnet self-check, slot audit* at 79 (r
 
 **Two earlier voyages were withdrawn,** and the log keeps them with the reason. The first used an easier arena that named the places, and every agent scored near the top. The second, $21.92 of runs, had a fault the final review found: agents written to see no worked examples were shown eight. Its results described agents that did not match their designs, so they were thrown out and the voyage above was run from scratch.
 
-<img src="docs/media/chart-room.jpg" alt="The chart room: a list of news items, hardest first; an engraved chart of the Levant with every agent's answer numbered around a red star where the item really happened; a table of how far off each agent was" />
+<img src="docs/media/chart-room.jpg" alt="An Admiralty-style chart of the Lake Lure dam warning: every agent's answer numbered around a red star on Rutherford County, North Carolina, with a degree scale, compass rose and scale of kilometres" />
 
 ## The other arenas
 
@@ -85,7 +85,11 @@ Each raced on 2026-11-09, one generation each, with its controls beside it.
 
 **What day of the week was it?** (an arena defined from a folder, $4.36, 30 dates). Every Claude agent, and the one-call control, named all 30 weekdays. The local models managed 10 to 20. So a second voyage raced only local agents, with the designer still free to breed them, to ask whether a designer can teach an 8B model to do it ($3.17 for four generations, nearly all of it the Claude control).
 
-It cannot, by instruction alone. The designer's reading of the failures was exact: "The coder model answered Friday on every practice item, which means it wasn't computing anything." It taught the doomsday method, then a numeric template "reducing diff mod 7 early to keep sums small", then voting, then lookup tables "checked against the practice truths" to leave "one addition to do". The best local agent went 23, 20, 30, 27: inside the noise each time. The method was right and the sums were wrong. A third voyage gives the same dates a calculator tool to see whether that is the missing piece.
+It cannot, by instruction alone. The designer's reading of the failures was exact: "The coder model answered Friday on every practice item, which means it wasn't computing anything." It taught the doomsday method, then a numeric template "reducing diff mod 7 early to keep sums small", then voting, then lookup tables "checked against the practice truths" to leave "one addition to do". The best local agent went 23, 20, 30, 27: inside the noise each time. The method was right and the sums were wrong.
+
+So a third voyage gave the same dates a calculator, a built-in tool any arena can ask for. Offered it, the designer reached for it at once, writing Sakamoto's weekday formula into every child and having the model hand each sum to the calculator. On the 5 to 7 dates each had finished before a Claude usage limit stopped the race, those children scored 33 to 71, against their parent's 14 on the same voyage. That is too few dates to call, and the voyage is left unfinished; but it is the first time a local model has looked able to do it, and it took a tool, not a better instruction.
+
+A local-only fix-test voyage was raced too: the local models mended almost nothing (Llama 8B 4, Qwen coder 0), and it was stopped before breeding.
 
 <img src="docs/media/weekday-reasons.jpg" alt="The lineage page's reasons, by generation: the designer teaching local models the doomsday method, numeric templates and voting, each child's score beside its reason" />
 
@@ -106,7 +110,7 @@ The home screen is the model. Point at a room, or its label, and the camera goes
 
 Every number on every screen comes from the local API. A browser test checks 33 things against it, including running every tool above. Plain view explains every number in words; lab view adds cost, time, ranks and raw answers. Every term of art has its meaning a hover away.
 
-<img src="docs/media/fossils.jpg" alt="The fossil locker at night: asked about an airstrike item, the fossil's five likeliest places on a chart beside its teacher's answer, the fossil in 3.4 ms against its teacher's 20.6 s, twelve kilometres apart" />
+<img src="docs/media/fossils.jpg" alt="The fossil locker at night: asked about a snowstorm closing a mountain pass, the fossil is only 11% sure and its first choice lands far from its teacher's answer in the Alps; the fossil answers in 2.2 ms, its teacher in 2.6 s" />
 
 <img src="docs/media/hold.jpg" alt="The hold: a shelf of glass jars, each filled to its agent's score with the likely range etched on the glass; below, a pair of brass scales weighing two agents" />
 

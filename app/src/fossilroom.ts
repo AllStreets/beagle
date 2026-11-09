@@ -43,7 +43,7 @@ export async function fossilRoom(el: HTMLElement, c: Ctx) {
     <section class="ask-fossil" data-i="${i}">
       <h2>Ask it something</h2>
       <p>Write any news item. The fossil answers with the places it thinks most likely and how sure it is of each. Its teacher can answer the same item beside it${f.teacher_usd > 0 ? `, for about ${money(f.teacher_usd)}` : ', for free'}.</p>
-      <form class="ask-form"><textarea name="text" rows="3" placeholder="An Israeli airstrike on a house in [place] kills a minister in the Hamas-run government.">An Israeli airstrike on a house in [place] kills a minister in the Hamas-run government, along with his wife and their three children.</textarea>
+      <form class="ask-form"><textarea name="text" rows="3" placeholder="Heavy snow closes the main road over the [place] pass, stranding hundreds of skiers in the resort town of [place].">Heavy snow closes the main road over the [place] pass, stranding hundreds of skiers in the resort town of [place].</textarea>
         <div class="row"><button type="submit" class="ask-btn">Ask the fossil</button><label><input type="checkbox" name="teacher" checked> and its teacher</label></div></form>
       <div class="answer-pair" hidden>
         <figure class="sheet"><canvas class="fossil-chart" role="img" aria-label="Where the fossil and its teacher answered"></canvas></figure>
