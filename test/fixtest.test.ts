@@ -52,6 +52,9 @@ test('the tools read the planted copy and run the tests with proposed edits', as
   assert.equal(found.matches.length, 1);
   const before = await t('run_tests').run({ edits: [] }, ctx) as { failed: string[] };
   assert.deepEqual(before.failed, ['mean of nothing is 0']);
+  const failing = await t('run_tests').run({ edits: [] }, ctx) as { first_failure: string };
+  assert.doesNotMatch(failing.first_failure, /beagle-(try|fix)-|\/var\/folders|\/tmp\//, 'the agent is not shown where the copy lives on this Mac');
+  assert.match(failing.first_failure, /beaglelib\/test\/stats\.test\.ts/);
   const after = await t('run_tests').run(fix, ctx) as { failed: string[]; passed: number };
   assert.deepEqual(after.failed, []);
   const refused = await t('run_tests').run({ edits: [{ file: 'test/stats.test.ts', find: 'a', replace: 'b' }] }, ctx) as { error?: string };

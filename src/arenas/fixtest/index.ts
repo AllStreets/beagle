@@ -114,7 +114,7 @@ export const fixtest: Arena = {
       run: async (a: { edits?: Edit[] }, ctx) => {
         const fresh = mkdtempSync(join(tmpdir(), 'beagle-try-'));
         try { cpSync(copyFor(ctx), fresh, { recursive: true, mode: 1 }); const bad = applyEdits(fresh, a?.edits ?? []); if (bad) return { error: bad };
-          const r = await runSuite(fresh); return { failed: r.failed.slice(0, 10), passed: r.passed, total: r.total, first_failure: firstFailure(r.output) };
+          const r = await runSuite(fresh); return { failed: r.failed.slice(0, 10), passed: r.passed, total: r.total, first_failure: firstFailure(r.output).split(`file://${fresh}`).join('beaglelib').split(fresh).join('beaglelib') };
         } finally { rmSync(fresh, { recursive: true, force: true }); }
       } },
   ],
