@@ -15,8 +15,7 @@ import { buildBundle } from './bundle.ts';
 import { askFossil } from './fossil.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { baselines } from './baselines.ts';
-import { starters } from './arenas/geotag/starters.ts';
-import { getArena, dataOf } from './arenas/index.ts';
+import { getArena, dataOf, arenaIds, startersFor } from './arenas/index.ts';
 import type { Genome } from './genome.ts';
 
 export const PORT = Number(process.env.BEAGLE_PORT ?? 4750);
@@ -33,7 +32,7 @@ const listeners = new Map<string, Set<ServerResponse>>();
 function broadcast(voyage: string, e: RaceEvent) { for (const res of listeners.get(voyage) ?? []) res.write(`data: ${JSON.stringify(e)}\n\n`); }
 const racing = new Set<string>();
 
-const names = () => new Map(starters().map(g => [g.id, g]));
+const names = () => new Map(arenaIds().flatMap(a => startersFor(a)).map(g => [g.id, g]));
 function generation(voyageId: string, n: number) {
   const v = getVoyage(voyageId), db = open();
   const rows = db.prepare('select genome, task, score, status, usd, ms from runs where voyage = ? and generation = ?').all(v.id, n) as { genome: string; task: string; score: number; status: string; usd: number; ms: number }[];
@@ -178,7 +177,7 @@ const routes: Route[] = [
     const v = getVoyage(m[1]), b = await body(req);
     if (racing.has(v.id)) throw new Http(409, 'this voyage is already racing');
     racing.add(v.id);
-    race(v.id, Number(b.generation ?? 0), starters(), { baselines: b.baselines !== false, onEvent: e => broadcast(v.id, e) })
+    race(v.id, Number(b.generation ?? 0), startersFor(v.arena) as any, { baselines: b.baselines !== false, onEvent: e => broadcast(v.id, e) })
       .catch(e => broadcast(v.id, { type: 'stopped', generation: Number(b.generation ?? 0), reason: (e as Error).message }))
       .finally(() => racing.delete(v.id));
     send(res, 202, { started: true });

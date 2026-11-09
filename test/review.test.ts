@@ -99,7 +99,7 @@ test('minor: re-grading a bundle with a task missing reports it, without crashin
   const file = join(process.env.BEAGLE_HOME!, 'cut.beagle.json');
   writeFileSync(file, JSON.stringify({ format: 'beagle-bundle-1', voyage: { arena: 'geotag', settings: { seed: 1 } }, tasks: {},
     runs: [{ generation: 0, genome: 'a', task: 'gone', answer: { lat: 1, lon: 1 }, score: .9, status: 'done', usd: 0, ms: 0 }] }));
-  const r = regrade(file);
+  const r = await regrade(file);
   assert.equal(r.mismatches, 1, 'an answer that cannot be checked is not a match');
   assert.equal(r.missing, 1);
 });

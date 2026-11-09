@@ -1,5 +1,5 @@
 import type { Arena } from '../types.ts';
-import { grade, type Truth } from './grade.ts';
+import { grade, km, asPoint, type Truth } from './grade.ts';
 import { lookup } from './gazetteer.ts';
 
 const SCORING = 'Answers within 25 km score full marks; the score falls with distance to nothing at 2,500 km.';
@@ -12,6 +12,13 @@ export const geotag: Arena = {
   describe: `You are given one news item from Wikipedia's Current Events, with its date. Every place it names has been replaced with [place]. Work out where on Earth it happened from everything else in it, and answer with a latitude and longitude. ${SCORING}`,
   answer: { type: 'object', required: ['lat', 'lon'], properties: { lat: { type: 'number', minimum: -90, maximum: 90 }, lon: { type: 'number', minimum: -180, maximum: 180 } } },
   grade: (answer, truth) => grade(answer, truth as Truth),
+  inBrowser: true,
+  valid: answer => !!asPoint(answer),
+  // of several points, the one with the least total distance to the others, so an outlier never
+  // wins against answers that agree
+  merge: answers => { const pts = answers.map(asPoint).filter((p): p is { lat: number; lon: number } => !!p); if (!pts.length) return null; let best = pts[0], s = Infinity; for (const p of pts) { const t = pts.reduce((n, q) => n + km(p, q), 0); if (t < s) { s = t; best = p; } } return best; },
+  example: truth => { const p = (truth as Truth).places?.[0]; return p ? `${JSON.stringify({ lat: p.lat, lon: p.lon })} (${p.name})` : JSON.stringify(truth); },
+  miss: (answer, truth) => { const p = asPoint(answer), t = truth as Truth; return `truth: ${t.places.map(q => q.name).join(', ')}; it ${p ? `was ${Math.round(Math.min(...t.places.map(q => km(p, q))))} km off` : 'gave no answer'}`; },
   show: input => { const i = input as { text: string; hidden?: string; date: string }; return `${i.date}\n${i.hidden ?? i.text}`; },
   tools: [{
     name: 'lookup_place',

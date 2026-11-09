@@ -5,7 +5,7 @@ import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { open, json } from './store.ts';
 import { paths } from './paths.ts';
-import { getArena } from './arenas/index.ts';
+import { getArena, gradeSafely } from './arenas/index.ts';
 import { getVoyage, summarize, type RaceResult } from './race.ts';
 
 export type Bundle = {
@@ -46,19 +46,20 @@ export function buildBundle(voyageId: string): Bundle {
 // Re-score every answer with the arena's grader and summarise one generation (the last, unless
 // named). `mismatches` counts answers whose recorded score differs from the recomputed one.
 // A run whose task is missing from the bundle cannot be checked: it counts as a mismatch and as missing.
-export function regrade(file: string, generation?: number): RaceResult & { generation: number; mismatches: number; missing: number } {
+export async function regrade(file: string, generation?: number): Promise<RaceResult & { generation: number; mismatches: number; missing: number }> {
   const b = JSON.parse(readFileSync(file, 'utf8')) as Bundle;
   if (b.format !== 'beagle-bundle-1') throw new Error('not a Beagle bundle');
   const arena = getArena(b.voyage.arena);
   const gen = generation ?? Math.max(...b.runs.map(r => r.generation).filter(g => g >= 0));
   let mismatches = 0, missing = 0;
-  const rows = b.runs.filter(r => r.generation === gen).map(r => {
+  const rows = [];
+  for (const r of b.runs.filter(x => x.generation === gen)) {
     const task = b.tasks[r.task];
-    if (!task) { missing++; mismatches++; return { ...r, score: 0 }; }
-    const score = r.status === 'done' ? arena.grade(r.answer, task.truth) : 0;
+    if (!task) { missing++; mismatches++; rows.push({ ...r, score: 0 }); continue; }
+    const score = r.status === 'done' ? await gradeSafely(arena, r.answer, task.truth) : 0;
     if (Math.abs(score - r.score) > 1e-9) mismatches++;
-    return { ...r, score };
-  });
+    rows.push({ ...r, score });
+  }
   const seed = (b.voyage.settings as { seed?: number }).seed ?? 1;
   return { complete: true, generation: gen, mismatches, missing, ...summarize(rows, seed) };
 }

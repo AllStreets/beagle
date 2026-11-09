@@ -4,13 +4,13 @@
 import { complete, type Turn } from './models/index.ts';
 import type { Arena } from './arenas/types.ts';
 import type { Genome } from './genome.ts';
-import { km, asPoint } from './arenas/geotag/grade.ts';
+import { hooks } from './arenas/index.ts';
 
 export type Step = { kind: 'model' | 'tool' | 'note'; input: unknown; output: unknown; usd: number; ms: number };
 export type RunResult = { answer: unknown | null; trace: Step[]; usd: number; ms: number; status: 'done' | 'no-answer' };
 export type Example = { input: unknown; truth: unknown };
 
-const MAX_TURNS = 6, MAX_MALFORMED = 2;
+const MAX_MALFORMED = 2;
 
 function system(g: Genome, arena: Arena, examples: Example[]): string {
   const tools = arena.tools.filter(t => g.tools.includes(t.name));
@@ -23,11 +23,7 @@ function system(g: Genome, arena: Arena, examples: Example[]): string {
   ];
   if (examples.length) {
     parts.push('', 'Worked examples, with the true answer:');
-    for (const e of examples) {
-      const t = e.truth as { places?: { name: string; lat: number; lon: number }[] };
-      const p = t.places?.[0];
-      parts.push(`Item: ${arena.show(e.input)}\nAnswer: ${p ? JSON.stringify({ lat: p.lat, lon: p.lon }) + ` (${p.name})` : JSON.stringify(e.truth)}`);
-    }
+    for (const e of examples) parts.push(`Item: ${arena.show(e.input)}\nAnswer: ${hooks(arena).example(e.truth)}`);
   }
   return parts.join('\n');
 }
@@ -40,13 +36,14 @@ const turnSchema = (g: Genome, arena: Arena) => ({
 // One loop of turns until an answer, a run of malformed replies, or the turn limit.
 async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[]): Promise<unknown | null> {
   let malformed = 0, used = 0;
-  while (used < MAX_TURNS) {
+  const h = hooks(arena);
+  while (used < h.maxTurns) {
     used++;
     const r = await complete(g.model, turns, { schema: turnSchema(g, arena) });
     const reply = r.json as { action?: string; args?: unknown; answer?: unknown } | undefined;
     trace.push({ kind: 'model', input: turns.at(-1)!.content, output: r.text, usd: r.usd, ms: r.ms });
     turns.push({ role: 'assistant', content: r.text });
-    if (reply?.action === 'answer' && asPoint(reply.answer)) return reply.answer;
+    if (reply?.action === 'answer' && h.valid(reply.answer)) return reply.answer;
     const tool = reply?.action ? arena.tools.find(t => t.name === reply.action) : undefined;
     if (tool && g.tools.includes(tool.name)) {
       const t0 = Date.now(); let out: unknown;
@@ -60,16 +57,6 @@ async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[]): Prom
     turns.push({ role: 'user', content: 'That reply was not in the required JSON shape. Reply with JSON only, as described.' });
   }
   return null;
-}
-
-// Of several answers, the one with the least total distance to the others (a medoid), so an
-// outlier never wins against answers that agree.
-function middle(answers: unknown[]): unknown | null {
-  const pts = answers.map(asPoint).filter((p): p is { lat: number; lon: number } => !!p);
-  if (!pts.length) return answers.find(a => a !== null) ?? null;
-  let best = pts[0], bestSum = Infinity;
-  for (const p of pts) { const s = pts.reduce((n, q) => n + km(p, q), 0); if (s < bestSum) { best = p; bestSum = s; } }
-  return best;
 }
 
 // If a call fails partway, what was already paid for travels with the error, so it is counted.
@@ -87,7 +74,7 @@ async function runInner(g: Genome, task: { id: string; input: unknown }, arena: 
   if (shape === 'vote') {
     const all: unknown[] = [];
     for (let i = 0; i < (g.workflow.n ?? 3); i++) all.push(await loop(g, arena, ask(), trace));
-    answer = middle(all.filter(a => a !== null));
+    const got = all.filter(a => a !== null); answer = got.length ? hooks(arena).merge(got) : null;
   } else if (shape === 'plan-then-answer') {
     const turns = ask(); turns[1] = { role: 'user', content: `${turns[1].content}\n\nFirst, before acting, reply {"plan": "..."} with a short plan.` };
     const r = await complete(g.model, turns, { schema: { type: 'object', required: ['plan'], properties: { plan: { type: 'string' } } } });

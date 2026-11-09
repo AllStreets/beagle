@@ -1,3 +1,4 @@
+import { startersFor } from './arenas/index.ts';
 import { existsSync } from 'node:fs';
 import { LimitError } from './models/index.ts';
 import { join } from 'node:path';
@@ -6,7 +7,6 @@ import { open } from './store.ts';
 import * as ledger from './ledger.ts';
 import { startVoyage, race, getVoyage, finishVoyage, sealedScore, type RaceEvent, type RaceResult } from './race.ts';
 import { exportBundle, regrade } from './bundle.ts';
-import { starters } from './arenas/geotag/starters.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { breed } from './designer.ts';
 import { teach, fossilise } from './fossil.ts';
@@ -39,8 +39,8 @@ const commands: Record<string, () => Promise<void> | void> = {
   },
   async race() {
     const v = getVoyage(args[0]); const gen = Number(flag('generation') ?? 0);
-    console.log(`Racing generation ${gen} of ${v.id}: ${starters().length} starters and the baselines on ${v.settings.raceTasks} tasks, cap $${v.settings.capGeneration}.`);
-    table(await race(v.id, gen, starters(), { onEvent: progress }));
+    console.log(`Racing generation ${gen} of ${v.id}: ${startersFor(v.arena).length} starters and the baselines on ${v.settings.raceTasks} tasks, cap $${v.settings.capGeneration}.`);
+    table(await race(v.id, gen, startersFor(v.arena) as any, { onEvent: progress }));
   },
   // breed and race generation after generation, from the last one raced
   async evolve() {
@@ -75,8 +75,8 @@ const commands: Record<string, () => Promise<void> | void> = {
   finish() { finishVoyage(args[0]); console.log(`Voyage ${args[0]} finished. Its sealed test can now be scored.`); },
   async sealed() { table(await sealedScore(args[0], args.slice(1), { onEvent: progress })); },
   export() { console.log(exportBundle(args[0])); },
-  regrade() {
-    const r = regrade(args[0], flag('generation') ? Number(flag('generation')) : undefined);
+  async regrade() {
+    const r = await regrade(args[0], flag('generation') ? Number(flag('generation')) : undefined);
     console.log(`Generation ${r.generation} re-graded from the bundle alone. ${r.missing ? `${r.missing} answers have no task in the bundle and cannot be checked. ` : ""}${r.mismatches ? `${r.mismatches} recorded scores did NOT match.` : 'Every recorded score matched.'}`);
     table(r);
   },

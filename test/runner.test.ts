@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { setDriver, type Turn } from '../src/models/index.ts';
 import { run } from '../src/runner.ts';
 import type { Arena } from '../src/arenas/types.ts';
+import { geotag } from '../src/arenas/geotag/index.ts';
 import type { Genome } from '../src/genome.ts';
 
 afterEach(() => setDriver(null));
@@ -10,7 +11,7 @@ afterEach(() => setDriver(null));
 const arena: Arena = {
   id: 'toy', data: 'toy', name: 'Toy', describe: 'Say where it happened.',
   answer: { type: 'object', required: ['lat', 'lon'], properties: { lat: { type: 'number' }, lon: { type: 'number' } } },
-  grade: () => 1, show: i => String((i as { text: string }).text),
+  grade: () => 1, show: i => String((i as { text: string }).text), valid: geotag.valid, merge: geotag.merge,   // answers are points, voted as geotagging votes
   tools: [{ name: 'lookup_place', describe: 'look up', args: { type: 'object' }, run: (a: { name: string }) => ({ matches: [{ name: a.name, lat: 49.49, lon: 8.47 }] }) }],
 };
 const genome = (o: Partial<Genome> = {}): Genome => ({ id: 'g', name: 'G', model: 'claude:claude-haiku-4-5', instructions: 'Be right.', tools: ['lookup_place'], workflow: { shape: 'single' }, memory: { examples: 0 }, ...o });

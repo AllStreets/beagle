@@ -6,8 +6,8 @@ import { rng } from './stats.ts';
 import { createHash } from 'node:crypto';
 import { getArena } from './arenas/index.ts';
 
-export type BaselineName = 'random point' | 'gazetteer alone' | 'one Claude call';
-export type Baseline = { name: BaselineName; model: string; answer(task: { id: string; input: unknown }): Promise<{ answer: unknown | null; usd: number; ms: number; note: string }> };
+import type { Control } from './arenas/types.ts';
+export type Baseline = Control;
 
 const seedOf = (s: string) => createHash('sha1').update(s).digest().readUInt32LE(0);
 
@@ -15,6 +15,7 @@ const seedOf = (s: string) => createHash('sha1').update(s).digest().readUInt32LE
 // in the hidden arena, named in the named one.
 export function baselines(arenaId: string): Baseline[] {
   const arena = getArena(arenaId);
+  if (arena.controls) return arena.controls();
   if (arena.data !== 'geotag') return [];
   const shown = (input: unknown) => arena.show(input);
   return [

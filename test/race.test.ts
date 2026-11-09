@@ -97,7 +97,7 @@ test('a bundle re-grades to exactly the same scores with no model calls', async 
   const v = R.startVoyage('geotag', { raceTasks: 10, capGeneration: 100 });
   const r = await R.race(v.id, 0, [g('good'), g('bad', 'claude:bad')], { baselines: false });
   M.setDriver(async () => { throw new Error('regrade must not call a model'); });
-  const again = B.regrade(B.exportBundle(v.id));
+  const again = await B.regrade(B.exportBundle(v.id));
   assert.deepEqual(again.scores.map(s => [s.genome, s.mean, s.lo, s.hi]), r.scores.map(s => [s.genome, s.mean, s.lo, s.hi]));
 });
 

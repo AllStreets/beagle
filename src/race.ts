@@ -6,7 +6,7 @@ import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
 import { LimitError } from './models/index.ts';
 import { run, RunError, type Example, type Step } from './runner.ts';
-import { getArena, dataOf } from './arenas/index.ts';
+import { getArena, dataOf, gradeSafely } from './arenas/index.ts';
 import { baselines } from './baselines.ts';
 import { getSettings, type Settings } from './settings.ts';
 import { bootstrap, mean, pareto } from './stats.ts';
@@ -121,7 +121,7 @@ export async function race(voyageId: string, generation: number, genomes: Genome
         }
       }
       if (!result) { stop = 'Claude usage limit; resume the race later'; break; }
-      const score = result.status === 'done' ? arena.grade(result.answer, json(t.truth, null)) : 0;
+      const score = result.status === 'done' ? await gradeSafely(arena, result.answer, json(t.truth, null)) : 0;
       putRun.run(randomUUID(), v.id, generation, e.id, t.id, JSON.stringify(result.answer), score, JSON.stringify(result.trace), result.usd, result.ms, result.status, new Date().toISOString());
       ledger.add({ voyage: v.id, generation, kind: e.baseline ? 'baseline' : 'race', model: e.model, usd: result.usd, ms: result.ms });
       done++;
