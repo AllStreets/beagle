@@ -66,7 +66,12 @@ export function furnish(room: Room, ship: THREE.Group, o: { voyage: Voyage; entr
     const top = add(new THREE.Mesh(new THREE.BoxGeometry(3.4, .1, 2.0), oak)); top.position.set(cx, b.y0 + .9, -1.3);
     for (const [dx, dz] of [[-1.5, -.8], [1.5, -.8], [-1.5, .8], [1.5, .8]]) add(new THREE.Mesh(new THREE.BoxGeometry(.1, .85, .1), oak)).position.set(cx + dx, b.y0 + .43, -1.3 + dz);
     if (o.telling) {
-      const c = canvas(1600, 1000, (k, w, h) => chart(k, w, h, o.telling!));
+      // a map for geotagging; for any other arena, the item itself on a sheet of paper
+      const truth = o.telling.task.truth as { places?: unknown[] } | null;
+      const c = truth && Array.isArray(truth.places) ? canvas(1600, 1000, (k, w, h) => chart(k, w, h, o.telling!)) : canvas(1600, 1000, (k, w, h) => {
+        paper(k, w, h, '#f4eedd', 9); k.fillStyle = '#2b2925'; k.font = '34px "Courier Prime", monospace';
+        o.telling!.task.shown.split('\n').slice(0, 22).forEach((l, i) => k.fillText(l.slice(0, 70), 90, 110 + i * 40));
+      });
       const ch = add(new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2.0), new THREE.MeshStandardMaterial({ map: tex(c), roughness: 1, color: '#9e9682' }))); ch.rotation.x = -Math.PI / 2 + .55; ch.position.set(cx, b.y0 + 1.15, -1.25);
     }
     // the stern windows: dusk light through the transom

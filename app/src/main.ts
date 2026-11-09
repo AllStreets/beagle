@@ -1,4 +1,5 @@
 import { createRoom, THREE, canvas, grain } from './kit.ts';
+import { esc } from './ui.ts';
 import { buildShip, ROOMS, BEAM, type RoomId } from './ship.ts';
 import { furnish } from './props.ts';
 import { api, entrants, pct, type Voyage, type Generation, type Telling, type Arena } from './data.ts';
@@ -22,12 +23,18 @@ const fill = new THREE.DirectionalLight('#aebfd6', .25); fill.position.set(20, 8
 
 // the voyage: the most recent one with a finished generation, read from the API
 const voyages = await api<Voyage[]>('/voyages', []);
-const voyage = voyages.find(v => (v as any).spent > 0 && v.arena === 'geotag' && v.status !== 'withdrawn') ?? voyages[0];
+// which voyage the ship shows: the one asked for in the address or chosen last, else the latest geotagging one
+const live = voyages.filter(v => (v as any).spent > 0 && v.status !== 'withdrawn');
+let chosen: string | null = new URLSearchParams(location.search).get('voyage');
+try { chosen ??= localStorage.getItem('beagle.voyage'); } catch { /* a private window */ }
+const voyage = live.find(v => v.id === chosen) ?? live.find(v => v.arena === 'geotag') ?? voyages[0];
 const full = voyage ? await api<Voyage>(`/voyages/${voyage.id}`) : null;
 const genN = full?.generations.filter(g => g.generation >= 0).at(-1)?.generation ?? 0;
 const gen = full ? await api<Generation>(`/voyages/${full.id}/generations/${genN}`) : null;
 const telling = full ? await api<Telling | null>(`/voyages/${full.id}/generations/${genN}/telling`, null) : null;
 const es = gen ? entrants(gen) : [];
+const arena: Arena | null = full ? await api<Arena>(`/arenas/${full.arena}/sample`, null as any) : null;
+const kind = arena?.kind ?? 'geotag';
 const fossilRecords = full ? await api<{ name: string; race: { score: number; teacher: number } }[]>(`/voyages/${full.id}/fossils`, []) : [];
 
 const { ship, lamps } = buildShip(room);
@@ -36,11 +43,11 @@ if (full && gen) furnish(room, ship, { voyage: full, entrants: es, telling, gene
 // tags: what each room is and what is in it now, in plain words
 const lead = es.find(e => !e.control);
 const TAGS: Record<RoomId, { name: string; line: string }> = {
-  chart: { name: 'The chart room', line: telling ? `Where ${telling.answers.length} answers fell on one news item` : 'No task has been answered yet' },
+  chart: { name: kind === 'receipts' ? 'The receipt desk' : kind === 'fixtest' ? 'The test bench' : kind === 'custom' ? 'The work table' : 'The chart room', line: !telling ? 'No task has been answered yet' : kind === 'receipts' ? `How ${telling.answers.length} agents read one receipt` : kind === 'fixtest' ? `How ${telling.answers.length} agents mended one bug` : kind === 'custom' ? `How ${telling.answers.length} agents answered one item` : `Where ${telling.answers.length} answers fell on one news item` },
   drawing: { name: 'The drawing room', line: lead ? `Leading: ${lead.name}, ${pct(lead.mean)} of 100` : 'No agents drawn yet' },
   specimens: { name: 'The hold', line: `${es.filter(e => !e.control).length} agents and ${es.filter(e => e.control).length} controls, each in its jar` },
   log: { name: 'The log', line: full ? `$${full.spent.toFixed(2)} spent; the sealed test fingerprinted` : 'No voyage yet' },
-  fossils: { name: 'The fossil locker', line: fossilRecords.length ? fossilRecords.map(f => `${f.name}: ${pct(f.race.score)} against its teacher's ${pct(f.race.teacher)}`).join('; ') : 'Empty: no skill has been fossilised yet' },
+  fossils: { name: 'The fossil locker', line: kind === 'fixtest' ? 'No fossils here: this arena is about workflow' : fossilRecords.length ? fossilRecords.map(f => `${f.name}: ${pct(f.race.score)} against its teacher's ${pct(f.race.teacher)}`).join('; ') : 'Empty: no skill has been fossilised yet' },
   settings: { name: 'The forecastle', line: 'Settings' },
 };
 const layer = document.getElementById('tags')!;
@@ -84,8 +91,12 @@ for (const l of lamps.values()) l.userData.target = l.intensity;
 // the plaque: what this is, in a sentence
 const plaque = document.getElementById('plaque')!;
 plaque.innerHTML = full && gen
-  ? `<b>HMS Beagle</b><span>A section through the voyage ${full.id}. ${gen.racing ? `Generation ${genN + 1} is racing.` : `Generation ${genN + 1} has raced: ${gen.runs} runs on ${full.settings.raceTasks} news items with every place name hidden.`}${lead ? ` ${lead.name} leads, placing ${lead.within} of ${lead.tasks} items within 25 km.` : ''}</span>`
+  ? `<b>HMS Beagle</b><span>A section through the voyage ${full.id}: ${esc(arena?.name ?? full.arena)}${/[.?!]$/.test(arena?.name ?? '') ? '' : '.'} ${gen.racing ? `Generation ${genN + 1} is racing.` : `Generation ${genN + 1} has raced: ${gen.runs} runs on ${gen.common} items.`}${lead ? kind === 'geotag' ? ` ${lead.name} leads, placing ${lead.within} of ${lead.tasks} items within 25 km.` : ` ${lead.name} leads with ${pct(lead.mean)} of 100, full marks on ${lead.within} of ${lead.tasks}.` : ''}</span>`
   : '<b>HMS Beagle</b><span>No voyage yet. Start one from the forecastle.</span>';
+// the voyages on record, one per arena, to sail between
+const shelf = document.getElementById('voyages')!, arenaNames = new Map((await Promise.all([...new Set(live.map(v => v.arena))].map(a => api<Arena>(`/arenas/${a}/sample`, null as any)))).filter(Boolean).map(a => [a.id, a.name]));
+shelf.innerHTML = live.length > 1 ? `<span>Voyages</span>${live.map(v => `<a href="?voyage=${encodeURIComponent(v.id)}" class="${v.id === full?.id ? 'on' : ''}" data-v="${esc(v.id)}">${esc(arenaNames.get(v.arena) ?? v.arena)}</a>`).join('')}` : '';
+shelf.querySelectorAll<HTMLAnchorElement>('a').forEach(a => a.addEventListener('click', () => { try { localStorage.setItem('beagle.voyage', a.dataset.v!); } catch { /* fine */ } }));
 
 // the camera: the whole model, or close on one room when it opens
 const camAt = new THREE.Vector3(), lookAt = new THREE.Vector3(), camTo = new THREE.Vector3(), lookTo = new THREE.Vector3();
@@ -115,8 +126,6 @@ function frame() {
 }
 let settingsNow = full?.settings ?? { view: 'plain' } as any;
 document.addEventListener('settings', e => { settingsNow = (e as CustomEvent).detail; viewBtn(); route(); });
-let arena: Arena | null = null;
-if (full) arena = await api<Arena>(`/arenas/${full.arena}/sample`, null as any);
 const folio = document.getElementById('folio')!, body = document.getElementById('folio-body')!;
 const viewToggle = document.getElementById('view') as HTMLButtonElement;
 function viewBtn() { viewToggle.textContent = settingsNow.view === 'lab' ? 'Lab view' : 'Plain view'; viewToggle.setAttribute('aria-pressed', String(settingsNow.view === 'lab')); }

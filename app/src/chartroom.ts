@@ -7,11 +7,17 @@ import { drawSheet, type Sheet, type Sounding, type Place } from './chartsheet.t
 import { grade } from '../../src/arenas/geotag/grade.ts';
 import { geoDistance } from 'd3-geo';
 import type { Ctx } from './rooms.ts';
+import { workTable, ownPlain } from './worktable.ts';
 
 const km = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => geoDistance([a.lon, a.lat], [b.lon, b.lat]) * 6371;
 const tabs = (on: 'race' | 'own') => `<nav class="pages chart-tabs"><a class="${on === 'race' ? 'on' : ''}" href="#/chart">The race items</a><a class="${on === 'own' ? 'on' : ''}" href="#/chart/own">Set your own item</a></nav>`;
 
 export async function chartRoom(el: HTMLElement, c: Ctx) {
+  const kind = c.arena?.kind ?? 'geotag';
+  if (kind !== 'geotag') {
+    if (location.hash.startsWith('#/chart/own') && kind !== 'fixtest') return ownPlain(el, c, kind, entrants(c.gen), (genome, text, allowPaid) => post('/try', { voyage: c.voyage.id, genome, text, allowPaid }).then(r => r.json()));
+    return workTable(el, c, kind);
+  }
   if (location.hash.startsWith('#/chart/own')) return ownItem(el, c);
   const tasks = await api<{ id: string; date: string; shown: string; mean: number; answered: number }[]>(`/voyages/${c.voyage.id}/generations/${c.genN}/tasks`, []);
   const first = await api<Telling>(`/voyages/${c.voyage.id}/generations/${c.genN}/telling`);

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beagle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Petit+Formal+Script&family=Mrs+Saint+Delafield&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Abril+Fatface&family=Rokkitt:ital,wght@0,400;0,600;1,400&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Petit+Formal+Script&family=Mrs+Saint+Delafield&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Abril+Fatface&family=Rokkitt:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #121512; overflow: hidden; }
   #stage { position: fixed; inset: 0; }
@@ -21,9 +21,13 @@
   .tag:hover, .tag:focus-visible { background: #f6efdb; outline: none; }
   .tag:focus-visible { box-shadow: 0 0 0 2px #121512, 0 0 0 4px #e6dabe; }
   .tag.dim { opacity: .45; }
-  #plaque { position: fixed; left: 50%; bottom: 3.2vh; transform: translateX(-50%); max-width: 640px; text-align: center; color: #d8ccb2; font: 16px/1.45 "EB Garamond", serif; }
+  #plaque { position: fixed; left: 50%; bottom: 5.4vh; transform: translateX(-50%); max-width: 640px; text-align: center; color: #d8ccb2; font: 16px/1.45 "EB Garamond", serif; }
   #plaque b { display: block; font: 400 26px "IM Fell English SC", serif; letter-spacing: .04em; color: #ece3cc; }
   #plaque span { font-style: italic; }
+  #voyages { position: fixed; left: 50%; bottom: 1.2vh; transform: translateX(-50%); display: flex; gap: 18px; align-items: baseline; white-space: nowrap; font: 14px "IM Fell English SC", serif; letter-spacing: .06em; color: #a89c84; }
+  #voyages span { font-style: italic; font-family: "EB Garamond", serif; letter-spacing: 0; }
+  #voyages a { color: #d8ccb2; text-decoration: none; border-bottom: 1px solid rgba(216,204,178,.3); }
+  #voyages a.on { color: #ece3cc; border-bottom-color: #8f2a1c; } #voyages a:hover { color: #fff; }
   /* the bar: two plain controls, top right */
   #bar { position: fixed; top: 18px; right: 22px; display: flex; gap: 10px; z-index: 5; }
   #bar button { font: 15px "EB Garamond", serif; color: #ece3cc; background: rgba(20,17,13,.7); border: 1px solid rgba(236,227,204,.35); padding: 6px 12px 7px; cursor: pointer; }
@@ -37,7 +41,7 @@
   body.open:has(#folio-body[data-room="fossils"]) #bar button:hover { color: #e3c88f; border-bottom-color: #e3c88f; }
   #back { display: none; }
   body.open #back { display: inline-block; }
-  body.open #tags, body.open #leaders, body.open #plaque { opacity: 0; pointer-events: none; }
+  body.open #tags, body.open #leaders, body.open #plaque, body.open #voyages { opacity: 0; pointer-events: none; }
   #tags, #leaders, #plaque { transition: opacity .35s; }
   /* the folio: a large sheet laid over the right of the scene; the room shows to its left */
   #folio { position: fixed; top: 0; right: 0; bottom: 0; width: min(1240px, 74vw); overflow: auto; background: #efe7d3; color: #241c14;
@@ -153,6 +157,50 @@
   .diff p { margin: 0 0 4px; padding-left: 22px; position: relative; } .diff p.del::before, .diff p.ins::before { position: absolute; left: 2px; font: 600 15px "IM Fell English", serif; } .diff p.del::before { content: "−"; color: #8f2a1c; } .diff p.ins::before { content: "+"; color: #1d2a44; }
   .diff del, .traits del { color: #8a7a62; text-decoration: line-through; text-decoration-color: #8f2a1c; text-decoration-thickness: 1.5px; }
   .diff ins, .traits ins { color: #1d2a44; text-decoration: none; background: rgba(29,42,68,.07); }
+
+  /* the receipt desk, the test bench and the work table */
+  .bench { display: grid; grid-template-columns: 290px 1fr; gap: 26px; align-items: start; }
+  .desk { display: grid; grid-template-columns: minmax(260px, 360px) 1fr; gap: 30px; align-items: start; }
+  .slip { margin: 0; filter: drop-shadow(0 16px 18px rgba(40,25,10,.35)); }
+  .slip .paper { background: #fbf9f3; padding: 26px 22px; font: 400 14.5px/1.55 "Courier Prime", monospace; color: #2b2925; letter-spacing: .02em; text-transform: uppercase;
+    -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 16px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 8px repeat-x, conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / 16px 8px repeat-x;
+    background-image: linear-gradient(180deg, rgba(0,0,0,.02), transparent 30%, rgba(0,0,0,.025) 70%, transparent); }
+  .slip .pl { padding: 0 6px; margin: 0 -6px; white-space: pre-wrap; transition: background .15s; }
+  .slip .pl.read { background: rgba(29,42,68,.10); box-shadow: inset 3px 0 0 #1d2a44; }
+  .slip .pl.missed { background: rgba(143,42,28,.10); box-shadow: inset 3px 0 0 #8f2a1c; }
+  .desk-side h3 { margin-top: 0; }
+  .printed, .readings { border-collapse: collapse; width: 100%; font-size: 15px; margin-bottom: 18px; }
+  .printed td, .readings td, .readings th { padding: 4px 8px 4px 0; border-bottom: 1px solid rgba(36,28,20,.15); text-align: left; }
+  .printed .n, .readings .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .printed tr.sum td { font-style: italic; } .printed tr.sum:first-of-type td { border-top: 1.5px solid #241c14; }
+  .readings th { font: 400 12px "IM Fell English SC", serif; letter-spacing: .1em; color: #6a5a44; }
+  .readings tr { cursor: default; } .readings tr:hover, .readings tr:focus { background: rgba(36,28,20,.05); outline: none; }
+  .readings td.ok { color: #1d2a44; } .readings td.no { color: #8f2a1c; text-decoration: line-through; text-decoration-thickness: 1px; }
+  textarea.mono { font: 400 14px/1.5 "Courier Prime", monospace !important; }
+  .bench-top { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(220px, 1fr); gap: 26px; margin-bottom: 22px; }
+  .code-card { background: #1e211d; color: #e4ddc8; box-shadow: 0 18px 30px -20px rgba(0,0,0,.8); }
+  .code-card header { display: flex; justify-content: space-between; padding: 10px 14px; font: 500 12.5px "IBM Plex Mono", monospace; color: #a59a83; border-bottom: 1px solid rgba(228,221,200,.12); }
+  .code-card .soft { color: #a59a83 !important; padding: 0 14px 12px; margin: 0; font-size: 14px; }
+  pre.code { font: 400 13.5px/1.7 "IBM Plex Mono", monospace; margin: 0; padding: 14px; white-space: pre-wrap; word-break: break-word; }
+  pre.code .ln { display: inline-block; width: 3.4ch; color: #7d7462; user-select: none; }
+  pre.code del { color: #f0a597; text-decoration: line-through; text-decoration-color: #d24a36; text-decoration-thickness: 1.5px; }
+  pre.code ins { color: #b9dcb0; text-decoration: none; }
+  .failing ul { margin: 6px 0 12px; padding-left: 18px; } .failing li { font: 400 14px "IBM Plex Mono", monospace; margin: 4px 0; }
+  pre.out { font: 400 12px/1.5 "IBM Plex Mono", monospace; background: #f4eedd; padding: 10px; max-height: 260px; overflow: auto; white-space: pre-wrap; }
+  .mends { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .mend { background: #f6f0e1; border-top: 2px solid #241c14; padding: 10px 12px 12px; }
+  .mend.ctl { opacity: .8; border-top-style: dashed; }
+  .mend header { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+  .mend .no { font: 400 13px "IM Fell English SC", serif; color: #6a5a44; } .mend .n { font: 500 18px "EB Garamond", serif; }
+  .mend pre.code.small { background: #1e211d; color: #e4ddc8; font-size: 12.5px; padding: 10px; margin: 6px 0 0; }
+  pre.code .f { color: #a59a83; }
+  .stamp-s { font: 700 11px "Courier Prime", monospace; letter-spacing: .12em; text-transform: uppercase; border: 1.5px solid currentColor; padding: 1px 6px; transform: rotate(-3deg); }
+  .stamp-s.mended { color: #2f5a35; } .stamp-s.part-mended { color: #8a6a1c; } .stamp-s.not-mended, .stamp-s.gave-up { color: #8f2a1c; } .stamp-s.left-it { color: #6a5a44; }
+  .worktop { background: #f6f0e1; padding: 20px 24px; margin-bottom: 18px; border-left: 3px solid #241c14; }
+  .item-big { font: 400 26px/1.35 "IM Fell English", serif; margin: 0 0 10px; }
+  .truth-line { margin: 0; font-size: 17px; }
+  @media (max-width: 1100px) { .desk, .bench-top { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .bench { grid-template-columns: 1fr; } }
   /* the forecastle: standing orders, a printed broadside with blanks to fill */
   .broadside { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr); gap: 40px; align-items: start; font-family: "Rokkitt", serif; }
   .orders { background: #f3ecda; padding: 34px 40px 30px; box-shadow: 0 1px 0 rgba(0,0,0,.08), 0 22px 40px -26px rgba(40,25,10,.6); border: 1px solid rgba(36,28,20,.2); outline: 1px solid rgba(36,28,20,.6); outline-offset: -8px; }
@@ -366,7 +414,7 @@
 <div id="stage"></div>
 <svg id="leaders"></svg>
 <nav id="tags" aria-label="The rooms of the ship"></nav>
-<div id="plaque"></div>
+<div id="plaque"></div><nav id="voyages" aria-label="Voyages"></nav>
 <div id="bar"><button id="back" type="button">Back to the ship</button><button id="view" type="button" aria-pressed="false">Plain view</button></div>
 <article id="folio" aria-hidden="true" tabindex="-1"><div id="folio-body"></div></article>
 <div id="loading">Bringing the Beagle up from the hold</div>

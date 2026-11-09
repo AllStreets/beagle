@@ -2,9 +2,13 @@
 // the seal recomputes the sealed test's fingerprint now and compares it with the one written at
 // launch, and the tally re-grades every answer of the voyage in this browser, from coordinates
 // alone, with the same grader and the same seeded intervals, then compares with the record.
-import { api } from './data.ts';
+import { api, post } from './data.ts';
 import { esc, money, term } from './ui.ts';
-import { grade, type Truth } from '../../src/arenas/geotag/grade.ts';
+import { grade as gradePoint, type Truth } from '../../src/arenas/geotag/grade.ts';
+import { gradeReceipt, type Receipt } from '../../src/arenas/receipts/grade.ts';
+
+// the graders that run in a browser; any other arena is re-graded by the server on this Mac
+const GRADERS: Record<string, (a: unknown, t: any) => number> = { geotag: (a, t) => gradePoint(a, t as Truth), receipts: (a, t) => gradeReceipt(a, t as Receipt) };
 import { bootstrap, mean } from '../../src/stats.ts';
 import type { Ctx } from './rooms.ts';
 
@@ -37,7 +41,7 @@ export function logbook(el: HTMLElement, c: Ctx) {
     <canvas id="seal" width="520" height="520" role="img" aria-label="A red wax seal pressed with the sealed test's fingerprint"></canvas>
     <div>
       <h2 class="pr caps">I. Sealed before sailing</h2>
-      <p>${a ? `${n(a.counts.sealed)} news items${sealedFrom ? ` from ${esc(sealedFrom)} on` : ''}` : 'The sealed items'} were set aside as the ${term('sealed', 'sealed test')} before the first race. Their fingerprint, pressed into the seal, was written into this log at launch. No agent and no designer has seen them.</p>
+      <p>${a ? `${n(a.counts.sealed)} ${a.kind === 'geotag' ? 'news items' : a.kind === 'receipts' ? 'receipts' : a.kind === 'fixtest' ? 'bugs' : 'items'}${sealedFrom ? ` from ${esc(sealedFrom)} on` : ''}` : 'The sealed items'} were set aside as the ${term('sealed', 'sealed test')} before the first race. Their fingerprint, pressed into the seal, was written into this log at launch. No agent and no designer has seen them.</p>
       <p>To test the seal, Beagle reads the sealed items again now and computes their fingerprint afresh. If a single item had changed, the two would differ.</p>
       <button class="lb-btn" id="test-seal">Test the seal</button>
       <div class="lb-hashes" id="hashes" hidden>
@@ -50,8 +54,9 @@ export function logbook(el: HTMLElement, c: Ctx) {
 
   <section class="lb-page lb-check">
     <h2 class="pr caps">II. Every score, worked again by hand</h2>
-    <p>Your browser fetches the whole voyage as one file: every item with its true places, every agent's answer. It then grades every answer again from the coordinates alone, with no model calls and no help from Beagle's server, and works each agent's score and likely range again. Each stroke below is ten answers checked.</p>
-    <button class="lb-btn" id="regrade">Re-grade the voyage in this browser</button>
+    ${GRADERS[a?.kind ?? 'geotag'] ? `<p>Your browser fetches the whole voyage as one file: every item with its truth, every agent's answer. It then grades every answer again from the answers alone, with no model calls and no help from Beagle's server, and works each agent's score and likely range again. Each stroke below is ten answers checked.</p>
+    <button class="lb-btn" id="regrade">Re-grade the voyage in this browser</button>` : `<p>This arena's grader ${a?.kind === 'fixtest' ? 'runs the library\'s whole test suite on every mend' : 'is code the arena\'s author wrote'}, so it cannot run in a browser. Beagle's server re-grades every answer on this Mac instead, from the voyage file alone and with no model calls, and works each agent's score and likely range again.</p>
+    <button class="lb-btn" id="regrade">Re-grade the voyage on this Mac</button>`}
     <table class="lb-form" id="tally-table">
       <thead><tr><th class="pr">Gen.</th><th class="pr">Answers</th><th class="pr tally-col">Tally</th><th class="pr">Agree</th><th class="pr">Best, as recorded</th><th class="pr">Best, worked again</th></tr></thead>
       <tbody>${gens.map(g => `<tr data-g="${g.generation}"><td class="hand">${g.generation + 1}</td><td class="num hand">${n(g.runs)}</td><td class="tally-col"><canvas class="tally" width="900" height="64"></canvas></td><td class="num hand agree"></td><td class="num rec"></td><td class="num hand again"></td></tr>`).join('')}</tbody>
@@ -74,9 +79,9 @@ export function logbook(el: HTMLElement, c: Ctx) {
   <section class="lb-page lb-particulars">
     <h2 class="pr caps">IV. Particulars</h2>
     <dl class="lb-fields">
-      <div><dt class="pr">The arena</dt><dd>${a ? `${esc(a.name)}: ${n(a.counts.breeding)} items to learn from, ${n(a.counts.race)} to race on, ${n(a.counts.sealed)} sealed, ${n(a.counts.pool)} unlabelled for fossils. From Wikipedia's Current Events, with each place's coordinates from Wikidata.` : ''}</dd></div>
+      <div><dt class="pr">The arena</dt><dd>${a ? `${esc(a.name)}: ${n(a.counts.breeding ?? 0)} items to learn from, ${n(a.counts.race ?? 0)} to race on, ${n(a.counts.sealed ?? 0)} sealed${a.counts.pool ? `, ${n(a.counts.pool)} unlabelled for fossils` : ''}. ${({ geotag: 'From Wikipedia\'s Current Events, with each place\'s coordinates from Wikidata.', receipts: 'From CORD v2 (CC BY 4.0): its training receipts to learn from, its validation receipts to race on, its test receipts sealed.', fixtest: 'One-line bugs planted in beaglelib, a frozen copy of Beagle\'s own code with 109 tests; split by the function each bug is in, so no function is in two splits.', custom: 'An arena of your own: its tasks split by a hash of each id.' } as Record<string, string>)[a.kind] ?? ''}` : ''}</dd></div>
       ${a?.info ? `<div><dt class="pr">Built</dt><dd><span class="hand">${esc(longDate(a.info.built_at))}</span>, fingerprint <code>${esc(a.info.hash.slice(0, 16))}</code></dd></div>` : ''}
-      <div><dt class="pr">Controls</dt><dd>A random point on the globe, the gazetteer with no model, and one plain question to Claude, each shown the item exactly as the agents see it. Every generation races them on the same items: a score only means something next to theirs.</dd></div>
+      <div><dt class="pr">Controls</dt><dd>${(() => { const ctl = c.gen.scores.filter(s => s.genome.startsWith('baseline:')).map(s => s.genome.slice(9)); return ctl.length ? `${ctl.map((x, i) => i === ctl.length - 1 && i ? `and ${esc(x)}` : esc(x)).join(ctl.length > 2 ? ', ' : ' ')}, each shown the item exactly as the agents see it.` : 'None raced in this generation.'; })()} Every generation races them on the same items: a score only means something next to theirs.</dd></div>
       <div><dt class="pr">Seed</dt><dd><span class="hand">${v.settings.seed}</span>, which fixes the items drawn and every range, so the voyage can be worked again.</dd></div>
     </dl>
   </section>
@@ -87,10 +92,10 @@ export function logbook(el: HTMLElement, c: Ctx) {
     <p class="soft">Struck out, not torn out: their spend stays in the ledger, and their results are not compared with this voyage.</p>
   </section>` : ''}
 
-  <section class="lb-page lb-remarks">
+  ${a?.kind === 'geotag' ? `<section class="lb-page lb-remarks">
     <h2 class="pr caps">Remarks</h2>
     <p>In the second voyage, two answers matched the truth's Wikidata coordinate to six decimal places. The run's full record shows no access to it: Sonnet planned, looked up two villages the gazetteer did not have, and answered from memory. It had memorised the coordinate Wikipedia shows for southern Lebanon. That is knowledge the model brings, not a leak, and it is reported here rather than hidden.</p>
-  </section>
+  </section>` : ''}
   </div>`;
 
   drawSeal(el.querySelector<HTMLCanvasElement>('#seal')!, v.sealed_hash);
@@ -150,6 +155,8 @@ async function testSeal(el: HTMLElement, id: string, btn: HTMLButtonElement) {
 
 // ---------- the tally: every answer graded again, ten to a stroke ----------
 async function regrade(el: HTMLElement, id: string, c: Ctx, btn: HTMLButtonElement) {
+  const grade = GRADERS[c.arena?.kind ?? 'geotag'];
+  if (!grade) return regradeOnMac(el, id, c, btn);
   btn.disabled = true; btn.textContent = 'Fetching the voyage...';
   const out = el.querySelector<HTMLElement>('#regrade-verdict')!;
   let b: Bundle;
@@ -197,4 +204,24 @@ function stroke(k: CanvasRenderingContext2D, i: number, total: number) {
   k.strokeStyle = `rgba(28,22,16,${.75 + wob * .15})`; k.lineCap = 'round';
   if (j < 4) { const x = x0 + j * (gw - 12) / 4 + 3; k.lineWidth = 2.2; k.beginPath(); k.moveTo(x + wob * 2, y0 + wob * 3); k.lineTo(x - 1 - wob, y1); k.stroke(); }
   else { k.lineWidth = 2; k.beginPath(); k.moveTo(x0 - 2, y1 - 8); k.lineTo(x0 + gw - 10, y0 + 10 + wob * 4); k.stroke(); }
+}
+
+// the server re-grades it: every generation, every answer, from the exported voyage file
+async function regradeOnMac(el: HTMLElement, id: string, c: Ctx, btn: HTMLButtonElement) {
+  btn.disabled = true; btn.textContent = 'Running every grade again...';
+  const out = el.querySelector<HTMLElement>('#regrade-verdict')!;
+  const r = await post(`/voyages/${encodeURIComponent(id)}/regrade`).then(x => x.json()).catch(e => ({ error: String(e) }));
+  if (r.error) { out.textContent = `The re-grade did not finish: ${r.error}`; btn.disabled = false; btn.textContent = 'Re-grade the voyage on this Mac'; return; }
+  let all = 0, agree = 0;
+  for (const g of r.generations as { generation: number; runs: number; agree: number; best: { recorded: any; again: any } }[]) {
+    const row = el.querySelector<HTMLTableRowElement>(`tr[data-g="${g.generation}"]`); if (!row) continue;
+    all += g.runs; agree += g.agree;
+    const k = row.querySelector<HTMLCanvasElement>('canvas.tally')!.getContext('2d')!; for (let i = 0; i < Math.ceil(g.runs / 10); i++) stroke(k, i, g.runs);
+    row.querySelector('.agree')!.textContent = g.agree === g.runs ? 'all' : `${n(g.agree)} of ${n(g.runs)}`;
+    const f = (s: any) => s ? `${(s.mean * 100).toFixed(1)} <small>(${(s.lo * 100).toFixed(1)} to ${(s.hi * 100).toFixed(1)})</small>` : '';
+    row.querySelector('.rec')!.innerHTML = f(g.best.recorded); row.querySelector('.again')!.innerHTML = f(g.best.again);
+  }
+  out.classList.toggle('bad', agree !== all);
+  out.textContent = agree === all ? `All ${n(all)} answers agree with the record, and so does every best score and its range. Worked again on this Mac in ${(r.ms / 1000).toFixed(1)} s, ${clock()}.` : `${n(all - agree)} of ${n(all)} answers do not agree with the record. Worked ${clock()}.`;
+  btn.textContent = 'Re-grade it again'; btn.disabled = false;
 }
