@@ -96,6 +96,12 @@ try {
   }
 
   await go('#/settings', 3000);
+  await page.fill('input[name=raceTasks]', '1'); await page.waitForTimeout(300);
+  const small = await page.textContent('#est-say');
+  await page.fill('input[name=raceTasks]', '400'); await page.waitForTimeout(300);
+  const big = await page.textContent('#est-say');
+  expect('the purser\'s estimate answers the orders: few items fit the caps, many do not', /fit/.test(small ?? '') && /would reach/.test(big ?? ''), `${small?.slice(0, 40)} / ${big?.slice(0, 40)}`);
+  await page.fill('input[name=raceTasks]', String(settingsBefore.raceTasks));
   await page.fill('input[name=capGeneration]', '4.5'); await page.click('.actions button'); await page.waitForTimeout(800);
   expect('settings save, and the API reads them back', (await api('/settings')).capGeneration === 4.5, await page.textContent('#saved') ?? '');
   await page.keyboard.press('Escape'); await page.waitForTimeout(1200);

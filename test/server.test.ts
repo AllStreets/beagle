@@ -165,3 +165,12 @@ test('your own item: a local agent answers it free; a Claude agent only with con
   const empty = await fetch(`${base}/api/try`, { method: 'POST', headers: W, body: JSON.stringify({ voyage: v.id, genome: 'try-local', text: ' ' }) });
   assert.equal(empty.status, 400);
 });
+
+test('a voyage reports what its designer cost, generation by generation', async () => {
+  const vs = await (await fetch(`${base}/api/voyages`)).json();
+  const v = vs.find((x: any) => x.arena === 'geotag');
+  const { add } = await import('../src/ledger.ts');
+  add({ voyage: v.id, generation: 1, kind: 'design', model: 'claude:claude-opus-5-5', usd: .25, ms: 1000 });
+  const full = await (await fetch(`${base}/api/voyages/${v.id}`)).json();
+  assert.deepEqual(full.design.find((d: any) => d.generation === 1), { generation: 1, usd: .25 });
+});

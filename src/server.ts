@@ -76,7 +76,8 @@ const routes: Route[] = [
   ['GET', /^\/api\/voyages\/([^/]+)$/, m => {
     const v = getVoyage(m[1]), db = open();
     const gens = db.prepare('select generation, count(*) runs, sum(usd) usd from runs where voyage = ? group by generation order by generation').all(v.id);
-    return { ...v, spent: ledger.spent(v.id), time: ledger.time(v.id), generations: gens, racing: racing.has(v.id) };
+    const design = db.prepare(`select generation, sum(usd) usd from ledger where voyage = ? and kind = 'design' group by generation order by generation`).all(v.id);
+    return { ...v, spent: ledger.spent(v.id), time: ledger.time(v.id), generations: gens, design, racing: racing.has(v.id) };
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)$/, m => generation(m[1], Number(m[2]))],
   // the task that best shows a generation's differences: answered by everyone, scores most spread

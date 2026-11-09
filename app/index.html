@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beagle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Petit+Formal+Script&family=Mrs+Saint+Delafield&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Petit+Formal+Script&family=Mrs+Saint+Delafield&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Abril+Fatface&family=Rokkitt:ital,wght@0,400;0,600;1,400&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #121512; overflow: hidden; }
   #stage { position: fixed; inset: 0; }
@@ -128,6 +128,36 @@
 
 
 
+
+  /* the forecastle: standing orders, a printed broadside with blanks to fill */
+  .broadside { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr); gap: 40px; align-items: start; font-family: "Rokkitt", serif; }
+  .orders { background: #f3ecda; padding: 34px 40px 30px; box-shadow: 0 1px 0 rgba(0,0,0,.08), 0 22px 40px -26px rgba(40,25,10,.6); border: 1px solid rgba(36,28,20,.2); outline: 1px solid rgba(36,28,20,.6); outline-offset: -8px; }
+  .bs-top { text-align: center; white-space: nowrap; font: 600 12px "Rokkitt", serif; letter-spacing: .18em; text-transform: uppercase; margin: 0; color: #4b3f30; }
+  .bs-title { text-align: center; font: 400 64px/1 "Abril Fatface", serif !important; letter-spacing: .01em !important; margin: 10px 0 6px !important; color: #1f1812; }
+  .bs-sub { text-align: center; font: italic 17px "Rokkitt", serif; color: #4b3f30; margin: 0 auto 14px; max-width: 520px; }
+  .bs-rule { height: 7px; border-top: 3px solid #241c14; border-bottom: 1px solid #241c14; margin: 14px 0 18px; }
+  .orders h2 { font: 600 14px "Rokkitt", serif !important; letter-spacing: .16em; text-transform: uppercase; margin: 20px 0 8px !important; text-align: center; }
+  .orders p { font: 400 19px/1.6 "Rokkitt", serif; margin: 0 0 12px; }
+  .orders .clause { display: flex; gap: 12px; align-items: baseline; }
+  .blank { font: 600 20px "Rokkitt", serif; color: #8f2a1c; background: transparent; border: 0; border-bottom: 1.5px dotted #241c14; width: calc(var(--w, 4ch) + 1.4ch); text-align: center; padding: 0 2px; -moz-appearance: textfield; }
+  .blank::-webkit-inner-spin-button { opacity: .4; }
+  select.blank { width: auto; padding-right: 4px; }
+  .blank:focus { outline: none; background: rgba(143,42,28,.08); border-bottom-style: solid; }
+  .tick { appearance: none; width: 20px; height: 20px; border: 1.5px solid #241c14; background: #fbf7ec; position: relative; top: 3px; flex: 0 0 auto; cursor: pointer; }
+  .tick:checked::after { content: ""; position: absolute; left: 5px; top: 0; width: 6px; height: 13px; border: solid #8f2a1c; border-width: 0 2.5px 2.5px 0; transform: rotate(40deg); }
+  .orders .actions { display: flex; gap: 18px; align-items: center; justify-content: center; }
+  .sign { font: 400 21px "Abril Fatface", serif; letter-spacing: .03em; color: #f3ecda; background: #241c14; border: 0; padding: 10px 26px 11px; cursor: pointer; box-shadow: 0 0 0 1px #f3ecda inset, 0 0 0 3px #241c14; }
+  .sign:hover { background: #3a2c1e; }
+  #saved { font: italic 17px "Rokkitt", serif; color: #8f2a1c; }
+  .purser h2 { font: 400 26px "Abril Fatface", serif !important; margin: 4px 0 6px !important; }
+  .purser .soft { font-size: 15px; }
+  #est { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; margin: 14px 0; }
+  #est dt { font: italic 14px "Rokkitt", serif; color: #6a5a44; } #est dd { margin: 0; font: 600 24px "Rokkitt", serif; }
+  #est-bars { width: 100%; height: 150px; display: block; margin: 6px 0 8px; }
+  #est-say { font: 400 17px/1.5 "Rokkitt", serif; padding-left: 12px; border-left: 3px solid #241c14; } #est-say.warn { border-color: #8f2a1c; color: #6e1f14; }
+  .purser .company { font-size: 20px !important; margin-top: 30px !important; }
+  .company-list { display: grid; grid-template-columns: 110px 1fr; gap: 6px 14px; font-size: 15px; } .company-list dt { color: #6a5a44; font-style: italic; } .company-list dd { margin: 0; word-break: break-word; }
+  @media (max-width: 1000px) { .broadside { grid-template-columns: 1fr; } .orders { padding: 26px 20px; } .bs-title { font-size: 46px !important; } }
   /* the hold: jars on a shelf, and a pair of scales, lettered in Caslon */
   .hold { font-family: "Libre Caslon Text", serif; font-size: 16px; }
   .hold .folio-head h1 { font: 400 54px/1.1 "Libre Caslon Text", serif !important; letter-spacing: -.01em; }

@@ -8,6 +8,7 @@ import { logbook } from './logbook.ts';
 import { chartRoom } from './chartroom.ts';
 import { fossilRoom } from './fossilroom.ts';
 import { holdRoom } from './holdroom.ts';
+import { orders } from './orders.ts';
 
 export type Ctx = { voyage: Voyage; gen: Generation; genN: number; view: 'plain' | 'lab'; arena: Arena | null; others?: { id: string; spent: number; note: string | null }[] };
 
@@ -18,7 +19,7 @@ export async function render(id: RoomId, el: HTMLElement, c: Ctx) {
   if (id === 'specimens') return holdRoom(el, c);
   if (id === 'log') return logbook(el, c);
   if (id === 'fossils') return fossilRoom(el, c);
-  return settings(el, c);
+  return orders(el, c);
 }
 
 // ---------- the chart room: one item at a time, every answer on the chart ----------
@@ -81,27 +82,6 @@ async function openGlass(el: HTMLElement, c: Ctx, e?: Entrant) {
 }
 
 
-
-async function settings(el: HTMLElement, c: Ctx) {
-  const [s, st] = await Promise.all([api<Record<string, unknown>>('/settings'), api<Record<string, unknown>>('/status', {})]);
-  const field = (k: string, label: string, help: string, kind: 'num' | 'bool' | 'view' = 'num') => `<label class="field"><span class="l">${label}</span>${kind === 'num' ? `<input type="number" step="any" min="0" name="${k}" value="${esc(s[k])}">` : kind === 'bool' ? `<input type="checkbox" name="${k}" ${s[k] ? 'checked' : ''}>` : `<select name="${k}"><option value="plain" ${s[k] === 'plain' ? 'selected' : ''}>Plain</option><option value="lab" ${s[k] === 'lab' ? 'selected' : ''}>Lab</option></select>`}<span class="h">${help}</span></label>`;
-  el.innerHTML = `${head('The forecastle', 'Settings. Changes apply to the next voyage; a voyage keeps the settings it sailed with.')}
-  <form class="settings" id="settings">
-    <fieldset><legend>Spend</legend>${field('capGeneration', 'Cap per generation, in dollars', 'A race stops cleanly when a generation has paid this much, and can be resumed.')}${field('capVoyage', 'Cap per voyage, in dollars', 'On a Claude plan this counts against usage limits rather than a bill.')}${field('concurrency', 'Runs at once', 'More is faster; Claude usage limits may slow it anyway.')}${field('localOnly', 'Only models on this Mac', 'Never call Claude: only Ollama models race, and the designer is skipped.', 'bool')}</fieldset>
-    <fieldset><legend>Evolution</legend>${field('population', 'Agents per generation', '')}${field('generations', 'Generations per voyage', '')}${field('raceTasks', 'News items each agent races on', 'More items give narrower ranges and cost more.')}${field('seed', 'Seed', 'Fixes which items are drawn and the ranges, so a voyage can be reproduced.')}</fieldset>
-    <fieldset><legend>Display</legend>${field('view', 'View', 'Plain explains every number in words; Lab adds cost, time, ranks and raw answers.', 'view')}${field('reducedMotion', 'Reduce motion', 'No camera flights between rooms.', 'bool')}</fieldset>
-    <div class="actions"><button type="submit">Save settings</button><span id="saved" role="status"></span></div>
-  </form>
-  <section class="status"><h2>On this Mac</h2><dl><dt>Claude</dt><dd>${esc(st.claude ?? 'unknown')}</dd><dt>Models in Ollama</dt><dd>${Array.isArray(st.ollama) ? esc((st.ollama as string[]).join(', ')) : esc(st.ollama ?? 'unknown')}</dd><dt>Training environment</dt><dd>${esc(st.trainer ?? 'unknown')}</dd></dl>
-  <p class="soft">Data: Wikipedia text CC BY-SA, Wikidata CC0, GeoNames CC BY 4.0, Natural Earth coastlines public domain.</p></section>`;
-  el.querySelector('#settings')!.addEventListener('submit', async ev => {
-    ev.preventDefault(); const f = ev.target as HTMLFormElement, out: Record<string, unknown> = {};
-    for (const i of Array.from(f.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select'))) out[i.name] = i.type === 'checkbox' ? (i as HTMLInputElement).checked : i.type === 'number' ? Number(i.value) : i.value;
-    const r = await post('/settings', out), msg = el.querySelector('#saved')!;
-    msg.textContent = r.ok ? 'Saved.' : `Not saved: ${(await r.json()).error}`;
-    if (r.ok) document.dispatchEvent(new CustomEvent('settings', { detail: await r.json() }));
-  });
-}
 
 // a single run, opened from anywhere: the task, the truth, and every step the agent took
 export async function runView(el: HTMLElement, id: string) {
