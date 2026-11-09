@@ -64,3 +64,16 @@ test('a grader that never returns scores the run 0 after its time, and the race 
   const r = await R.race(v.id, 0, A.startersFor('stuck').slice(0, 1) as any, { baselines: false });
   assert.equal(r.complete, true); assert.equal(r.scores[0].mean, 0);
 });
+
+test('an arena may ask for the built-in calculator, which does arithmetic and nothing else', async () => {
+  const dir = folder('sums', 40);
+  const spec = JSON.parse((await import('node:fs')).readFileSync(join(dir, 'arena.json'), 'utf8'));
+  writeFileSync(join(dir, 'arena.json'), JSON.stringify({ ...spec, tools: ['calculate'] }));
+  await C.addArena(dir);
+  const calc = A.getArena('sums').tools.find(t => t.name === 'calculate')!;
+  assert.deepEqual(await calc.run({ expression: '(1713 + floor(1713 / 4)) mod 7' }), { result: (1713 + Math.floor(1713 / 4)) % 7 });
+  assert.deepEqual(await calc.run({ expression: '2 * (3 + 4) - 10 / 4' }), { result: 11.5 });
+  assert.match(String((await calc.run({ expression: 'process.exit(1)' }) as any).error), /only numbers/);
+  assert.match(String((await calc.run({ expression: 'constructor' }) as any).error), /only numbers/);
+  assert.ok(A.startersFor('sums').some(g => g.tools.includes('calculate')));
+});

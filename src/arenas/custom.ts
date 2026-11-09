@@ -11,8 +11,9 @@ import { paths } from '../paths.ts';
 import { registerArena, arenaIds, getArena } from './index.ts';
 import { genericStarters, genericControls } from './generic.ts';
 import type { Arena } from './types.ts';
+import { BUILTIN } from './tools.ts';
 
-type Spec = { id: string; name: string; describe: string; answer: object; maxTurns?: number };
+type Spec = { id: string; name: string; describe: string; answer: object; maxTurns?: number; tools?: string[] };
 const home = () => join(paths.home, 'arenas', 'custom');
 const bucket = (id: string) => createHash('sha1').update(id).digest().readUInt32BE(0) % 100;
 export const splitOf = (id: string) => bucket(id) < 60 ? 'breeding' : bucket(id) < 85 ? 'race' : 'sealed';
@@ -23,7 +24,7 @@ async function load(dir: string): Promise<Arena> {
   const grade = (await import(`${pathToFileURL(join(dir, 'grade.ts')).href}?v=${Date.now()}`)).default as Arena['grade'];
   if (typeof grade !== 'function') throw new Error('grade.ts must export a default function (answer, truth) => number');
   const a: Arena = {
-    id: spec.id, data: spec.id, name: spec.name, describe: spec.describe, answer: spec.answer, maxTurns: spec.maxTurns, grade, tools: [],
+    id: spec.id, data: spec.id, name: spec.name, describe: spec.describe, answer: spec.answer, maxTurns: spec.maxTurns, grade, tools: (spec.tools ?? []).map(n => { const t = BUILTIN[n]; if (!t) throw new Error(`arena.json asks for a tool Beagle does not have: ${n} (it has ${Object.keys(BUILTIN).join(', ')})`); return t; }),
     show: input => typeof input === 'string' ? input : JSON.stringify(input), kind: 'custom', fromText: text => text,
   };
   a.starters = () => genericStarters(a); a.controls = () => genericControls(a);

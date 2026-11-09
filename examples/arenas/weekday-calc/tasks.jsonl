@@ -1,0 +1,400 @@
+{"id":"1600-01-13","input":"January 13, 1600","truth":{"day":"Thursday"}}
+{"id":"2153-05-18","input":"the 18th of May, 2153","truth":{"day":"Friday"}}
+{"id":"1773-10-30","input":"October 30, 1773","truth":{"day":"Saturday"}}
+{"id":"1726-07-17","input":"the 17th of July, 1726","truth":{"day":"Wednesday"}}
+{"id":"2038-05-08","input":"May 8, 2038","truth":{"day":"Saturday"}}
+{"id":"1920-02-29","input":"the 29th of February, 1920","truth":{"day":"Sunday"}}
+{"id":"1797-11-30","input":"November 30, 1797","truth":{"day":"Thursday"}}
+{"id":"2051-12-25","input":"the 25th of December, 2051","truth":{"day":"Monday"}}
+{"id":"2053-10-18","input":"October 18, 2053","truth":{"day":"Saturday"}}
+{"id":"1926-04-03","input":"the 3rd of April, 1926","truth":{"day":"Saturday"}}
+{"id":"2011-05-23","input":"May 23, 2011","truth":{"day":"Monday"}}
+{"id":"1982-03-08","input":"the 8th of March, 1982","truth":{"day":"Monday"}}
+{"id":"2090-11-13","input":"November 13, 2090","truth":{"day":"Monday"}}
+{"id":"1745-06-11","input":"the 11th of June, 1745","truth":{"day":"Friday"}}
+{"id":"1824-11-29","input":"November 29, 1824","truth":{"day":"Monday"}}
+{"id":"2025-06-12","input":"the 12th of June, 2025","truth":{"day":"Thursday"}}
+{"id":"2019-07-11","input":"July 11, 2019","truth":{"day":"Thursday"}}
+{"id":"1632-05-20","input":"the 20th of May, 1632","truth":{"day":"Thursday"}}
+{"id":"2011-01-10","input":"January 10, 2011","truth":{"day":"Monday"}}
+{"id":"1881-03-15","input":"the 15th of March, 1881","truth":{"day":"Tuesday"}}
+{"id":"2154-05-12","input":"May 12, 2154","truth":{"day":"Sunday"}}
+{"id":"2085-04-01","input":"the 1st of April, 2085","truth":{"day":"Sunday"}}
+{"id":"1673-10-27","input":"October 27, 1673","truth":{"day":"Friday"}}
+{"id":"1908-05-06","input":"the 6th of May, 1908","truth":{"day":"Wednesday"}}
+{"id":"2154-10-27","input":"October 27, 2154","truth":{"day":"Sunday"}}
+{"id":"2013-10-14","input":"the 14th of October, 2013","truth":{"day":"Monday"}}
+{"id":"1986-11-23","input":"November 23, 1986","truth":{"day":"Sunday"}}
+{"id":"1947-01-14","input":"the 14th of January, 1947","truth":{"day":"Tuesday"}}
+{"id":"2148-02-09","input":"February 9, 2148","truth":{"day":"Friday"}}
+{"id":"2145-11-27","input":"the 27th of November, 2145","truth":{"day":"Saturday"}}
+{"id":"1823-09-20","input":"September 20, 1823","truth":{"day":"Saturday"}}
+{"id":"1801-07-26","input":"the 26th of July, 1801","truth":{"day":"Sunday"}}
+{"id":"2103-02-20","input":"February 20, 2103","truth":{"day":"Tuesday"}}
+{"id":"1799-09-06","input":"the 6th of September, 1799","truth":{"day":"Friday"}}
+{"id":"1691-09-11","input":"September 11, 1691","truth":{"day":"Tuesday"}}
+{"id":"1778-11-17","input":"the 17th of November, 1778","truth":{"day":"Tuesday"}}
+{"id":"1857-07-05","input":"July 5, 1857","truth":{"day":"Sunday"}}
+{"id":"1777-03-20","input":"the 20th of March, 1777","truth":{"day":"Thursday"}}
+{"id":"2163-04-17","input":"April 17, 2163","truth":{"day":"Sunday"}}
+{"id":"1934-12-24","input":"the 24th of December, 1934","truth":{"day":"Monday"}}
+{"id":"2038-04-16","input":"April 16, 2038","truth":{"day":"Friday"}}
+{"id":"2127-08-03","input":"the 3rd of August, 2127","truth":{"day":"Sunday"}}
+{"id":"1635-03-26","input":"March 26, 1635","truth":{"day":"Monday"}}
+{"id":"1764-05-13","input":"the 13th of May, 1764","truth":{"day":"Sunday"}}
+{"id":"1936-12-08","input":"December 8, 1936","truth":{"day":"Tuesday"}}
+{"id":"1905-10-15","input":"the 15th of October, 1905","truth":{"day":"Sunday"}}
+{"id":"1853-04-14","input":"April 14, 1853","truth":{"day":"Thursday"}}
+{"id":"1715-12-18","input":"the 18th of December, 1715","truth":{"day":"Wednesday"}}
+{"id":"2146-04-15","input":"April 15, 2146","truth":{"day":"Friday"}}
+{"id":"1632-12-24","input":"the 24th of December, 1632","truth":{"day":"Friday"}}
+{"id":"1819-08-23","input":"August 23, 1819","truth":{"day":"Monday"}}
+{"id":"1806-10-26","input":"the 26th of October, 1806","truth":{"day":"Sunday"}}
+{"id":"1999-04-26","input":"April 26, 1999","truth":{"day":"Monday"}}
+{"id":"2155-07-13","input":"the 13th of July, 2155","truth":{"day":"Sunday"}}
+{"id":"1909-06-05","input":"June 5, 1909","truth":{"day":"Saturday"}}
+{"id":"1699-06-29","input":"the 29th of June, 1699","truth":{"day":"Monday"}}
+{"id":"1843-10-12","input":"October 12, 1843","truth":{"day":"Thursday"}}
+{"id":"1770-06-09","input":"the 9th of June, 1770","truth":{"day":"Saturday"}}
+{"id":"1819-01-14","input":"January 14, 1819","truth":{"day":"Thursday"}}
+{"id":"1854-10-17","input":"the 17th of October, 1854","truth":{"day":"Tuesday"}}
+{"id":"1799-11-15","input":"November 15, 1799","truth":{"day":"Friday"}}
+{"id":"1919-07-12","input":"the 12th of July, 1919","truth":{"day":"Saturday"}}
+{"id":"1969-01-14","input":"January 14, 1969","truth":{"day":"Tuesday"}}
+{"id":"1740-03-03","input":"the 3rd of March, 1740","truth":{"day":"Thursday"}}
+{"id":"2144-10-19","input":"October 19, 2144","truth":{"day":"Monday"}}
+{"id":"1875-02-27","input":"the 27th of February, 1875","truth":{"day":"Saturday"}}
+{"id":"2118-09-01","input":"September 1, 2118","truth":{"day":"Thursday"}}
+{"id":"1981-09-17","input":"the 17th of September, 1981","truth":{"day":"Thursday"}}
+{"id":"1981-03-30","input":"March 30, 1981","truth":{"day":"Monday"}}
+{"id":"1910-04-06","input":"the 6th of April, 1910","truth":{"day":"Wednesday"}}
+{"id":"1903-06-23","input":"June 23, 1903","truth":{"day":"Tuesday"}}
+{"id":"2014-01-31","input":"the 31st of January, 2014","truth":{"day":"Friday"}}
+{"id":"2164-09-05","input":"September 5, 2164","truth":{"day":"Wednesday"}}
+{"id":"1838-06-06","input":"the 6th of June, 1838","truth":{"day":"Wednesday"}}
+{"id":"2025-08-23","input":"August 23, 2025","truth":{"day":"Saturday"}}
+{"id":"1750-12-03","input":"the 3rd of December, 1750","truth":{"day":"Thursday"}}
+{"id":"1952-09-13","input":"September 13, 1952","truth":{"day":"Saturday"}}
+{"id":"1810-09-14","input":"the 14th of September, 1810","truth":{"day":"Friday"}}
+{"id":"1798-09-08","input":"September 8, 1798","truth":{"day":"Saturday"}}
+{"id":"1835-04-02","input":"the 2nd of April, 1835","truth":{"day":"Thursday"}}
+{"id":"2077-08-16","input":"August 16, 2077","truth":{"day":"Monday"}}
+{"id":"2127-05-30","input":"the 30th of May, 2127","truth":{"day":"Friday"}}
+{"id":"1666-10-02","input":"October 2, 1666","truth":{"day":"Saturday"}}
+{"id":"2092-04-29","input":"the 29th of April, 2092","truth":{"day":"Tuesday"}}
+{"id":"1646-09-18","input":"September 18, 1646","truth":{"day":"Tuesday"}}
+{"id":"1844-06-27","input":"the 27th of June, 1844","truth":{"day":"Thursday"}}
+{"id":"1692-04-17","input":"April 17, 1692","truth":{"day":"Thursday"}}
+{"id":"1646-10-22","input":"the 22nd of October, 1646","truth":{"day":"Monday"}}
+{"id":"2198-09-18","input":"September 18, 2198","truth":{"day":"Tuesday"}}
+{"id":"1732-03-22","input":"the 22nd of March, 1732","truth":{"day":"Saturday"}}
+{"id":"1980-01-19","input":"January 19, 1980","truth":{"day":"Saturday"}}
+{"id":"1686-09-10","input":"the 10th of September, 1686","truth":{"day":"Tuesday"}}
+{"id":"1874-09-20","input":"September 20, 1874","truth":{"day":"Sunday"}}
+{"id":"1956-05-04","input":"the 4th of May, 1956","truth":{"day":"Friday"}}
+{"id":"1682-10-24","input":"October 24, 1682","truth":{"day":"Saturday"}}
+{"id":"2154-01-15","input":"the 15th of January, 2154","truth":{"day":"Tuesday"}}
+{"id":"2131-08-15","input":"August 15, 2131","truth":{"day":"Wednesday"}}
+{"id":"2135-03-27","input":"the 27th of March, 2135","truth":{"day":"Sunday"}}
+{"id":"2132-01-06","input":"January 6, 2132","truth":{"day":"Sunday"}}
+{"id":"2145-07-24","input":"the 24th of July, 2145","truth":{"day":"Saturday"}}
+{"id":"2057-06-08","input":"June 8, 2057","truth":{"day":"Friday"}}
+{"id":"1765-07-11","input":"the 11th of July, 1765","truth":{"day":"Thursday"}}
+{"id":"1606-04-20","input":"April 20, 1606","truth":{"day":"Thursday"}}
+{"id":"1749-03-23","input":"the 23rd of March, 1749","truth":{"day":"Sunday"}}
+{"id":"1645-09-12","input":"September 12, 1645","truth":{"day":"Tuesday"}}
+{"id":"1600-12-13","input":"the 13th of December, 1600","truth":{"day":"Wednesday"}}
+{"id":"1970-09-20","input":"September 20, 1970","truth":{"day":"Sunday"}}
+{"id":"1739-01-21","input":"the 21st of January, 1739","truth":{"day":"Wednesday"}}
+{"id":"2045-06-05","input":"June 5, 2045","truth":{"day":"Monday"}}
+{"id":"1894-02-07","input":"the 7th of February, 1894","truth":{"day":"Wednesday"}}
+{"id":"2013-03-14","input":"March 14, 2013","truth":{"day":"Thursday"}}
+{"id":"1743-01-25","input":"the 25th of January, 1743","truth":{"day":"Friday"}}
+{"id":"2130-02-17","input":"February 17, 2130","truth":{"day":"Friday"}}
+{"id":"1741-05-01","input":"the 1st of May, 1741","truth":{"day":"Monday"}}
+{"id":"1824-09-27","input":"September 27, 1824","truth":{"day":"Monday"}}
+{"id":"2137-06-16","input":"the 16th of June, 2137","truth":{"day":"Sunday"}}
+{"id":"1671-02-20","input":"February 20, 1671","truth":{"day":"Friday"}}
+{"id":"1894-01-16","input":"the 16th of January, 1894","truth":{"day":"Tuesday"}}
+{"id":"1601-10-13","input":"October 13, 1601","truth":{"day":"Saturday"}}
+{"id":"2148-09-14","input":"the 14th of September, 2148","truth":{"day":"Saturday"}}
+{"id":"1982-10-18","input":"October 18, 1982","truth":{"day":"Monday"}}
+{"id":"2154-03-10","input":"the 10th of March, 2154","truth":{"day":"Sunday"}}
+{"id":"1612-08-14","input":"August 14, 1612","truth":{"day":"Tuesday"}}
+{"id":"2140-12-05","input":"the 5th of December, 2140","truth":{"day":"Monday"}}
+{"id":"1713-01-25","input":"January 25, 1713","truth":{"day":"Wednesday"}}
+{"id":"2182-03-17","input":"the 17th of March, 2182","truth":{"day":"Sunday"}}
+{"id":"1939-09-25","input":"September 25, 1939","truth":{"day":"Monday"}}
+{"id":"2008-04-20","input":"the 20th of April, 2008","truth":{"day":"Sunday"}}
+{"id":"1760-01-11","input":"January 11, 1760","truth":{"day":"Friday"}}
+{"id":"1733-11-20","input":"the 20th of November, 1733","truth":{"day":"Friday"}}
+{"id":"1725-07-27","input":"July 27, 1725","truth":{"day":"Friday"}}
+{"id":"1939-03-18","input":"the 18th of March, 1939","truth":{"day":"Saturday"}}
+{"id":"1631-06-17","input":"June 17, 1631","truth":{"day":"Tuesday"}}
+{"id":"2062-06-03","input":"the 3rd of June, 2062","truth":{"day":"Saturday"}}
+{"id":"2021-02-13","input":"February 13, 2021","truth":{"day":"Saturday"}}
+{"id":"2029-02-27","input":"the 27th of February, 2029","truth":{"day":"Tuesday"}}
+{"id":"1899-05-30","input":"May 30, 1899","truth":{"day":"Tuesday"}}
+{"id":"1619-09-02","input":"the 2nd of September, 1619","truth":{"day":"Monday"}}
+{"id":"1666-04-17","input":"April 17, 1666","truth":{"day":"Saturday"}}
+{"id":"2152-05-02","input":"the 2nd of May, 2152","truth":{"day":"Tuesday"}}
+{"id":"1678-08-02","input":"August 2, 1678","truth":{"day":"Tuesday"}}
+{"id":"2013-05-27","input":"the 27th of May, 2013","truth":{"day":"Monday"}}
+{"id":"2136-09-14","input":"September 14, 2136","truth":{"day":"Friday"}}
+{"id":"1622-04-10","input":"the 10th of April, 1622","truth":{"day":"Sunday"}}
+{"id":"2130-10-06","input":"October 6, 2130","truth":{"day":"Friday"}}
+{"id":"2117-09-05","input":"the 5th of September, 2117","truth":{"day":"Sunday"}}
+{"id":"2196-08-19","input":"August 19, 2196","truth":{"day":"Friday"}}
+{"id":"2173-07-11","input":"the 11th of July, 2173","truth":{"day":"Sunday"}}
+{"id":"2059-09-10","input":"September 10, 2059","truth":{"day":"Wednesday"}}
+{"id":"1852-03-06","input":"the 6th of March, 1852","truth":{"day":"Saturday"}}
+{"id":"1749-03-05","input":"March 5, 1749","truth":{"day":"Wednesday"}}
+{"id":"2037-04-28","input":"the 28th of April, 2037","truth":{"day":"Tuesday"}}
+{"id":"2130-03-18","input":"March 18, 2130","truth":{"day":"Saturday"}}
+{"id":"1839-05-18","input":"the 18th of May, 1839","truth":{"day":"Saturday"}}
+{"id":"1741-01-30","input":"January 30, 1741","truth":{"day":"Monday"}}
+{"id":"1843-05-03","input":"the 3rd of May, 1843","truth":{"day":"Wednesday"}}
+{"id":"2133-01-28","input":"January 28, 2133","truth":{"day":"Wednesday"}}
+{"id":"1935-10-28","input":"the 28th of October, 1935","truth":{"day":"Monday"}}
+{"id":"1811-03-20","input":"March 20, 1811","truth":{"day":"Wednesday"}}
+{"id":"1973-07-11","input":"the 11th of July, 1973","truth":{"day":"Wednesday"}}
+{"id":"2041-09-01","input":"September 1, 2041","truth":{"day":"Sunday"}}
+{"id":"1801-05-07","input":"the 7th of May, 1801","truth":{"day":"Thursday"}}
+{"id":"2035-11-04","input":"November 4, 2035","truth":{"day":"Sunday"}}
+{"id":"1854-01-27","input":"the 27th of January, 1854","truth":{"day":"Friday"}}
+{"id":"1719-05-17","input":"May 17, 1719","truth":{"day":"Wednesday"}}
+{"id":"1787-05-04","input":"the 4th of May, 1787","truth":{"day":"Friday"}}
+{"id":"2192-04-09","input":"April 9, 2192","truth":{"day":"Monday"}}
+{"id":"2197-06-24","input":"the 24th of June, 2197","truth":{"day":"Saturday"}}
+{"id":"1980-01-28","input":"January 28, 1980","truth":{"day":"Monday"}}
+{"id":"2124-03-08","input":"the 8th of March, 2124","truth":{"day":"Wednesday"}}
+{"id":"2151-11-28","input":"November 28, 2151","truth":{"day":"Sunday"}}
+{"id":"1719-12-03","input":"the 3rd of December, 1719","truth":{"day":"Sunday"}}
+{"id":"1987-10-10","input":"October 10, 1987","truth":{"day":"Saturday"}}
+{"id":"1681-05-14","input":"the 14th of May, 1681","truth":{"day":"Wednesday"}}
+{"id":"1898-12-18","input":"December 18, 1898","truth":{"day":"Sunday"}}
+{"id":"2063-08-11","input":"August 11, 2063","truth":{"day":"Saturday"}}
+{"id":"2168-05-27","input":"the 27th of May, 2168","truth":{"day":"Friday"}}
+{"id":"1889-09-21","input":"September 21, 1889","truth":{"day":"Saturday"}}
+{"id":"1712-06-23","input":"the 23rd of June, 1712","truth":{"day":"Thursday"}}
+{"id":"1868-06-12","input":"June 12, 1868","truth":{"day":"Friday"}}
+{"id":"1699-10-28","input":"the 28th of October, 1699","truth":{"day":"Wednesday"}}
+{"id":"1998-03-24","input":"March 24, 1998","truth":{"day":"Tuesday"}}
+{"id":"1913-07-21","input":"the 21st of July, 1913","truth":{"day":"Monday"}}
+{"id":"1937-06-22","input":"June 22, 1937","truth":{"day":"Tuesday"}}
+{"id":"1904-07-20","input":"the 20th of July, 1904","truth":{"day":"Wednesday"}}
+{"id":"2055-01-16","input":"January 16, 2055","truth":{"day":"Saturday"}}
+{"id":"1817-11-01","input":"the 1st of November, 1817","truth":{"day":"Saturday"}}
+{"id":"2051-04-11","input":"April 11, 2051","truth":{"day":"Tuesday"}}
+{"id":"1615-08-21","input":"the 21st of August, 1615","truth":{"day":"Friday"}}
+{"id":"1779-08-07","input":"August 7, 1779","truth":{"day":"Saturday"}}
+{"id":"1925-07-22","input":"the 22nd of July, 1925","truth":{"day":"Wednesday"}}
+{"id":"1721-11-09","input":"November 9, 1721","truth":{"day":"Sunday"}}
+{"id":"2034-06-24","input":"the 24th of June, 2034","truth":{"day":"Saturday"}}
+{"id":"1774-10-31","input":"October 31, 1774","truth":{"day":"Monday"}}
+{"id":"1741-08-30","input":"the 30th of August, 1741","truth":{"day":"Wednesday"}}
+{"id":"1996-05-26","input":"May 26, 1996","truth":{"day":"Sunday"}}
+{"id":"1857-12-06","input":"the 6th of December, 1857","truth":{"day":"Sunday"}}
+{"id":"1645-04-05","input":"April 5, 1645","truth":{"day":"Wednesday"}}
+{"id":"2064-07-01","input":"the 1st of July, 2064","truth":{"day":"Tuesday"}}
+{"id":"2094-07-16","input":"July 16, 2094","truth":{"day":"Friday"}}
+{"id":"2150-03-07","input":"the 7th of March, 2150","truth":{"day":"Saturday"}}
+{"id":"2146-12-02","input":"December 2, 2146","truth":{"day":"Friday"}}
+{"id":"2009-03-22","input":"the 22nd of March, 2009","truth":{"day":"Sunday"}}
+{"id":"2176-04-15","input":"April 15, 2176","truth":{"day":"Monday"}}
+{"id":"1615-02-25","input":"the 25th of February, 1615","truth":{"day":"Wednesday"}}
+{"id":"2057-12-12","input":"December 12, 2057","truth":{"day":"Wednesday"}}
+{"id":"1961-03-23","input":"the 23rd of March, 1961","truth":{"day":"Thursday"}}
+{"id":"2035-02-22","input":"February 22, 2035","truth":{"day":"Thursday"}}
+{"id":"2139-10-25","input":"the 25th of October, 2139","truth":{"day":"Sunday"}}
+{"id":"1622-03-31","input":"March 31, 1622","truth":{"day":"Thursday"}}
+{"id":"1681-09-16","input":"the 16th of September, 1681","truth":{"day":"Tuesday"}}
+{"id":"1648-03-29","input":"March 29, 1648","truth":{"day":"Sunday"}}
+{"id":"1665-01-17","input":"the 17th of January, 1665","truth":{"day":"Saturday"}}
+{"id":"1650-12-28","input":"December 28, 1650","truth":{"day":"Wednesday"}}
+{"id":"1605-09-15","input":"the 15th of September, 1605","truth":{"day":"Thursday"}}
+{"id":"1963-08-18","input":"August 18, 1963","truth":{"day":"Sunday"}}
+{"id":"2168-05-23","input":"the 23rd of May, 2168","truth":{"day":"Monday"}}
+{"id":"1715-05-26","input":"May 26, 1715","truth":{"day":"Sunday"}}
+{"id":"1680-04-26","input":"the 26th of April, 1680","truth":{"day":"Friday"}}
+{"id":"1721-07-13","input":"July 13, 1721","truth":{"day":"Sunday"}}
+{"id":"2005-08-14","input":"the 14th of August, 2005","truth":{"day":"Sunday"}}
+{"id":"1746-03-13","input":"March 13, 1746","truth":{"day":"Sunday"}}
+{"id":"1874-04-08","input":"the 8th of April, 1874","truth":{"day":"Wednesday"}}
+{"id":"2197-05-13","input":"May 13, 2197","truth":{"day":"Saturday"}}
+{"id":"1853-12-25","input":"the 25th of December, 1853","truth":{"day":"Sunday"}}
+{"id":"2004-12-03","input":"December 3, 2004","truth":{"day":"Friday"}}
+{"id":"2065-05-18","input":"the 18th of May, 2065","truth":{"day":"Monday"}}
+{"id":"1838-07-11","input":"July 11, 1838","truth":{"day":"Wednesday"}}
+{"id":"1850-04-12","input":"the 12th of April, 1850","truth":{"day":"Friday"}}
+{"id":"1636-10-07","input":"October 7, 1636","truth":{"day":"Tuesday"}}
+{"id":"1738-04-23","input":"the 23rd of April, 1738","truth":{"day":"Wednesday"}}
+{"id":"2085-05-21","input":"May 21, 2085","truth":{"day":"Monday"}}
+{"id":"2185-08-03","input":"the 3rd of August, 2185","truth":{"day":"Wednesday"}}
+{"id":"1691-08-11","input":"August 11, 1691","truth":{"day":"Saturday"}}
+{"id":"2156-03-30","input":"the 30th of March, 2156","truth":{"day":"Tuesday"}}
+{"id":"1905-09-28","input":"September 28, 1905","truth":{"day":"Thursday"}}
+{"id":"1673-06-02","input":"the 2nd of June, 1673","truth":{"day":"Friday"}}
+{"id":"1726-04-14","input":"April 14, 1726","truth":{"day":"Sunday"}}
+{"id":"1962-03-04","input":"the 4th of March, 1962","truth":{"day":"Sunday"}}
+{"id":"1702-06-27","input":"June 27, 1702","truth":{"day":"Tuesday"}}
+{"id":"1646-12-04","input":"the 4th of December, 1646","truth":{"day":"Tuesday"}}
+{"id":"1763-11-27","input":"November 27, 1763","truth":{"day":"Sunday"}}
+{"id":"1988-07-29","input":"the 29th of July, 1988","truth":{"day":"Friday"}}
+{"id":"1934-03-21","input":"March 21, 1934","truth":{"day":"Wednesday"}}
+{"id":"1888-11-09","input":"the 9th of November, 1888","truth":{"day":"Friday"}}
+{"id":"2197-04-12","input":"April 12, 2197","truth":{"day":"Wednesday"}}
+{"id":"1645-03-19","input":"the 19th of March, 1645","truth":{"day":"Sunday"}}
+{"id":"1848-06-18","input":"June 18, 1848","truth":{"day":"Sunday"}}
+{"id":"1788-12-25","input":"the 25th of December, 1788","truth":{"day":"Thursday"}}
+{"id":"1602-07-03","input":"July 3, 1602","truth":{"day":"Wednesday"}}
+{"id":"1603-09-12","input":"the 12th of September, 1603","truth":{"day":"Friday"}}
+{"id":"1848-06-28","input":"June 28, 1848","truth":{"day":"Wednesday"}}
+{"id":"1654-11-24","input":"the 24th of November, 1654","truth":{"day":"Tuesday"}}
+{"id":"1740-10-11","input":"October 11, 1740","truth":{"day":"Tuesday"}}
+{"id":"2155-05-12","input":"the 12th of May, 2155","truth":{"day":"Monday"}}
+{"id":"2067-04-02","input":"April 2, 2067","truth":{"day":"Saturday"}}
+{"id":"2059-02-14","input":"the 14th of February, 2059","truth":{"day":"Friday"}}
+{"id":"1862-07-15","input":"July 15, 1862","truth":{"day":"Tuesday"}}
+{"id":"2113-10-25","input":"the 25th of October, 2113","truth":{"day":"Wednesday"}}
+{"id":"2178-06-05","input":"June 5, 2178","truth":{"day":"Friday"}}
+{"id":"2081-05-15","input":"the 15th of May, 2081","truth":{"day":"Thursday"}}
+{"id":"1997-10-06","input":"October 6, 1997","truth":{"day":"Monday"}}
+{"id":"1943-11-14","input":"the 14th of November, 1943","truth":{"day":"Sunday"}}
+{"id":"1809-03-02","input":"March 2, 1809","truth":{"day":"Thursday"}}
+{"id":"1844-08-10","input":"the 10th of August, 1844","truth":{"day":"Saturday"}}
+{"id":"1898-09-03","input":"September 3, 1898","truth":{"day":"Saturday"}}
+{"id":"1897-05-22","input":"the 22nd of May, 1897","truth":{"day":"Saturday"}}
+{"id":"1941-01-08","input":"January 8, 1941","truth":{"day":"Wednesday"}}
+{"id":"2033-10-11","input":"the 11th of October, 2033","truth":{"day":"Tuesday"}}
+{"id":"1999-09-25","input":"September 25, 1999","truth":{"day":"Saturday"}}
+{"id":"1980-04-27","input":"the 27th of April, 1980","truth":{"day":"Sunday"}}
+{"id":"2038-02-10","input":"February 10, 2038","truth":{"day":"Wednesday"}}
+{"id":"2131-08-02","input":"the 2nd of August, 2131","truth":{"day":"Thursday"}}
+{"id":"2107-12-15","input":"December 15, 2107","truth":{"day":"Thursday"}}
+{"id":"2193-12-06","input":"the 6th of December, 2193","truth":{"day":"Friday"}}
+{"id":"1863-04-10","input":"April 10, 1863","truth":{"day":"Friday"}}
+{"id":"1892-09-19","input":"the 19th of September, 1892","truth":{"day":"Monday"}}
+{"id":"2175-04-15","input":"April 15, 2175","truth":{"day":"Saturday"}}
+{"id":"2186-01-10","input":"the 10th of January, 2186","truth":{"day":"Tuesday"}}
+{"id":"1815-01-08","input":"January 8, 1815","truth":{"day":"Sunday"}}
+{"id":"1647-08-10","input":"the 10th of August, 1647","truth":{"day":"Saturday"}}
+{"id":"1806-01-01","input":"January 1, 1806","truth":{"day":"Wednesday"}}
+{"id":"2130-06-21","input":"the 21st of June, 2130","truth":{"day":"Wednesday"}}
+{"id":"2025-09-25","input":"September 25, 2025","truth":{"day":"Thursday"}}
+{"id":"2043-08-02","input":"the 2nd of August, 2043","truth":{"day":"Sunday"}}
+{"id":"2174-01-23","input":"January 23, 2174","truth":{"day":"Sunday"}}
+{"id":"2072-12-26","input":"the 26th of December, 2072","truth":{"day":"Monday"}}
+{"id":"1724-06-13","input":"June 13, 1724","truth":{"day":"Tuesday"}}
+{"id":"1743-02-19","input":"the 19th of February, 1743","truth":{"day":"Tuesday"}}
+{"id":"2079-11-20","input":"November 20, 2079","truth":{"day":"Monday"}}
+{"id":"1662-07-28","input":"the 28th of July, 1662","truth":{"day":"Friday"}}
+{"id":"2150-04-01","input":"April 1, 2150","truth":{"day":"Wednesday"}}
+{"id":"2080-11-26","input":"the 26th of November, 2080","truth":{"day":"Tuesday"}}
+{"id":"1981-10-01","input":"October 1, 1981","truth":{"day":"Thursday"}}
+{"id":"2027-08-02","input":"the 2nd of August, 2027","truth":{"day":"Monday"}}
+{"id":"1922-01-22","input":"January 22, 1922","truth":{"day":"Sunday"}}
+{"id":"1866-04-03","input":"the 3rd of April, 1866","truth":{"day":"Tuesday"}}
+{"id":"2124-02-06","input":"February 6, 2124","truth":{"day":"Sunday"}}
+{"id":"1938-08-06","input":"the 6th of August, 1938","truth":{"day":"Saturday"}}
+{"id":"2125-02-02","input":"February 2, 2125","truth":{"day":"Friday"}}
+{"id":"1762-08-14","input":"the 14th of August, 1762","truth":{"day":"Saturday"}}
+{"id":"2012-09-02","input":"September 2, 2012","truth":{"day":"Sunday"}}
+{"id":"1860-11-02","input":"the 2nd of November, 1860","truth":{"day":"Friday"}}
+{"id":"1837-06-12","input":"June 12, 1837","truth":{"day":"Monday"}}
+{"id":"1712-09-11","input":"the 11th of September, 1712","truth":{"day":"Sunday"}}
+{"id":"1954-01-08","input":"January 8, 1954","truth":{"day":"Friday"}}
+{"id":"1739-02-05","input":"the 5th of February, 1739","truth":{"day":"Thursday"}}
+{"id":"2140-03-14","input":"March 14, 2140","truth":{"day":"Monday"}}
+{"id":"2094-01-20","input":"the 20th of January, 2094","truth":{"day":"Wednesday"}}
+{"id":"1803-02-19","input":"February 19, 1803","truth":{"day":"Saturday"}}
+{"id":"2010-05-26","input":"the 26th of May, 2010","truth":{"day":"Wednesday"}}
+{"id":"2127-04-21","input":"April 21, 2127","truth":{"day":"Monday"}}
+{"id":"1669-09-01","input":"the 1st of September, 1669","truth":{"day":"Sunday"}}
+{"id":"1784-11-26","input":"November 26, 1784","truth":{"day":"Friday"}}
+{"id":"2153-06-22","input":"the 22nd of June, 2153","truth":{"day":"Friday"}}
+{"id":"1600-10-16","input":"October 16, 1600","truth":{"day":"Monday"}}
+{"id":"1679-03-21","input":"the 21st of March, 1679","truth":{"day":"Tuesday"}}
+{"id":"1838-10-06","input":"October 6, 1838","truth":{"day":"Saturday"}}
+{"id":"1612-12-19","input":"the 19th of December, 1612","truth":{"day":"Wednesday"}}
+{"id":"2016-05-28","input":"May 28, 2016","truth":{"day":"Saturday"}}
+{"id":"2139-08-10","input":"the 10th of August, 2139","truth":{"day":"Monday"}}
+{"id":"1703-12-17","input":"December 17, 1703","truth":{"day":"Monday"}}
+{"id":"1727-06-11","input":"the 11th of June, 1727","truth":{"day":"Wednesday"}}
+{"id":"2169-05-04","input":"May 4, 2169","truth":{"day":"Thursday"}}
+{"id":"2020-08-07","input":"the 7th of August, 2020","truth":{"day":"Friday"}}
+{"id":"1705-04-12","input":"April 12, 1705","truth":{"day":"Sunday"}}
+{"id":"1670-03-20","input":"the 20th of March, 1670","truth":{"day":"Thursday"}}
+{"id":"1976-07-29","input":"July 29, 1976","truth":{"day":"Thursday"}}
+{"id":"1609-07-29","input":"the 29th of July, 1609","truth":{"day":"Wednesday"}}
+{"id":"2087-12-13","input":"December 13, 2087","truth":{"day":"Saturday"}}
+{"id":"1955-07-17","input":"the 17th of July, 1955","truth":{"day":"Sunday"}}
+{"id":"2051-06-04","input":"June 4, 2051","truth":{"day":"Sunday"}}
+{"id":"1676-12-17","input":"the 17th of December, 1676","truth":{"day":"Thursday"}}
+{"id":"1799-02-03","input":"February 3, 1799","truth":{"day":"Sunday"}}
+{"id":"2029-08-08","input":"the 8th of August, 2029","truth":{"day":"Wednesday"}}
+{"id":"2173-12-25","input":"December 25, 2173","truth":{"day":"Saturday"}}
+{"id":"1929-04-02","input":"the 2nd of April, 1929","truth":{"day":"Tuesday"}}
+{"id":"1953-07-03","input":"July 3, 1953","truth":{"day":"Friday"}}
+{"id":"2067-04-01","input":"the 1st of April, 2067","truth":{"day":"Friday"}}
+{"id":"2022-03-12","input":"March 12, 2022","truth":{"day":"Saturday"}}
+{"id":"2040-12-04","input":"the 4th of December, 2040","truth":{"day":"Tuesday"}}
+{"id":"1959-02-17","input":"February 17, 1959","truth":{"day":"Tuesday"}}
+{"id":"1660-04-02","input":"the 2nd of April, 1660","truth":{"day":"Friday"}}
+{"id":"1627-04-09","input":"April 9, 1627","truth":{"day":"Friday"}}
+{"id":"1968-07-28","input":"the 28th of July, 1968","truth":{"day":"Sunday"}}
+{"id":"1735-02-25","input":"February 25, 1735","truth":{"day":"Friday"}}
+{"id":"1949-04-07","input":"the 7th of April, 1949","truth":{"day":"Thursday"}}
+{"id":"1750-10-20","input":"October 20, 1750","truth":{"day":"Tuesday"}}
+{"id":"1734-01-17","input":"the 17th of January, 1734","truth":{"day":"Sunday"}}
+{"id":"1972-08-17","input":"August 17, 1972","truth":{"day":"Thursday"}}
+{"id":"1978-04-28","input":"the 28th of April, 1978","truth":{"day":"Friday"}}
+{"id":"2088-07-04","input":"July 4, 2088","truth":{"day":"Sunday"}}
+{"id":"1743-12-04","input":"the 4th of December, 1743","truth":{"day":"Wednesday"}}
+{"id":"2144-03-19","input":"March 19, 2144","truth":{"day":"Thursday"}}
+{"id":"1631-09-15","input":"the 15th of September, 1631","truth":{"day":"Monday"}}
+{"id":"2015-02-07","input":"February 7, 2015","truth":{"day":"Saturday"}}
+{"id":"1844-06-09","input":"the 9th of June, 1844","truth":{"day":"Sunday"}}
+{"id":"2075-12-21","input":"December 21, 2075","truth":{"day":"Saturday"}}
+{"id":"1996-06-13","input":"the 13th of June, 1996","truth":{"day":"Thursday"}}
+{"id":"2083-08-09","input":"August 9, 2083","truth":{"day":"Monday"}}
+{"id":"1662-11-23","input":"the 23rd of November, 1662","truth":{"day":"Thursday"}}
+{"id":"2152-08-06","input":"August 6, 2152","truth":{"day":"Sunday"}}
+{"id":"1901-01-05","input":"the 5th of January, 1901","truth":{"day":"Saturday"}}
+{"id":"2094-08-05","input":"August 5, 2094","truth":{"day":"Thursday"}}
+{"id":"1855-05-21","input":"the 21st of May, 1855","truth":{"day":"Monday"}}
+{"id":"2120-08-22","input":"August 22, 2120","truth":{"day":"Thursday"}}
+{"id":"2075-02-25","input":"the 25th of February, 2075","truth":{"day":"Monday"}}
+{"id":"2037-01-01","input":"January 1, 2037","truth":{"day":"Thursday"}}
+{"id":"2145-08-08","input":"the 8th of August, 2145","truth":{"day":"Sunday"}}
+{"id":"2115-10-03","input":"October 3, 2115","truth":{"day":"Thursday"}}
+{"id":"1714-05-07","input":"the 7th of May, 1714","truth":{"day":"Monday"}}
+{"id":"2032-07-17","input":"July 17, 2032","truth":{"day":"Saturday"}}
+{"id":"1692-11-26","input":"the 26th of November, 1692","truth":{"day":"Wednesday"}}
+{"id":"1675-04-08","input":"April 8, 1675","truth":{"day":"Monday"}}
+{"id":"2170-02-19","input":"the 19th of February, 2170","truth":{"day":"Monday"}}
+{"id":"2173-10-27","input":"October 27, 2173","truth":{"day":"Wednesday"}}
+{"id":"1633-12-08","input":"the 8th of December, 1633","truth":{"day":"Thursday"}}
+{"id":"1646-03-30","input":"March 30, 1646","truth":{"day":"Friday"}}
+{"id":"1757-06-11","input":"the 11th of June, 1757","truth":{"day":"Saturday"}}
+{"id":"2165-05-17","input":"May 17, 2165","truth":{"day":"Friday"}}
+{"id":"2122-09-20","input":"the 20th of September, 2122","truth":{"day":"Sunday"}}
+{"id":"2174-11-26","input":"November 26, 2174","truth":{"day":"Saturday"}}
+{"id":"1766-07-01","input":"the 1st of July, 1766","truth":{"day":"Tuesday"}}
+{"id":"1719-02-24","input":"February 24, 1719","truth":{"day":"Friday"}}
+{"id":"1617-11-23","input":"the 23rd of November, 1617","truth":{"day":"Thursday"}}
+{"id":"1882-05-16","input":"May 16, 1882","truth":{"day":"Tuesday"}}
+{"id":"1936-03-17","input":"the 17th of March, 1936","truth":{"day":"Tuesday"}}
+{"id":"1685-01-29","input":"January 29, 1685","truth":{"day":"Monday"}}
+{"id":"1794-03-09","input":"the 9th of March, 1794","truth":{"day":"Sunday"}}
+{"id":"1889-01-17","input":"January 17, 1889","truth":{"day":"Thursday"}}
+{"id":"1736-04-11","input":"the 11th of April, 1736","truth":{"day":"Wednesday"}}
+{"id":"1633-01-15","input":"January 15, 1633","truth":{"day":"Saturday"}}
+{"id":"1626-09-05","input":"the 5th of September, 1626","truth":{"day":"Saturday"}}
+{"id":"1656-03-13","input":"March 13, 1656","truth":{"day":"Monday"}}
+{"id":"1978-03-28","input":"the 28th of March, 1978","truth":{"day":"Tuesday"}}
+{"id":"1881-03-27","input":"March 27, 1881","truth":{"day":"Sunday"}}
+{"id":"2085-09-12","input":"the 12th of September, 2085","truth":{"day":"Wednesday"}}
+{"id":"2037-08-06","input":"August 6, 2037","truth":{"day":"Thursday"}}
+{"id":"1906-12-24","input":"the 24th of December, 1906","truth":{"day":"Monday"}}
+{"id":"2020-12-05","input":"December 5, 2020","truth":{"day":"Saturday"}}
