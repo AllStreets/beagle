@@ -6,6 +6,7 @@ import type { RoomId } from './ship.ts';
 import { esc, money, secs, dist, term, head } from './ui.ts';
 import { logbook } from './logbook.ts';
 import { chartRoom } from './chartroom.ts';
+import { fossilRoom } from './fossilroom.ts';
 
 export type Ctx = { voyage: Voyage; gen: Generation; genN: number; view: 'plain' | 'lab'; arena: Arena | null; others?: { id: string; spent: number; note: string | null }[] };
 
@@ -15,7 +16,7 @@ export async function render(id: RoomId, el: HTMLElement, c: Ctx) {
   if (id === 'drawing') return drawingRoom(el, c);
   if (id === 'specimens') return hold(el, c);
   if (id === 'log') return logbook(el, c);
-  if (id === 'fossils') return fossils(el, c);
+  if (id === 'fossils') return fossilRoom(el, c);
   return settings(el, c);
 }
 
@@ -87,76 +88,6 @@ function hold(el: HTMLElement, c: Ctx) {
   <table class="ledger"><thead><tr><th>Specimen</th><th>Score</th><th>${term('interval', 'Likely range')}</th><th>Within 25 km</th>${c.view === 'lab' ? `<th>Cost</th><th>Time per item</th><th>${term('front', 'Front')}</th><th>Answered</th>` : ''}</tr></thead><tbody>${es.map(e => `<tr class="${e.control ? 'ctl' : ''}"><td><a href="#/drawing/${encodeURIComponent(e.genome)}">${esc(e.name)}</a>${e.control ? ' <small>control</small>' : ''}</td><td class="n"><span class="fill" style="--w:${e.mean}"></span>${pct(e.mean)}</td><td class="n">${pct(e.lo)} to ${pct(e.hi)}</td><td class="n">${e.within} of ${e.tasks}</td>${c.view === 'lab' ? `<td class="n">${money(e.usd)}</td><td class="n">${secs(e.ms)}</td><td class="n">${e.pareto}</td><td class="n">${e.tasks - e.noAnswer} of ${e.tasks}</td>` : ''}</tr>`).join('')}</tbody></table>`;
 }
 
-async function fossils(el: HTMLElement, c: Ctx) {
-  const fs = await api<any[]>(`/voyages/${c.voyage.id}/fossils`, []), es = entrants(c.gen), lead = es.find(e => !e.control);
-  const nameOf = (id: string) => es.find(e => e.genome === id)?.name ?? id;
-  if (!fs.length) {
-    el.innerHTML = `${head('The fossil locker', 'Empty, for now.')}<div class="prose"><p>A ${term('fossil')} is what Beagle makes once an agent is good: the agent answers thousands of unlabelled news items, and a small network is trained on its answers here on this Mac, then checked honestly on the race items.</p><p>No skill has been fossilised yet. ${lead ? `The strongest candidate so far is ${esc(lead.name)}, at ${pct(lead.mean)}.` : ''}</p></div>`;
-    return;
-  }
-  const plural = (n: number, w: string) => `${n.toLocaleString()} ${w}${n === 1 ? '' : 's'}`;
-  el.innerHTML = `${head('The fossil locker', `${fs.length === 1 ? 'One skill has' : `${fs.length} skills have`} been pressed into a network that runs on this Mac.`)}${fs.map((f, i) => {
-    const name = f.name ?? nameOf(f.genome), behind = Math.round((f.race.teacher - f.race.score) * 100);
-    const teacherCost = f.teacher_usd > 0 ? `$${f.teacher_usd.toFixed(4)} an item` : 'nothing (it runs in Ollama)';
-    return `
-    <section class="fossil">
-      <figure class="slab"><canvas id="slab${i}" width="1200" height="720" role="img" aria-label="The training curve of ${esc(name)}'s fossil, cut into stone as strata"></canvas>
-        <figcaption>The ridge is the network's error on items it never trained on, over ${f.curve?.length ?? f.epochs} training passes, cut so that higher is better. The impression marks pass ${f.kept_epoch}, the one kept: after it the error rose again, as the network began to memorise its teacher instead of learning from it.</figcaption></figure>
-      <div class="facts">
-        <h2>${esc(name)}, fossilised</h2>
-        <p class="lede">Trained in ${f.train_seconds.toFixed(1)} seconds on this Mac, from ${plural(f.taught, 'news item')} its teacher answered${f.breeding ? ` and ${plural(f.breeding, 'practice item')} with their true places` : ''}. On the ${f.race.items} race items it scores <b>${pct(f.race.score)}</b>, against its teacher's <b>${pct(f.race.teacher)}</b>, and lands in the same part of the world as its teacher on ${pct(f.race.agreement)}% of them.</p>
-        <p class="verdict ${f.race.standsIn ? 'yes' : 'no'}">${f.race.standsIn ? 'Within 5 points of its teacher: it can stand in for it.' : `${behind} points behind its teacher: it does not stand in for it.`}</p>
-        <dl class="nums"><div><dt>Size</dt><dd>${(f.bytes / 1e6).toFixed(1)} MB</dd></div><div><dt>Network</dt><dd>${f.ms_per_answer.toFixed(2)} ms</dd></div><div><dt>With embedding</dt><dd>${Math.round(f.embed_ms + f.ms_per_answer)} ms</dd></div><div><dt>Its teacher</dt><dd>${secs(f.teacher_ms ?? 0)}</dd></div><div><dt>Places it knows</dt><dd>${f.cells}</dd></div></dl>
-        <p class="soft">Times are per answer, measured on this Mac, warm. The fossil costs nothing to run; its teacher cost ${teacherCost}. The embedding is a local model (nomic-embed-text in Ollama) and the network is two layers, trained with MLX. It answers by choosing one of ${f.cells} places on the globe, so it can never be closer than that place's centre.</p>
-      </div>
-    </section>`; }).join('')}`;
-  const fell = document.fonts?.load('34px "IM Fell English SC"').catch(() => null);
-  fs.forEach(async (f, i) => {
-    await fell;
-    const cv = el.querySelector<HTMLCanvasElement>(`#slab${i}`)!, k = cv.getContext('2d')!, W = cv.width, H = cv.height;
-    const rnd = (() => { let x = 7 + i * 101; return () => (x = (x * 16807) % 2147483647) / 2147483647; })();
-    // the stone: a warm grey limestone, cut with uneven edges and lit from the top left
-    k.clearRect(0, 0, W, H);
-    const edge: [number, number][] = []; const m = 14;
-    for (let t = 0; t < 1; t += .02) edge.push([m + t * (W - 2 * m), m + (rnd() - .5) * 8]);
-    for (let t = 0; t < 1; t += .03) edge.push([W - m + (rnd() - .5) * 8, m + t * (H - 2 * m)]);
-    for (let t = 1; t > 0; t -= .02) edge.push([m + t * (W - 2 * m), H - m + (rnd() - .5) * 8]);
-    for (let t = 1; t > 0; t -= .03) edge.push([m + (rnd() - .5) * 8, m + t * (H - 2 * m)]);
-    k.save(); k.beginPath(); edge.forEach(([x, y], j) => j ? k.lineTo(x, y) : k.moveTo(x, y)); k.closePath();
-    k.shadowColor = 'rgba(20,16,10,.45)'; k.shadowBlur = 30; k.shadowOffsetY = 14;
-    const g = k.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#b3ab9b'); g.addColorStop(1, '#8a8274'); k.fillStyle = g; k.fill(); k.restore();
-    k.save(); k.beginPath(); edge.forEach(([x, y], j) => j ? k.lineTo(x, y) : k.moveTo(x, y)); k.closePath(); k.clip();
-    for (let j = 0; j < 26000; j++) { k.fillStyle = `rgba(${rnd() < .5 ? '52,46,38' : '236,230,216'},${rnd() * .09})`; const r = rnd() * 2.2; k.fillRect(rnd() * W, rnd() * H, r, r); }
-    const curve = (f.curve ?? []) as { held_out_loss: number; held_out_agreement: number }[];
-    const L = curve.map(p => p.held_out_loss), lo = Math.min(...L), hi = Math.max(...L);
-    const x0 = 90, x1 = W - 70, y0 = 250, yS = 280, x = (j: number) => x0 + j / Math.max(1, curve.length - 1) * (x1 - x0);
-    const yAt = (j: number, band: number) => y0 + band * 26 + (L[j] - lo) / Math.max(1e-9, hi - lo) * yS * (1 - band * .07) + Math.sin(j * .7 + band * 1.9) * 1.6;
-    // strata: each band follows the held-out curve, darker and finer with depth, each with a lit lip
-    for (let band = 0; band < 9; band++) {
-      k.beginPath(); curve.forEach((_, j) => j ? k.lineTo(x(j), yAt(j, band)) : k.moveTo(x(j), yAt(j, band)));
-      k.lineTo(x1 + 60, yAt(curve.length - 1, band)); k.lineTo(x1 + 60, H); k.lineTo(x0 - 80, H); k.lineTo(x0 - 80, yAt(0, band)); k.closePath();
-      k.fillStyle = `rgba(${60 - band * 3},${52 - band * 3},${42 - band * 3},${.06 + band * .012})`; k.fill();
-      k.beginPath(); curve.forEach((_, j) => j ? k.lineTo(x(j), yAt(j, band)) : k.moveTo(x(j), yAt(j, band)));
-      k.strokeStyle = `rgba(28,24,18,${band ? .38 - band * .025 : .8})`; k.lineWidth = band ? 1.3 : 3; k.stroke();
-      k.save(); k.translate(0, band ? 1.4 : 2.2); k.strokeStyle = 'rgba(246,240,226,.4)'; k.lineWidth = 1; k.stroke(); k.restore();
-    }
-    // the impression: an ammonite pressed in at the kept pass
-    const ke = Math.max(0, Math.min(curve.length - 1, (f.kept_epoch ?? 1) - 1)), cx = x(ke), cy = yAt(ke, 0) + 2;
-    const shell = (dx: number, dy: number, col: string, w: number) => { k.beginPath(); for (let t = 0; t < 4.2 * Math.PI; t += .05) { const r = 4 + Math.exp(t * .18) * 4.6; const px = cx + dx + Math.cos(t) * r, py = cy + dy + Math.sin(t) * r; t ? k.lineTo(px, py) : k.moveTo(px, py); } k.strokeStyle = col; k.lineWidth = w; k.stroke();
-      for (let t = 1.2; t < 4.2 * Math.PI; t += .42) { const r0 = 4 + Math.exp((t - 2 * Math.PI) * .18) * 4.6, r1 = 4 + Math.exp(t * .18) * 4.6; if (t < 2 * Math.PI) continue; k.beginPath(); k.moveTo(cx + dx + Math.cos(t) * r0, cy + dy + Math.sin(t) * r0); k.lineTo(cx + dx + Math.cos(t) * r1, cy + dy + Math.sin(t) * r1); k.lineWidth = w * .5; k.stroke(); } };
-    k.beginPath(); k.arc(cx, cy, 44, 0, Math.PI * 2); k.fillStyle = 'rgba(40,34,26,.16)'; k.fill();
-    shell(1.5, 1.5, 'rgba(246,240,226,.55)', 1.6); shell(0, 0, 'rgba(30,25,18,.85)', 1.6);
-    k.strokeStyle = 'rgba(30,25,18,.55)'; k.lineWidth = 1.2; k.beginPath(); k.moveTo(cx + 40, cy - 30); k.lineTo(cx + 96, cy - 62); k.lineTo(cx + 120, cy - 62); k.stroke();
-    // incised lettering: the name, and a scale cut along the bottom edge
-    const incise = (t: string, px: number, py: number, font: string, al: CanvasTextAlign = 'left') => { k.font = font; k.textAlign = al; k.fillStyle = 'rgba(246,240,226,.5)'; k.fillText(t, px + 1.2, py + 1.6); k.fillStyle = 'rgba(30,25,18,.82)'; k.fillText(t, px, py); };
-    incise(f.name ?? nameOf(f.genome), 60, 86, '46px "IM Fell English SC"');
-    incise(`kept: pass ${f.kept_epoch}`, cx + 128, cy - 54, 'italic 26px "EB Garamond"');
-    incise(`${pct(f.race.score)} on the race · teacher ${pct(f.race.teacher)} · ${(f.bytes / 1e6).toFixed(1)} MB`, 62, 124, 'italic 26px "EB Garamond"');
-    for (let j = 0; j < curve.length; j += 5) { k.strokeStyle = 'rgba(30,25,18,.6)'; k.lineWidth = 1.4; k.beginPath(); k.moveTo(x(j), H - 74); k.lineTo(x(j), H - 62); k.stroke(); incise(String(j + 1), x(j), H - 38, '20px "EB Garamond"', 'center'); }
-    incise('pass', x1, H - 38, 'italic 20px "EB Garamond"', 'right');
-    k.restore();
-  });
-}
 
 async function settings(el: HTMLElement, c: Ctx) {
   const [s, st] = await Promise.all([api<Record<string, unknown>>('/settings'), api<Record<string, unknown>>('/status', {})]);

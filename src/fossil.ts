@@ -2,7 +2,7 @@
 // The teacher (an agent) answers unlabelled pool items; each item is turned into numbers by a
 // local embedding model; MLX trains a network to say which cell of the globe the teacher would
 // answer in. The fossil is then judged on the race items, against the truth and its teacher.
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,6 +56,37 @@ async function embed(texts: string[]): Promise<number[][]> {
   return out;
 }
 const py = (args: string[]) => new Promise<string>((ok, fail) => { const p = spawn(PY, [TRAIN, ...args], { stdio: ['ignore', 'pipe', 'pipe'] }); let o = '', e = ''; p.stdout.on('data', d => o += d); p.stderr.on('data', d => e += d); p.on('close', c => c === 0 ? ok(o.trim().split('\n').at(-1)!) : fail(new Error(`trainer: ${e.slice(-400)}`))); });
+
+// A fossil kept warm: one Python process per fossil, answering one embedded item per line, so
+// an answer costs the network's time and not Python's start-up.
+const warm = new Map<string, { p: ChildProcessWithoutNullStreams; queue: ((line: string) => void)[]; ready: Promise<void> }>();
+export function askNetwork(dir: string, nIn: number, nCells: number, x: number[]): Promise<{ top: { cell: number; p: number }[]; ms: number }> {
+  let w = warm.get(dir);
+  if (!w) {
+    const p = spawn(PY, [TRAIN, 'serve', join(dir, 'fossil.safetensors'), String(nIn), String(nCells)]);
+    const queue: ((line: string) => void)[] = []; let buf = '', ready!: () => void, failed!: (e: Error) => void;
+    const readyP = new Promise<void>((ok, fail) => { ready = ok; failed = fail; });
+    let err = ''; p.stderr.on('data', d => err += d);
+    p.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.includes('"ready"')) ready(); else queue.shift()?.(line); } });
+    p.on('close', () => { warm.delete(dir); failed(new Error(`the fossil stopped: ${err.slice(-300)}`)); });
+    w = { p, queue, ready: readyP }; warm.set(dir, w);
+  }
+  const ww = w;
+  return ww.ready.then(() => new Promise((ok, fail) => {
+    ww.queue.push(line => { try { const j = JSON.parse(line); ok({ top: j.top.map(([cell, p]: [number, number]) => ({ cell, p })), ms: j.ms }); } catch (e) { fail(e); } });
+    ww.p.stdin.write(JSON.stringify({ x }) + '\n');
+  }));
+}
+export function closeFossils() { for (const w of warm.values()) w.p.kill(); warm.clear(); }
+
+// Ask a voyage's fossil about a news item: embed it here, then the warm network answers.
+export async function askFossil(voyageId: string, genomeId: string, text: string) {
+  const dir = join(paths.home, 'fossils', `${voyageId}-${genomeId}`);
+  const f = JSON.parse(readFileSync(join(dir, 'fossil.json'), 'utf8')) as { centres: P[]; cells: number };
+  const t0 = performance.now(); const [x] = await embed([text]); const embedMs = performance.now() - t0;
+  const a = await askNetwork(dir, x.length, f.cells, x);
+  return { top: a.top.map(t => ({ ...f.centres[t.cell], p: t.p })), ms: a.ms, embedMs, cells: f.centres.length };
+}
 
 // 1. the teacher answers pool items (resumable: answered items are kept)
 export async function teach(voyageId: string, genomeId: string, o: { limit: number; capUsd: number; concurrency?: number; log?: (s: string) => void }) {

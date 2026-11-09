@@ -5,8 +5,8 @@ import { geoMercator, geoPath, geoGraticule, geoCircle, geoDistance } from 'd3-g
 import { paper, land, borders, INK, RED } from './drawings.ts';
 
 export type Place = { name: string; lat: number; lon: number };
-export type Sounding = { n: number; name: string; control: boolean; answer: { lat: number; lon: number } | null };
-export type Sheet = { title: string; sub: string; truth: Place[]; soundings: Sounding[]; wide?: boolean };   // wide: keep every answer within 3,000 km in view
+export type Sounding = { n: number; name: string; control: boolean; answer: { lat: number; lon: number } | null; mark?: string; red?: boolean };
+export type Sheet = { title: string; sub: string; truth: Place[]; soundings: Sounding[]; wide?: boolean; bare?: boolean };   // bare: no rose and no cartouche, for small sheets   // wide: keep every answer within 3,000 km in view
 
 const km = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => geoDistance([a.lon, a.lat], [b.lon, b.lat]) * 6371;
 const DIDONE = '"Bodoni Moda", "IM Fell English", serif', SEA = '#d9cfb2', LAND = '#f2ead6';
@@ -47,7 +47,7 @@ export function drawSheet(cv: HTMLCanvasElement, s: Sheet, settled = 0) {
     b.beginPath(); bp(geoCircle().center([centre.lon, centre.lat]).radius(rad / 6371 * 180 / Math.PI)()); b.setLineDash([7, 4]); b.strokeStyle = RED; b.lineWidth = 1.2; b.stroke(); b.setLineDash([]);
     const [x, y] = proj([centre.lon, centre.lat + rad / 111])!; if (y > F + 14) { b.font = `italic 12px ${DIDONE}`; b.fillStyle = RED; b.textAlign = 'center'; b.fillText(lab, x, y - 5); }
   }
-  rose(b, W - F - 86, F + 86, 62);
+  if (!s.bare) rose(b, W - F - 86, F + 86, 62);
   b.restore();
   // the neat line, and the degree scale between it and the border, alternate black and white
   b.strokeStyle = INK; b.lineWidth = 1; b.strokeRect(B + .5, B + .5, W - 2 * B - 1, H - 2 * B - 1); b.lineWidth = 1.6; b.strokeRect(F, F, W - 2 * F, H - 2 * F);
@@ -85,6 +85,7 @@ export function drawSheet(cv: HTMLCanvasElement, s: Sheet, settled = 0) {
     for (let t = 0; t < 50 && (placed.some(q => Math.hypot(q[0] - lx, q[1] - ly) < 32) || truthXY.some(q => Math.hypot(q.xy[0] - lx, q.xy[1] - ly) < 40)); t++) { const ang = t * 2.4, rad = 34 + t * 4; lx = x + Math.cos(ang) * rad; ly = y + Math.sin(ang) * rad; }
     placed.push([lx, ly]); return { a, x, y, lx, ly };
   });
+  if (!s.bare) {
   // the cartouche: what this sheet is, bottom left
   b.font = `italic 12.5px ${DIDONE}`; const lines = wrap(b, s.sub, 296);
   const cw = 330, ch = 64 + lines.length * 16, cx = F + 22;
@@ -96,6 +97,7 @@ export function drawSheet(cv: HTMLCanvasElement, s: Sheet, settled = 0) {
   b.font = `500 11px ${DIDONE}`; b.fillText(spaced('A CHART OF ONE NEWS ITEM'), cx + cw / 2, cy + 24);
   b.font = `italic 400 25px ${DIDONE}`; b.fillText(s.title, cx + cw / 2, cy + 52, cw - 30);
   b.font = `italic 12.5px ${DIDONE}`; b.fillStyle = '#4b3f30'; lines.forEach((l, i) => b.fillText(l, cx + cw / 2, cy + 72 + i * 16));
+  }
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, t0 = performance.now(), each = 110, lead = s.truth.length && !settled ? 380 : 0;
   let raf = 0;
@@ -112,8 +114,8 @@ export function drawSheet(cv: HTMLCanvasElement, s: Sheet, settled = 0) {
       const e = 1 - (1 - q) ** 3;
       if (q < 1) { k.beginPath(); k.arc(m.x, m.y, 4 + q * 26, 0, 7); k.strokeStyle = `rgba(36,28,20,${(1 - q) * .7})`; k.lineWidth = 1.2; k.stroke(); }
       k.strokeStyle = INK; k.lineWidth = .9; k.beginPath(); k.moveTo(m.x, m.y); k.lineTo(m.x + (m.lx - m.x) * e, m.y + (m.ly - m.y) * e); k.stroke();
-      k.beginPath(); k.arc(m.x, m.y, 4.5, 0, 7); k.fillStyle = m.a.control ? LAND : INK; k.fill(); k.stroke();
-      if (q > .5) { const z = (q - .5) * 2; k.beginPath(); k.arc(m.lx, m.ly, 14 * z, 0, 7); k.fillStyle = LAND; k.fill(); k.stroke(); if (z > .8) { k.fillStyle = INK; k.font = `500 15px ${DIDONE}`; k.textAlign = 'center'; k.fillText(String(m.a.n), m.lx, m.ly + 5); } }
+      k.beginPath(); k.arc(m.x, m.y, 4.5, 0, 7); k.fillStyle = m.a.red ? RED : m.a.control ? LAND : INK; k.fill(); k.stroke();
+      if (q > .5) { const z = (q - .5) * 2; k.beginPath(); k.arc(m.lx, m.ly, 14 * z, 0, 7); k.fillStyle = LAND; k.fill(); k.stroke(); if (z > .8) { k.fillStyle = INK; k.font = `500 15px ${DIDONE}`; k.textAlign = 'center'; k.fillStyle = m.a.red ? RED : INK; k.fillText(m.a.mark ?? String(m.a.n), m.lx, m.ly + 5); } }
     });
     // the truth's name goes on last, over everything, with a halo of paper so it always reads
     if (settled || t >= 380) for (const { p, xy: [x, y] } of truthXY) { k.font = `italic 600 15px ${DIDONE}`; k.textAlign = 'left'; const lab = spaced(p.name.toUpperCase(), .5); k.lineJoin = 'round'; k.strokeStyle = 'rgba(242,234,214,.92)'; k.lineWidth = 5; k.strokeText(lab, x + 24, y - 16); k.fillStyle = RED; k.fillText(lab, x + 24, y - 16); }

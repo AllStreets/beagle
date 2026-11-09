@@ -84,8 +84,12 @@ try {
   const fossils = await api(`/voyages/${v.id}/fossils`), locker = (await page.textContent('#folio'))!;
   if (!fossils.length) expect('the fossil locker says plainly that it is empty', locker.includes('No skill has been fossilised yet'));
   else {
-    expect('the fossil locker names every fossil and gives its real race score', fossils.every((f: any) => locker.includes(`${f.name}, fossilised`) && locker.includes(`scores ${pct(f.race.score)}`)), fossils.map((f: any) => f.name).join(', '));
-    expect('each fossil slab is drawn from its training curve', fossils.every((f: any) => Array.isArray(f.curve) && f.curve.length > 1) && (await page.$$('.slab canvas')).length === fossils.length);
+    expect('the fossil locker names every fossil and gives its real race score', fossils.every((f: any) => locker.includes(`${f.name}, fossilised`) && locker.includes(`${pct(f.race.score)}, against its teacher's ${pct(f.race.teacher)}`)), fossils.map((f: any) => f.name).join(', '));
+    expect('each fossil slab is drawn from its training curve', fossils.every((f: any) => Array.isArray(f.curve) && f.curve.length > 1) && (await page.$$('.case-glass canvas')).length === fossils.length);
+    await page.uncheck('.ask-fossil input[name=teacher]'); await page.click('.ask-btn');
+    await page.waitForFunction(() => !!document.querySelector('.duel'), null, { timeout: 60000 });
+    const odds = await page.$$eval('.odds li b', bs => bs.map(b => Number(b.textContent!.replace('%', ''))));
+    expect('asking the fossil returns its likeliest places, most likely first, each with a chance', odds.length >= 2 && odds.every((p, i) => i === 0 || p <= odds[i - 1]) && odds[0] > 0, odds.join(' '));
   }
 
   await go('#/settings', 3000);

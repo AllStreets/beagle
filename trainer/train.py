@@ -64,8 +64,24 @@ def predict(weights, n_in, n_cells, x_path):
     t = time.time(); out = mx.argmax(m(X), axis=1); mx.eval(out)
     print(json.dumps({"cells": np.array(out).tolist(), "ms_total": (time.time() - t) * 1000}))
 
+def serve(weights, n_in, n_cells, k=5):
+    """Stay warm: read one embedded item per line, write its most likely cells with their chances."""
+    class Fossil(nn.Module):
+        def __init__(s, d_in, n_out):
+            super().__init__(); s.l1 = nn.Linear(d_in, 512); s.drop = nn.Dropout(.2); s.l2 = nn.Linear(512, n_out)
+        def __call__(s, x): return s.l2(s.drop(nn.gelu(s.l1(x))))
+    m = Fossil(n_in, n_cells); m.load_weights(weights); m.eval()
+    mx.eval(m(mx.zeros((1, n_in))))
+    print(json.dumps({"ready": True}), flush=True)
+    for line in sys.stdin:
+        x = mx.array(np.asarray([json.loads(line)["x"]], dtype=np.float32))
+        t = time.perf_counter(); p = mx.softmax(m(x), axis=1)[0]; mx.eval(p); ms = (time.perf_counter() - t) * 1000
+        p = np.array(p); top = np.argsort(-p)[:k]
+        print(json.dumps({"top": [[int(c), float(p[c])] for c in top], "ms": ms}), flush=True)
+
 if __name__ == "__main__":
-    if sys.argv[1] == "predict": predict(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5])
+    if sys.argv[1] == "serve": serve(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
+    elif sys.argv[1] == "predict": predict(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5])
     else:
         ep = int(sys.argv[sys.argv.index("--epochs") + 1]) if "--epochs" in sys.argv else 40
         main(sys.argv[1], sys.argv[2], ep)

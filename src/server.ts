@@ -12,6 +12,7 @@ import * as ledger from './ledger.ts';
 import { startVoyage, race, getVoyage, summarize, sealedHash, examplesFor, type RaceEvent } from './race.ts';
 import { run, RunError } from './runner.ts';
 import { buildBundle } from './bundle.ts';
+import { askFossil } from './fossil.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { baselines } from './baselines.ts';
 import { starters } from './arenas/geotag/starters.ts';
@@ -136,6 +137,12 @@ const routes: Route[] = [
       if (e instanceof RunError && e.spent) ledger.add({ voyage: v.id, generation: null, kind: 'try', model: g.model, usd: e.spent, ms: 0 });
       throw new Http(502, `${g.name} could not answer: ${(e as Error).message.slice(0, 200)}`);
     }
+  }],
+  ['POST', /^\/api\/fossils\/ask$/, async (_m, req) => {
+    const b = await body(req), text = String(b.text ?? '').trim().slice(0, 2000);
+    if (!text) throw new Http(400, 'write a news item first');
+    try { return await askFossil(String(b.voyage), String(b.genome), text); }
+    catch (e) { throw new Http(/ENOENT/.test(String(e)) ? 404 : 502, /ENOENT/.test(String(e)) ? 'no such fossil' : (e as Error).message.slice(0, 300)); }
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/bundle$/, m => buildBundle(decodeURIComponent(m[1]))],
   ['GET', /^\/api\/voyages\/([^/]+)\/seal$/, m => {

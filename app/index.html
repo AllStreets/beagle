@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beagle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Petit+Formal+Script&family=Mrs+Saint+Delafield&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Petit+Formal+Script&family=Mrs+Saint+Delafield&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #121512; overflow: hidden; }
   #stage { position: fixed; inset: 0; }
@@ -126,6 +126,54 @@
   .fill { display: inline-block; width: calc(var(--w) * 80px); height: 5px; background: #241c14; margin-right: 8px; vertical-align: middle; }
 
 
+
+  /* the fossil locker: a museum case at night */
+  #folio:has(> #folio-body[data-room="fossils"]) { background: #191a17; color: #e8e0cc; }
+  #folio:has(> #folio-body[data-room="fossils"])::before { opacity: .5; }
+  .museum { font-family: "Old Standard TT", serif; }
+  .museum .folio-head h1 { font: 400 60px/1.05 "Old Standard TT", serif !important; letter-spacing: .01em; color: #f1e9d6; }
+  .museum .folio-head p { font: italic 400 17px/1.5 "Old Standard TT", serif; color: #b9ae96; }
+  .museum .folio-head { border-color: rgba(232,224,204,.25) !important; }
+  .exhibit { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr); gap: 38px; align-items: start; margin: 10px 0 60px; }
+  .vitrine { position: relative; }
+  .vitrine .case-glass { position: relative; padding: 34px 34px 30px; background: radial-gradient(120% 90% at 50% 0%, #3a3a33 0%, #23241f 55%, #1a1b18 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), inset 0 30px 60px -30px rgba(255,240,210,.25), 0 30px 60px -30px rgba(0,0,0,.8); }
+  .vitrine .case-glass::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.07) 38%, transparent 44%, transparent 70%, rgba(255,255,255,.04) 74%, transparent 78%); }
+  .vitrine canvas { width: 100%; height: auto; display: block; filter: drop-shadow(0 18px 18px rgba(0,0,0,.55)); }
+  .plate { display: inline-flex; flex-direction: column; margin: 18px 0 0 34px; padding: 9px 18px 8px; background: linear-gradient(180deg, #c9a35e, #9c7637 55%, #b48d4b); color: #2a1e0e; box-shadow: inset 0 1px 0 rgba(255,240,200,.6), inset 0 -1px 0 rgba(60,40,10,.5), 0 6px 12px -6px rgba(0,0,0,.8); }
+  .plate b { font: 700 15px "Old Standard TT", serif; letter-spacing: .12em; text-transform: uppercase; }
+  .plate span { font: italic 13px "Old Standard TT", serif; }
+  .vitrine .caption { font: italic 15px/1.55 "Old Standard TT", serif; color: #a59a83; margin: 16px 0 0; max-width: 640px; }
+  .card { position: relative; background: #f4efe0; color: #22201a; padding: 0 0 92px; box-shadow: 0 1px 0 rgba(0,0,0,.3), 0 24px 40px -22px rgba(0,0,0,.9); transform: rotate(.6deg); font-family: "Courier Prime", monospace; }
+  .card header { display: flex; justify-content: space-between; padding: 14px 20px 8px; border-bottom: 2px solid #b5372b; font: 700 12px "Courier Prime", monospace; letter-spacing: .12em; text-transform: uppercase; }
+  .card dl { display: grid; grid-template-columns: 112px 1fr; margin: 0; padding: 4px 20px 0; background-image: repeating-linear-gradient(180deg, transparent 0 25px, rgba(70,110,160,.25) 25px 26px); background-position: 0 4px; }
+  .card dt, .card dd { font-size: 14px; line-height: 26px; margin: 0; }
+  .card dt { color: #5d5648; } .card dd { color: #1b1a17; }
+  .stamp { position: absolute; right: 22px; bottom: 20px; transform: rotate(-7deg); border: 3px solid currentColor; padding: 6px 14px 5px; font: 700 17px "Courier Prime", monospace; letter-spacing: .14em; text-transform: uppercase; color: rgba(170,38,28,.86); background: rgba(244,239,224,.35); mix-blend-mode: multiply; text-align: center; filter: url(#rough); }
+  .stamp small { display: block; font: 400 11px "Courier Prime", monospace; letter-spacing: .06em; text-transform: none; }
+  .stamp.yes { color: rgba(40,90,50,.86); }
+  .ask-fossil { grid-column: 1 / -1; border-top: 1px solid rgba(232,224,204,.2); padding-top: 26px; margin-top: 10px; }
+  .ask-fossil h2 { font: 400 28px "Old Standard TT", serif !important; color: #f1e9d6; }
+  .ask-fossil > p { color: #b9ae96; max-width: 760px; font-size: 16px; }
+  .ask-form textarea { width: 100%; box-sizing: border-box; font: 400 17px/1.5 "Old Standard TT", serif; color: #f1e9d6; background: #22231f; border: 1px solid rgba(232,224,204,.25); padding: 12px 14px; resize: vertical; }
+  .ask-form textarea:focus { outline: 2px solid #c9a35e; outline-offset: 1px; }
+  .ask-form .row { display: flex; align-items: center; gap: 18px; margin: 12px 0 20px; color: #b9ae96; font-size: 15px; }
+  .ask-form input[type=checkbox] { accent-color: #c9a35e; }
+  .ask-btn { font: 700 13px "Old Standard TT", serif; letter-spacing: .16em; text-transform: uppercase; color: #2a1e0e; background: linear-gradient(180deg, #d7b06a, #a07a3a); border: 0; padding: 11px 20px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,240,200,.6), 0 4px 10px -4px rgba(0,0,0,.8); }
+  .ask-btn:hover { filter: brightness(1.08); } .ask-btn:disabled { opacity: .6; cursor: progress; }
+  .answer-pair { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); gap: 28px; align-items: start; }
+  .answer-pair canvas.fossil-chart { width: 100%; height: 440px; display: block; }
+  .duel { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .duel th, .duel td { text-align: left; padding: 7px 8px; border-bottom: 1px solid rgba(232,224,204,.15); vertical-align: baseline; }
+  .duel thead th { font: 400 11px "Old Standard TT", serif; letter-spacing: .16em; text-transform: uppercase; color: #a59a83; }
+  .duel tbody th { font-weight: 400; color: #a59a83; font-style: italic; }
+  .duel td.big { font: 700 26px "Old Standard TT", serif; color: #f1e9d6; }
+  .duel small { color: #a59a83; }
+  .odds { list-style: none; padding: 0; margin: 16px 0 0; font-size: 14px; color: #cfc5ad; }
+  .odds li { display: grid; grid-template-columns: 110px 46px 1fr; gap: 8px; align-items: center; padding: 3px 0; }
+  .odds .bar { height: 6px; background: linear-gradient(90deg, #c9a35e calc(var(--w) * 100%), rgba(232,224,204,.12) 0); }
+  .hand-note { font: italic 16px "Old Standard TT", serif; color: #e3c88f; margin-top: 14px; }
+  #folio-body[data-room="fossils"] .soft { color: #a59a83; }
+  @media (max-width: 900px) { .exhibit, .answer-pair { grid-template-columns: 1fr; } .card { transform: none; } }
   /* the chart room: an Admiralty chart, lettered in a Didone */
   #folio-body.chart-folio { font-family: "EB Garamond", serif; }
   #folio-body[data-room="chart"] .folio-head h1 { font: italic 400 58px/1.05 "Bodoni Moda", serif; font-optical-sizing: auto; letter-spacing: -.01em; }
@@ -235,6 +283,8 @@
 </style>
 </head>
 <body>
+<!-- rubber-stamp ink: uneven edges and a few gaps where the ink did not take -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" result="d"/><feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="2" seed="9" result="m"/><feColorMatrix in="m" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.9" result="mask"/><feComposite in="d" in2="mask" operator="in"/></filter></svg>
 <div id="stage"></div>
 <svg id="leaders"></svg>
 <nav id="tags" aria-label="The rooms of the ship"></nav>
