@@ -7,6 +7,7 @@ import { esc, money, secs, dist, term, head } from './ui.ts';
 import { logbook } from './logbook.ts';
 import { chartRoom } from './chartroom.ts';
 import { fossilRoom } from './fossilroom.ts';
+import { holdRoom } from './holdroom.ts';
 
 export type Ctx = { voyage: Voyage; gen: Generation; genN: number; view: 'plain' | 'lab'; arena: Arena | null; others?: { id: string; spent: number; note: string | null }[] };
 
@@ -14,7 +15,7 @@ export async function render(id: RoomId, el: HTMLElement, c: Ctx) {
   el.dataset.room = id;
   if (id === 'chart') return chartRoom(el, c);
   if (id === 'drawing') return drawingRoom(el, c);
-  if (id === 'specimens') return hold(el, c);
+  if (id === 'specimens') return holdRoom(el, c);
   if (id === 'log') return logbook(el, c);
   if (id === 'fossils') return fossilRoom(el, c);
   return settings(el, c);
@@ -79,14 +80,6 @@ async function openGlass(el: HTMLElement, c: Ctx, e?: Entrant) {
   g.querySelector('.close')!.addEventListener('click', () => { location.hash = '#/drawing'; });
 }
 
-// ---------- the hold: the whole field as a ledger anyone can read ----------
-function hold(el: HTMLElement, c: Ctx) {
-  const es = entrants(c.gen), lead = es.find(e => !e.control)!, best = es.filter(e => e.control).sort((a, b) => b.mean - a.mean)[0];
-  const sep = lead && best ? lead.lo > best.hi : false;
-  el.innerHTML = `${head('The hold', `All ${es.length} specimens of generation ${c.genN + 1}, best first. Each was tried on the same ${c.gen.common} news items.`)}
-  <p class="verdict">${lead ? `${esc(lead.name)} leads with ${pct(lead.mean)}. ${best ? (sep ? `It clearly beats the best ${term('control')}, ${esc(best.name)} (${pct(best.mean)}): their ranges do not overlap.` : `It is not yet clearly better than the best ${term('control')}, ${esc(best.name)} (${pct(best.mean)}): their ranges overlap.`) : ''}` : ''}</p>
-  <table class="ledger"><thead><tr><th>Specimen</th><th>Score</th><th>${term('interval', 'Likely range')}</th><th>Within 25 km</th>${c.view === 'lab' ? `<th>Cost</th><th>Time per item</th><th>${term('front', 'Front')}</th><th>Answered</th>` : ''}</tr></thead><tbody>${es.map(e => `<tr class="${e.control ? 'ctl' : ''}"><td><a href="#/drawing/${encodeURIComponent(e.genome)}">${esc(e.name)}</a>${e.control ? ' <small>control</small>' : ''}</td><td class="n"><span class="fill" style="--w:${e.mean}"></span>${pct(e.mean)}</td><td class="n">${pct(e.lo)} to ${pct(e.hi)}</td><td class="n">${e.within} of ${e.tasks}</td>${c.view === 'lab' ? `<td class="n">${money(e.usd)}</td><td class="n">${secs(e.ms)}</td><td class="n">${e.pareto}</td><td class="n">${e.tasks - e.noAnswer} of ${e.tasks}</td>` : ''}</tr>`).join('')}</tbody></table>`;
-}
 
 
 async function settings(el: HTMLElement, c: Ctx) {

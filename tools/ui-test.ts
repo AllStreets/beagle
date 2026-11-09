@@ -57,6 +57,9 @@ try {
   const rows = await page.$$eval('.ledger tbody tr', trs => trs.map(t => t.textContent ?? ''));
   expect('the hold lists every specimen', rows.length === gen.scores.length, `${rows.length}`);
   expect('the hold\'s first row has the API\'s top score', rows[0].includes(String(pct(gen.scores[0].mean))));
+  await page.waitForFunction(() => /heavier|Too close|same specimen/.test(document.querySelector('#weigh-out')?.textContent ?? ''), null, { timeout: 20000 });
+  const common = await page.$eval('.weigh-nums dd', d => Number(d.textContent));
+  expect('the scales weigh the first two specimens on every item they share', common === gen.common, `${common} items`);
   const plainCols = (await page.$$('.ledger thead th')).length;
   await page.click('#view'); await page.waitForTimeout(800);
   expect('lab view adds cost, time, rank and answered columns', (await page.$$('.ledger thead th')).length === plainCols + 4);
