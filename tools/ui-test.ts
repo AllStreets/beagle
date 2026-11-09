@@ -115,6 +115,21 @@ try {
   expect('Escape returns to the ship', !(await page.evaluate(() => document.body.classList.contains('open'))));
   const forged = await fetch(URL + 'api/settings', { method: 'POST', body: '{"seed":9}' });
   expect('a write without the header is refused', forged.status === 403);
+  // every other arena with a raced generation: its bench in the chart room, and its re-grade
+  const TITLES: Record<string, string> = { receipts: 'The receipt desk', fixtest: 'The test bench', custom: 'The work table' };
+  for (const ov of voyages.filter((x: any) => x.arena !== 'geotag' && x.status !== 'withdrawn' && x.spent > 0)) {
+    const of = await api(`/voyages/${ov.id}`), arena = await api(`/arenas/${ov.arena}/sample`), g0 = of.generations.filter((g: any) => g.generation >= 0).at(-1);
+    if (!g0) continue;
+    const tel = await api(`/voyages/${ov.id}/generations/${g0.generation}/telling`);
+    if (!tel?.answers) continue;
+    await page.goto(`${URL}?voyage=${encodeURIComponent(ov.id)}#/chart`); await page.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 60000 }); await page.waitForTimeout(3500);
+    expect(`${arena.name}: the chart room becomes ${TITLES[arena.kind]}`, (await page.textContent('#folio h1')) === TITLES[arena.kind]);
+    const rows = arena.kind === 'fixtest' ? await page.$$('.mend') : arena.kind === 'receipts' ? await page.$$('.readings tbody tr') : await page.$$('#bench .answers tbody tr');
+    expect(`${arena.name}: every answer to the item is shown`, rows.length === tel.answers.length, `${rows.length} of ${tel.answers.length}`);
+    await go('#/log', 3000);
+    await page.click('#regrade'); await page.waitForFunction(() => /answers (agree|do not agree)/.test(document.querySelector('#regrade-verdict')?.textContent ?? ''), null, { timeout: 240000 });
+    expect(`${arena.name}: re-grading ${arena.inBrowser ? 'in the browser' : 'on this Mac'} agrees with every recorded answer`, /^All [\d,]+ answers agree/.test((await page.textContent('#regrade-verdict')) ?? ''), (await page.textContent('#regrade-verdict'))?.slice(0, 80));
+  }
   expect('no errors in the page', errors.length === 0, errors.join(' | '));
 } catch (e) { expect('the test ran to the end', false, (e as Error).message); }
 finally {

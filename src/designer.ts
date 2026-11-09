@@ -27,9 +27,9 @@ const SCHEMA = {
   } } } },
 };
 
-const system = (toolNames: string[]) => `You design agents for a task, the way a breeder selects and crosses. You are given how the last generation scored and where its best agents went wrong on practice items. Design the next generation.
+const system = (toolNames: string[], local: boolean) => `You design agents for a task, the way a breeder selects and crosses. You are given how the last generation scored and where its best agents went wrong on practice items. Design the next generation.
 Each child changes one or two things from its parent, or crosses two parents, and the reason must point at evidence you were given. Keep a spread: some children cheap and fast (local ollama models), some aimed at the top score. Prefer changes that fix the failures you can see over rewording for its own sake.
-Allowed models: claude:claude-haiku-4-5, claude:claude-sonnet-5, ollama:qwen3:1.7b, ollama:llama3.1:8b, ollama:qwen2.5-coder:7b. Allowed tools: ${toolNames.length ? toolNames.join(', ') : 'none in this arena'}. Workflow shapes: single, plan-then-answer, self-check, vote (with n from 2 to 7). Worked examples: 0 to 8.`;
+Allowed models: ${local ? '' : 'claude:claude-haiku-4-5, claude:claude-sonnet-5, '}ollama:qwen3:1.7b, ollama:llama3.1:8b, ollama:qwen2.5-coder:7b.${local ? ' Every agent in this voyage must run on this Mac: only these local models.' : ''} Allowed tools: ${toolNames.length ? toolNames.join(', ') : 'none in this arena'}. Workflow shapes: single, plan-then-answer, self-check, vote (with n from 2 to 7). Worked examples: 0 to 8.`;
 
 // wait out usage limits and passing faults, counting anything paid before a fault
 async function patient<T>(f: () => Promise<T>, paid: (usd: number) => void): Promise<T> {
@@ -75,7 +75,7 @@ export async function breed(voyageId: string, generation: number, o: { children:
   const table = ranked.map(s => `${s.genome} "${bodies.get(s.genome)!.name}": score ${Math.round(s.mean * 100)} (range ${Math.round(s.lo * 100)} to ${Math.round(s.hi * 100)}), $${s.usd.toFixed(3)}, ${(s.ms / 1000).toFixed(1)} s per item, ${s.noAnswer} unanswered\n  design: ${JSON.stringify({ model: bodies.get(s.genome)!.model, tools: bodies.get(s.genome)!.tools, workflow: bodies.get(s.genome)!.workflow, memory: bodies.get(s.genome)!.memory })}\n  told: ${bodies.get(s.genome)!.instructions}`).join('\n');
   const controls = scores.filter(s => s.genome.startsWith('baseline:')).map(s => `${s.genome.slice(9)}: ${Math.round(s.mean * 100)}`).join(', ');
   const prompt = `The task: ${arena.describe}\n\nGeneration ${generation + 1}, best first, on the race items (you do not see those items):\n${table}\n\nControls on the same items: ${controls}\n\nWhere the best agents went wrong on practice items:\n${evidence.join('\n') || '(no misses)'}\n\nNow design the next generation: ${o.children} children.`;
-  const r = await patient(() => complete(DESIGNER, [{ role: 'system', content: system(arena.tools.map(t => t.name)) }, { role: 'user', content: prompt }], { schema: SCHEMA, timeoutMs: 600_000 }), () => {});
+  const r = await patient(() => complete(DESIGNER, [{ role: 'system', content: system(arena.tools.map(t => t.name), !!v.settings.localAgents) }, { role: 'user', content: prompt }], { schema: SCHEMA, timeoutMs: 600_000 }), () => {});
   usd += r.usd; ledger.add({ voyage: v.id, generation: next, kind: 'design', model: DESIGNER, usd: r.usd, ms: r.ms });
 
   const out: Bred = { next: [...elites], parents: {}, reasons: {}, refused: [], usd };
@@ -85,6 +85,7 @@ export async function breed(voyageId: string, generation: number, o: { children:
     try {
       const parents = (c.parents ?? []).filter((p: string) => bodies.has(p));
       if (!parents.length) throw new Error(`no known parent among ${JSON.stringify(c.parents)}`);
+      if (v.settings.localAgents && !String(c.model).startsWith('ollama:')) throw new Error(`${c.model} does not run on this Mac, and this voyage's agents must`);
       const g = validate({ id: `g${next}-${randomUUID().slice(0, 6)}`, name: c.name, model: c.model, instructions: c.instructions, tools: c.tools, workflow: c.workflow, memory: c.memory });
       out.next.push(g); out.parents[g.id] = parents; out.reasons[g.id] = String(c.reason ?? '');
     } catch (e) { out.refused.push({ name: String(c.name), why: (e as Error).message }); }

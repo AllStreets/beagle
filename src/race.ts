@@ -86,7 +86,7 @@ export async function race(voyageId: string, generation: number, genomes: Genome
   for (const g of genomes) putGenome.run(g.id, v.id, generation, '[]', JSON.stringify(g), null);
 
   const entrants: Entrant[] = [
-    ...genomes.filter(g => !(s.localOnly && g.model.startsWith('claude:'))).map(g => ({ id: g.id, model: g.model, baseline: false, exec: (t: { id: string; input: unknown }) => run(g, t, arena, { examples }) })),
+    ...genomes.filter(g => !((s.localOnly || s.localAgents) && g.model.startsWith('claude:'))).map(g => ({ id: g.id, model: g.model, baseline: false, exec: (t: { id: string; input: unknown }) => run(g, t, arena, { examples }) })),
     ...(o.baselines === false ? [] : baselines(v.arena).filter(b => !(s.localOnly && b.model.startsWith('claude:'))).map(b => ({
       id: `baseline:${b.name}`, model: b.model, baseline: true,
       exec: async (t: { id: string; input: unknown }) => { const r = await b.answer(t); return { answer: r.answer, trace: [{ kind: 'note' as const, input: null, output: r.note, usd: r.usd, ms: r.ms }], usd: r.usd, ms: r.ms, status: (r.answer === null ? 'no-answer' : 'done') as 'done' | 'no-answer' }; },

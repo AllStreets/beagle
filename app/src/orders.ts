@@ -22,6 +22,7 @@ export async function orders(el: HTMLElement, c: Ctx) {
     <p>No generation shall spend more than $${num('capGeneration', 4)}, and the voyage no more than $${num('capVoyage', 4)}. A race stops cleanly at its cap and can be resumed. On a Claude plan this counts against usage limits rather than a bill.</p>
     <p>At most ${num('concurrency', 3, '1')} runs shall go at once. More is faster, though Claude's limits may slow it anyway.</p>
     <p class="clause">${box('localOnly')} Only the models on this Mac shall be used: Claude shall not be called, and the designer shall rest.</p>
+    <p class="clause">${box('localAgents')} The agents shall all run on this Mac, though the designer, a Claude model, may still breed them: free to race, a little to breed.</p>
     <h2>II. &nbsp;Of breeding</h2>
     <p>Each generation shall number ${num('population', 3, '1')} agents, and the voyage shall run to ${num('generations', 3, '1')} generations.</p>
     <p>Every agent shall be tried on the same ${num('raceTasks', 4, '1')} news items, drawn by the seed ${num('seed', 5, '1')}. More items give narrower ranges and cost more; the seed fixes the draw, so a voyage can be worked again.</p>
@@ -58,7 +59,7 @@ export async function orders(el: HTMLElement, c: Ctx) {
 // the controls', and what the designer paid per generation
 function purser(el: HTMLElement, c: Ctx, o: Settings, full: any) {
   const es = entrants(c.gen), agents = es.filter(e => !e.control), local = (e: Entrant) => !(e.body?.model ?? '').startsWith('claude:');
-  const localOnly = !!o.localOnly, pool = localOnly ? agents.filter(local) : agents, P = Number(o.population) || 0, G = Number(o.generations) || 0, T = Number(o.raceTasks) || 0, K = Math.max(1, Number(o.concurrency) || 1);
+  const localOnly = !!o.localOnly, pool = localOnly || o.localAgents ? agents.filter(local) : agents, P = Number(o.population) || 0, G = Number(o.generations) || 0, T = Number(o.raceTasks) || 0, K = Math.max(1, Number(o.concurrency) || 1);
   const avg = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
   const agentUsd = avg(pool.map(e => e.usd / Math.max(1, e.tasks))), agentMs = avg(pool.map(e => e.ms));
   const ctl = es.filter(e => e.control && !(localOnly && e.genome.includes('Claude')));

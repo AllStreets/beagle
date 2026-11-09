@@ -104,3 +104,21 @@ test('the API lists any arena\'s items by their brief, says what kind of arena i
     assert.equal(rg.generations[0].best.recorded.mean, rg.generations[0].best.again.mean);
   } finally { server.close(); }
 });
+
+test('local agents: Claude agents sit out the race, and the designer may breed only local ones', async () => {
+  const D = await import('../src/designer.ts');
+  const prompts: string[] = [];
+  M.setDriver(async (_p, name, turns) => {
+    if (name.includes('opus')) { prompts.push(turns.map(t => t.content).join('\n')); return { text: JSON.stringify({ children: [
+      { name: 'local child', parents: ['l'], model: 'ollama:llama3.1:8b', instructions: 'x', tools: [], workflow: { shape: 'single' }, memory: { examples: 0 }, reason: 'r' },
+      { name: 'claude child', parents: ['l'], model: 'claude:claude-sonnet-5', instructions: 'x', tools: [], workflow: { shape: 'single' }, memory: { examples: 0 }, reason: 'r' } ] }), usd: 0, ms: 1 }; }
+    return { text: say('large'), usd: 0, ms: 1 };
+  });
+  const v = R.startVoyage('words', { raceTasks: 6, capGeneration: 100, localAgents: true });
+  const r = await R.race(v.id, 0, [g('l', { model: 'ollama:llama3.1:8b' }), g('c')], { baselines: false });
+  assert.deepEqual(r.scores.map(s => s.genome), ['l'], 'the Claude agent did not race');
+  const bred = await D.breed(v.id, 0, { children: 2, elites: 1, probe: 1 });
+  assert.match(prompts[0], /Allowed models: ollama:/); assert.doesNotMatch(prompts[0].split('Allowed models:')[1].split('\n')[0], /claude:/);
+  assert.deepEqual(bred.next.map(x => x.name), ['l', 'local child']);
+  assert.match(bred.refused[0].why, /this Mac/);
+});

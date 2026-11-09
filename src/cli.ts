@@ -38,7 +38,7 @@ const commands: Record<string, () => Promise<void> | void> = {
   },
   voyage() {
     if (args[0] !== 'start') return console.log('beagle voyage start geotag [--race-tasks 100]');
-    const v = startVoyage(args[1] ?? 'geotag', flag('race-tasks') ? { raceTasks: Number(flag('race-tasks')) } : {});
+    const v = startVoyage(args[1] ?? 'geotag', { ...(flag('race-tasks') ? { raceTasks: Number(flag('race-tasks')) } : {}), ...(args.includes('--local-agents') ? { localAgents: true } : {}) });
     console.log(`Voyage ${v.id} on ${v.arena}.\nSealed test fingerprint, recorded before anything ran: ${v.sealed_hash}`);
   },
   async race() {

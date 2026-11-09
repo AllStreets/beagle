@@ -11,11 +11,12 @@ export type Settings = {
   generations: number;
   seed: number;              // fixes task samples, examples and intervals
   localOnly: boolean;        // never call Claude
+  localAgents: boolean;      // agents run only on this Mac; the designer may still be Claude
   view: 'plain' | 'lab';
   reducedMotion: boolean;
 };
 
-export const DEFAULTS: Settings = { capGeneration: 5, capVoyage: 25, concurrency: 4, raceTasks: 100, population: 12, generations: 5, seed: 1, localOnly: false, view: 'plain', reducedMotion: false };
+export const DEFAULTS: Settings = { capGeneration: 5, capVoyage: 25, concurrency: 4, raceTasks: 100, population: 12, generations: 5, seed: 1, localOnly: false, localAgents: false, view: 'plain', reducedMotion: false };
 
 export function getSettings(): Settings {
   const rows = open().prepare('select key, value from settings').all() as { key: string; value: string }[];

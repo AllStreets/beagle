@@ -5,7 +5,7 @@
 &nbsp;
 
 <img alt="what" src="https://img.shields.io/badge/agents_that-evolve_agents-8f2a1c?style=for-the-badge&labelColor=14110d"/>
-<img alt="arena" src="https://img.shields.io/badge/arena-6%2C978_real_news_items-b08a4a?style=for-the-badge&labelColor=14110d"/>
+<img alt="arenas" src="https://img.shields.io/badge/arenas-maps_%C2%B7_receipts_%C2%B7_bug_fixing_%C2%B7_your_own-b08a4a?style=for-the-badge&labelColor=14110d"/>
 <img alt="fossils" src="https://img.shields.io/badge/fossils-trained_on_this_Mac_with_MLX-8f2a1c?style=for-the-badge&labelColor=14110d"/>
 <br/>
 <img alt="proof" src="https://img.shields.io/badge/every_score-re--gradable_with_no_model_calls-b08a4a?style=for-the-badge&labelColor=14110d"/>
@@ -38,6 +38,12 @@ All of it happens inside a museum section model of HMS Beagle, the ship Darwin s
 ## What it does
 
 **The arena.** The first task is hard on purpose: here is a real news item from Wikipedia's Current Events, with every place it names replaced by `[place]`. Where on Earth did it happen? Answers within 25 km get full marks, falling to nothing at 2,500 km. The arena holds 6,978 items from 2023 to 2025, with their true places from Wikidata: 4,383 to learn from, 1,873 to race on, and 722 sealed away until the end. Another 5,764 unlabelled items are kept for training fossils.
+
+**Three more arenas, and your own.** Beagle is not only for maps. Every arena is a task with a grader, split into items to learn from, items to race on and a sealed set fingerprinted at launch.
+
+- *Read the receipt.* The printed text of a shop receipt, line by line; the answer is what was bought and the totals. From CORD v2 (CC BY 4.0): 799 receipts to learn from, 100 to race on, 100 sealed. Amounts count when their digits agree; item names may differ by a letter or two.
+- *Fix the failing test.* One line of a small TypeScript library has been broken and some of its tests fail. Agents may list, read and search the bugged copy and run the tests with proposed edits, each in its own APFS clone, and answer with find-and-replace edits. The library's whole suite grades the fix in a fresh clone: credit for each failing test mended, nothing if a passing test breaks or a test file is touched. The library is beaglelib, a frozen copy of Beagle's own pure code with 109 tests, and the 97 bugs are every one-line mutation of it that 1 to 8 tests catch, split by function so no function is in two splits.
+- *Your own.* Any folder with `arena.json` (the task and the shape of an answer), `tasks.jsonl` (inputs and truths) and `grade.ts` (a score from 0 to 1). `beagle arena add <folder>` splits it by a hash of each task and gives it starters and two controls: the most common answer, and one plain Claude call. The example in `examples/arenas/weekday` asks what day of the week a date between 1600 and 2200 fell on.
 
 **Agents.** An agent is written down as data: which model runs it (Claude, or a model running locally in Ollama), what it is told, whether it may look places up in an offline gazetteer of 171,811 towns, 3,782 regions and 246 countries, how its steps are wired (answer once, plan first, check its own answer, or vote), and how many worked examples it is shown.
 
@@ -108,6 +114,9 @@ git clone https://github.com/AllStreets/beagle && cd beagle
 npm install && npm link
 ollama pull llama3.1:8b && ollama pull qwen3:1.7b && ollama pull nomic-embed-text
 beagle arena build geotag            # about 15 minutes, all cached
+beagle arena build receipts          # CORD v2's labels, read column-only (needs the trainer's Python)
+beagle arena build fixtest           # plants and checks every one-line bug, about a minute
+beagle arena add examples/arenas/weekday
 beagle voyage start geotag --race-tasks 40
 beagle race <voyage>                 # generation one
 beagle evolve <voyage> --generations 2
@@ -121,13 +130,13 @@ Claude calls go through your own Claude Code, with your settings, plugins and MC
 ## Tests
 
 ```sh
-npm test                  # 79 engine tests: arena, runner, races, caps, locks, designer, fossils, API
+npm test                  # engine tests: arenas, runner, races, caps, locks, designer, fossils, API
 npx tsx tools/ui-test.ts  # 33 checks of the ship and its rooms against the live API
 ```
 
 ## Data
 
-Wikipedia text (CC BY-SA 4.0), Wikidata (CC0), GeoNames (CC BY 4.0), Natural Earth coastlines via world-atlas (public domain).
+Wikipedia text (CC BY-SA 4.0), Wikidata (CC0), GeoNames (CC BY 4.0), Natural Earth coastlines via world-atlas (public domain), CORD v2 receipts (CC BY 4.0, read through Hugging Face).
 
 ## License
 
