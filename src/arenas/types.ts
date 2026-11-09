@@ -23,6 +23,9 @@ export type Arena = {
   maxTurns?: number;                         // model turns a run may take
   graderTimeoutMs?: number;
   inBrowser?: boolean;                       // the grader can run in a browser (the log's re-grade)
+  brief?(input: unknown): string;            // one line about an item, for lists
+  fromText?(text: string, date: string): unknown;   // an item a person typed, for 'set your own item'
+  kind?: 'geotag' | 'receipts' | 'fixtest' | 'custom';
   starters?(): StarterGenome[];              // the hand-written agents of generation one
   controls?(): Control[];                    // what every agent has to beat
 };

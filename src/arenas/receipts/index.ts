@@ -11,7 +11,9 @@ export const receipts: Arena = {
   describe: 'You are given the printed text of a shop receipt, line by line, as a scanner read it. Say what was bought (each item\'s name, how many and its price, as printed) and the subtotal, tax, total, cash given and change, as printed. Leave a field null when the receipt does not show it. Numbers are compared by their digits, so 45,500 and 45.500 are the same; names may differ by a letter or two.',
   answer: { type: 'object', required: ['items', 'total'], properties: { items: { type: 'array', items: { type: 'object', required: ['name', 'price'], properties: { name: { type: 'string' }, count: field, price: field } } }, subtotal: field, tax: field, total: field, cash: field, change: field } },
   grade: (answer, truth) => gradeReceipt(answer, truth as Receipt),
-  inBrowser: true,
+  inBrowser: true, kind: 'receipts',
+  brief: input => { const lines = (input as { text: string }).text.split('\n'); return `${lines.length} lines: ${lines.slice(0, 2).join(' / ')}...`; },
+  fromText: text => ({ text }),
   show: input => (input as { text: string }).text,
   valid: a => !!a && typeof a === 'object' && Array.isArray((a as Receipt).items),
   // a vote: the total most agents agree on, then the items of the first agent that gave that total

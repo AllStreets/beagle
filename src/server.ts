@@ -9,14 +9,14 @@ import { join, extname, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
-import { startVoyage, race, getVoyage, summarize, sealedHash, examplesFor, type RaceEvent } from './race.ts';
+import { startVoyage, race, getVoyage, summarize, sealedHash, examplesFor, type RaceEvent, type Score } from './race.ts';
 import { run, RunError } from './runner.ts';
-import { buildBundle } from './bundle.ts';
+import { buildBundle, exportBundle, regrade } from './bundle.ts';
 import { askFossil } from './fossil.ts';
 import { loadCustomArenas } from './arenas/custom.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { baselines } from './baselines.ts';
-import { getArena, dataOf, arenaIds, startersFor } from './arenas/index.ts';
+import { getArena, dataOf, arenaIds, startersFor, hooks } from './arenas/index.ts';
 import type { Genome } from './genome.ts';
 
 export const PORT = Number(process.env.BEAGLE_PORT ?? 4750);
@@ -69,7 +69,7 @@ const routes: Route[] = [
     const info = db.prepare('select hash, version, built_at from arenas where id = ?').get(data) ?? null;
     // a sample from the race split only: the sealed test's contents are never served
     const tasks = (db.prepare(`select id, input, truth from tasks where arena = ? and split = 'race' order by id limit 12`).all(data) as { id: string; input: string; truth: string }[]).map(t => ({ id: t.id, input: json(t.input, null), truth: json(t.truth, null) }));
-    return { id: a.id, name: a.name, describe: a.describe, counts, info, tasks: tasks.map(t => ({ ...t, shown: a.show(t.input) })) };
+    return { id: a.id, name: a.name, describe: a.describe, kind: a.kind ?? 'custom', inBrowser: !!a.inBrowser, tools: a.tools.map(t => t.name), counts, info, tasks: tasks.map(t => ({ ...t, shown: a.show(t.input) })) };
   }],
   ['GET', /^\/api\/voyages$/, () => (open().prepare('select * from voyages order by started_at desc').all() as { id: string; settings: string }[]).map(v => ({ ...v, settings: json(v.settings, {}), spent: ledger.spent(v.id), racing: racing.has(v.id) }))],
   ['POST', /^\/api\/voyages$/, async (_m, req) => { const b = await body(req); const o: Record<string, unknown> = {}; if (b.raceTasks) o.raceTasks = Number(b.raceTasks); if (typeof b.localOnly === 'boolean') o.localOnly = b.localOnly; return startVoyage(b.arena ?? 'geotag', o); }],
@@ -84,7 +84,7 @@ const routes: Route[] = [
   ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)\/tasks$/, m => {
     const v = getVoyage(m[1]), n = Number(m[2]), a = getArena(v.arena);
     const rows = open().prepare(`select r.task, avg(r.score) mean, count(*) answered, t.input from runs r join tasks t on t.id = r.task where r.voyage = ? and r.generation = ? and t.split = 'race' group by r.task order by mean`).all(v.id, n) as { task: string; mean: number; answered: number; input: string }[];
-    return rows.map(r => { const input = json<{ date: string }>(r.input, { date: '' }); return { id: r.task, date: input.date, shown: a.show(input).split('\n').slice(1).join('\n'), mean: r.mean, answered: r.answered }; });
+    return rows.map(r => { const input = json<{ date?: string }>(r.input, {}); return { id: r.task, date: (input && typeof input === 'object' && input.date) || '', shown: hooks(a).brief(input), mean: r.mean, answered: r.answered }; });
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/generations\/(-?\d+)\/telling$/, (m, req) => {
     const v = getVoyage(m[1]), n = Number(m[2]), db = open(), gen = generation(v.id, n);
@@ -114,7 +114,7 @@ const routes: Route[] = [
     const b = await body(req), v = getVoyage(String(b.voyage ?? '')), arena = getArena(v.arena);
     const text = String(b.text ?? '').trim().slice(0, 2000), date = /^\d{4}-\d{2}-\d{2}$/.test(b.date ?? '') ? b.date : new Date().toISOString().slice(0, 10);
     if (!text) throw new Http(400, 'write a news item first');
-    const task = { id: `try-${Date.now()}`, input: { text, hidden: text, date } };
+    const task = { id: `try-${Date.now()}`, input: hooks(arena).fromText(text, date) };
     if (String(b.genome).startsWith('baseline:')) {
       const ctl = baselines(v.arena).find(x => `baseline:${x.name}` === b.genome);
       if (!ctl) throw new Http(404, 'no such control');
@@ -144,6 +144,19 @@ const routes: Route[] = [
     if (!text) throw new Http(400, 'write a news item first');
     try { return await askFossil(String(b.voyage), String(b.genome), text); }
     catch (e) { throw new Http(/ENOENT/.test(String(e)) ? 404 : 502, /ENOENT/.test(String(e)) ? 'no such fossil' : (e as Error).message.slice(0, 300)); }
+  }],
+  // re-grade every answer of every generation on this Mac, from the bundle alone: for arenas whose
+  // grader cannot run in a browser (running a test suite, a custom grade.ts)
+  ['POST', /^\/api\/voyages\/([^/]+)\/regrade$/, async m => {
+    const v = getVoyage(decodeURIComponent(m[1])), file = exportBundle(v.id), t0 = Date.now(), out = [];
+    const gens = (open().prepare('select distinct generation g from runs where voyage = ? and generation >= 0 order by g').all(v.id) as { g: number }[]).map(r => r.g);
+    for (const g of gens) {
+      const again = await regrade(file, g), rec = generation(v.id, g);
+      const pick = (ss: Score[]) => ss.filter(s => !s.genome.startsWith('baseline:'))[0];
+      const total = (open().prepare('select count(*) n from runs where voyage = ? and generation = ?').get(v.id, g) as { n: number }).n;
+      out.push({ generation: g, runs: total, agree: total - again.mismatches, best: { recorded: pick(rec.scores), again: pick(again.scores) } });
+    }
+    return { voyage: v.id, ms: Date.now() - t0, generations: out };
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/bundle$/, m => buildBundle(decodeURIComponent(m[1]))],
   ['GET', /^\/api\/voyages\/([^/]+)\/seal$/, m => {

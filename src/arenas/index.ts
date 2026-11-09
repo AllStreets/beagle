@@ -25,6 +25,8 @@ export function hooks(a: Arena) {
     example: a.example ?? ((t: unknown) => same(t)),
     miss: a.miss ?? ((x: unknown, t: unknown) => `answered ${same(x).slice(0, 300)}; the truth was ${same(t).slice(0, 300)}`),
     maxTurns: a.maxTurns ?? 6,
+    brief: a.brief ?? ((i: unknown) => a.show(i).replace(/\s+/g, ' ').slice(0, 240)),
+    fromText: a.fromText ?? ((t: string) => t),
   };
 }
 

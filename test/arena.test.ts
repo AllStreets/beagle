@@ -86,3 +86,21 @@ test('the designer reads misses in the arena\'s own words', async () => {
   assert.doesNotMatch(prompts[0], /SECRET|big \d/, 'no race or sealed item reaches the designer');
   assert.doesNotMatch(prompts[0], /lookup_place/, 'the designer is offered only this arena\'s tools');
 });
+
+test('the API lists any arena\'s items by their brief, says what kind of arena it is, and re-grades it on the server', async () => {
+  const { serve } = await import('../src/server.ts');
+  const server = serve(0); await new Promise(r => server.once('listening', r));
+  const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+  try {
+    M.setDriver(async () => ({ text: say('large'), usd: 0, ms: 1 }));
+    const v = R.startVoyage('words', { raceTasks: 6, capGeneration: 100 });
+    await R.race(v.id, 0, [g('a')], { baselines: false });
+    const tasks = await (await fetch(`${base}/api/voyages/${v.id}/generations/0/tasks`)).json();
+    assert.equal(tasks.length, 6); assert.match(tasks[0].shown, /^big \d$/);
+    const arena = await (await fetch(`${base}/api/arenas/words/sample`)).json();
+    assert.equal(arena.kind, 'custom'); assert.equal(arena.inBrowser, false);
+    const rg = await (await fetch(`${base}/api/voyages/${v.id}/regrade`, { method: 'POST', headers: { 'x-beagle': '1' } })).json();
+    assert.deepEqual(rg.generations.map((x: any) => [x.generation, x.runs, x.agree]), [[0, 6, 6]]);
+    assert.equal(rg.generations[0].best.recorded.mean, rg.generations[0].best.again.mean);
+  } finally { server.close(); }
+});

@@ -24,7 +24,7 @@ async function load(dir: string): Promise<Arena> {
   if (typeof grade !== 'function') throw new Error('grade.ts must export a default function (answer, truth) => number');
   const a: Arena = {
     id: spec.id, data: spec.id, name: spec.name, describe: spec.describe, answer: spec.answer, maxTurns: spec.maxTurns, grade, tools: [],
-    show: input => typeof input === 'string' ? input : JSON.stringify(input),
+    show: input => typeof input === 'string' ? input : JSON.stringify(input), kind: 'custom', fromText: text => text,
   };
   a.starters = () => genericStarters(a); a.controls = () => genericControls(a);
   return a;
