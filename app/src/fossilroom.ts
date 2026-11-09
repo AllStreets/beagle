@@ -23,7 +23,7 @@ export async function fossilRoom(el: HTMLElement, c: Ctx) {
   <section class="exhibit">
     <div class="vitrine">
       <div class="case-glass"><canvas id="slab${i}" width="1200" height="720" role="img" aria-label="The training curve of ${esc(f.name)}'s fossil, cut into stone as strata"></canvas></div>
-      <div class="plate"><b>${esc(f.name)}</b><span>a skill in stone, ${esc(longDate(f.at))}</span></div>
+      <div class="brass-plate"><b>${esc(f.name)}</b><span>a skill in stone, ${esc(longDate(f.at))}</span></div>
       <p class="caption">The ridge is the network's error on items it never trained on, over ${f.curve.length} training passes, cut so that higher is better. The impression marks pass ${f.kept_epoch}, the one kept: after it the error rose again as the network began to memorise its teacher instead of learning from it.</p>
     </div>
     <article class="card">

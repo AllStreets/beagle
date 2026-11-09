@@ -9,6 +9,7 @@ import { chartRoom } from './chartroom.ts';
 import { fossilRoom } from './fossilroom.ts';
 import { holdRoom } from './holdroom.ts';
 import { orders } from './orders.ts';
+import { descent } from './descent.ts';
 
 export type Ctx = { voyage: Voyage; gen: Generation; genN: number; view: 'plain' | 'lab'; arena: Arena | null; others?: { id: string; spent: number; note: string | null }[] };
 
@@ -76,7 +77,7 @@ async function openGlass(el: HTMLElement, c: Ctx, e?: Entrant) {
   g.innerHTML = `<button class="close" aria-label="Close">Close</button><h2>${esc(e.name)}</h2>
     <p class="lede">${b ? `Runs on <b>${esc(b.model.replace(/^(claude|ollama):/, ''))}</b>${b.model.startsWith('ollama:') ? ', on this Mac' : ', through Claude Code'}. ${({ single: 'It reads the item and answers in one go.', 'plan-then-answer': 'It writes a plan first, then carries it out.', 'self-check': 'It answers, then checks its own answer before giving it.', vote: `It answers ${b.workflow.n} times and gives the answer in the middle of the others.` } as Record<string, string>)[b.workflow.shape] ?? ''} ${b.tools.length ? 'It may look places up in the gazetteer.' : 'It has no tools.'} ${b.memory.examples ? `It is shown ${b.memory.examples} worked examples.` : ''}` : `A ${term('control')}: ${esc(e.name)}.`}</p>
     <dl class="nums"><div><dt>Score</dt><dd>${pct(e.mean)}</dd></div><div><dt>${term('interval', 'Likely range')}</dt><dd>${pct(e.lo)} to ${pct(e.hi)}</dd></div><div><dt>Within 25 km</dt><dd>${e.within} of ${e.tasks}</dd></div><div><dt>Cost</dt><dd>${money(e.usd)}</dd></div><div><dt>Time per item</dt><dd>${secs(e.ms)}</dd></div><div><dt>${term('front', 'Front')}</dt><dd>${e.pareto === 1 ? 'on it' : `rank ${e.pareto}`}</dd></div></dl>
-    ${b ? `<h3>What it is told</h3><blockquote>${esc(b.instructions)}</blockquote>` : ''}
+    ${await descent(c, e.genome)}${b ? `<h3>What it is told</h3><blockquote>${esc(b.instructions)}</blockquote>` : ''}
     <h3>Every item it answered</h3><ol class="runs">${runs.map(r => `<li><a href="#/run/${r.id}"><span class="bar" style="--w:${r.score}"></span><span>${pct(r.score)}</span>${r.status === 'no-answer' ? '<em>no answer</em>' : ''}</a></li>`).join('')}</ol>`;
   g.querySelector('.close')!.addEventListener('click', () => { location.hash = '#/drawing'; });
 }

@@ -72,7 +72,14 @@ try {
   expect('a plate opens under the glass with its real score and range', glass!.includes(String(pct(gen.scores[0].mean))) && glass!.includes(`${pct(gen.scores[0].lo)} to ${pct(gen.scores[0].hi)}`));
   const runLinks = await page.$$('#glass .runs a');
   expect('the glass lists every item the agent answered', runLinks.length === gen.scores[0].tasks, `${runLinks.length}`);
-  await runLinks[0].click(); await page.waitForTimeout(2000);
+  const bred = gen.genomes.find((g: any) => g.parents.length && !(g.parents.length === 1 && g.parents[0] === g.id));
+  if (bred) {
+    await go(`#/drawing/${encodeURIComponent(bred.id)}`, 3000);
+    const ds = await page.textContent('#glass');
+    expect('a bred agent shows what the designer changed from its parent, and why', !!ds && ds.includes('What the designer changed') && ds.includes((bred.reason ?? '').slice(0, 30)) && (await page.$$('.diff p')).length > 0, bred.name);
+    await go(`#/drawing/${encodeURIComponent(gen.scores[0].genome)}`, 3000);
+  }
+  await (await page.$$('#glass .runs a'))[0].click(); await page.waitForTimeout(2000);
   expect('a run opens with its steps', (await page.$$('.trace li')).length >= 1);
 
   await go('#/log');

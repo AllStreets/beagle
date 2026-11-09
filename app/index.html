@@ -129,6 +129,23 @@
 
 
 
+
+  /* the drawing room: copperplate engravings, each pressed into its own sheet */
+  .plates .cv { position: relative; background: #f7f1e1; padding: 16px 14px 8px; box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 14px 24px -18px rgba(40,25,10,.55); }
+  .plates .cv::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(36,28,20,.12); box-shadow: inset 1px 1px 0 rgba(255,255,255,.9), inset -1px -1px 0 rgba(36,28,20,.08), 1px 1px 0 rgba(255,255,255,.8); background: rgba(36,28,20,.025); pointer-events: none; }
+  .plates .cap b { font: 400 13px "IM Fell English SC", serif; letter-spacing: .12em; }
+  .plates .cap .big { font: 400 28px "IM Fell English", serif; }
+  .reason { font: italic 17px/1.5 "IM Fell English", serif; border-left: 3px solid #8f2a1c; margin: 8px 0 14px; padding: 2px 0 2px 14px; }
+  .descent { margin: 10px 0 18px; }
+  .descent .from { margin: 0 0 8px; }
+  .traits { border-collapse: collapse; margin: 6px 0 10px; font-size: 15px; }
+  .traits th, .traits td { padding: 4px 14px 4px 0; text-align: left; vertical-align: baseline; }
+  .traits thead th { font: 400 12px "IM Fell English SC", serif; letter-spacing: .12em; color: #6a5a44; }
+  .traits tbody th { font-weight: 400; font-style: italic; color: #6a5a44; }
+  .diff { font: 400 16px/1.7 "EB Garamond", serif; background: #f7f1e1; padding: 12px 16px; border-left: 1px solid rgba(36,28,20,.25); }
+  .diff p { margin: 0 0 4px; padding-left: 22px; position: relative; } .diff p.del::before, .diff p.ins::before { position: absolute; left: 2px; font: 600 15px "IM Fell English", serif; } .diff p.del::before { content: "−"; color: #8f2a1c; } .diff p.ins::before { content: "+"; color: #1d2a44; }
+  .diff del, .traits del { color: #8a7a62; text-decoration: line-through; text-decoration-color: #8f2a1c; text-decoration-thickness: 1.5px; }
+  .diff ins, .traits ins { color: #1d2a44; text-decoration: none; background: rgba(29,42,68,.07); }
   /* the forecastle: standing orders, a printed broadside with blanks to fill */
   .broadside { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr); gap: 40px; align-items: start; font-family: "Rokkitt", serif; }
   .orders { background: #f3ecda; padding: 34px 40px 30px; box-shadow: 0 1px 0 rgba(0,0,0,.08), 0 22px 40px -26px rgba(40,25,10,.6); border: 1px solid rgba(36,28,20,.2); outline: 1px solid rgba(36,28,20,.6); outline-offset: -8px; }
@@ -193,9 +210,9 @@
   .vitrine .case-glass { position: relative; padding: 34px 34px 30px; background: radial-gradient(120% 90% at 50% 0%, #3a3a33 0%, #23241f 55%, #1a1b18 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), inset 0 30px 60px -30px rgba(255,240,210,.25), 0 30px 60px -30px rgba(0,0,0,.8); }
   .vitrine .case-glass::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.07) 38%, transparent 44%, transparent 70%, rgba(255,255,255,.04) 74%, transparent 78%); }
   .vitrine canvas { width: 100%; height: auto; display: block; filter: drop-shadow(0 18px 18px rgba(0,0,0,.55)); }
-  .plate { display: inline-flex; flex-direction: column; margin: 18px 0 0 34px; padding: 9px 18px 8px; background: linear-gradient(180deg, #c9a35e, #9c7637 55%, #b48d4b); color: #2a1e0e; box-shadow: inset 0 1px 0 rgba(255,240,200,.6), inset 0 -1px 0 rgba(60,40,10,.5), 0 6px 12px -6px rgba(0,0,0,.8); }
-  .plate b { font: 700 15px "Old Standard TT", serif; letter-spacing: .12em; text-transform: uppercase; }
-  .plate span { font: italic 13px "Old Standard TT", serif; }
+  .brass-plate { display: inline-flex; flex-direction: column; margin: 18px 0 0 34px; padding: 9px 18px 8px; background: linear-gradient(180deg, #c9a35e, #9c7637 55%, #b48d4b); color: #2a1e0e; box-shadow: inset 0 1px 0 rgba(255,240,200,.6), inset 0 -1px 0 rgba(60,40,10,.5), 0 6px 12px -6px rgba(0,0,0,.8); }
+  .brass-plate b { font: 700 15px "Old Standard TT", serif; letter-spacing: .12em; text-transform: uppercase; }
+  .brass-plate span { font: italic 13px "Old Standard TT", serif; }
   .vitrine .caption { font: italic 15px/1.55 "Old Standard TT", serif; color: #a59a83; margin: 16px 0 0; max-width: 640px; }
   .card { position: relative; background: #f4efe0; color: #22201a; padding: 0 0 92px; box-shadow: 0 1px 0 rgba(0,0,0,.3), 0 24px 40px -22px rgba(0,0,0,.9); transform: rotate(.6deg); font-family: "Courier Prime", monospace; }
   .card header { display: flex; justify-content: space-between; padding: 14px 20px 8px; border-bottom: 2px solid #b5372b; font: 700 12px "Courier Prime", monospace; letter-spacing: .12em; text-transform: uppercase; }
