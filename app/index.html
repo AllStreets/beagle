@@ -160,14 +160,16 @@
 
   /* the receipt desk, the test bench and the work table */
   .bench { display: grid; grid-template-columns: 290px 1fr; gap: 26px; align-items: start; }
-  .desk { display: grid; grid-template-columns: minmax(260px, 360px) 1fr; gap: 30px; align-items: start; }
+  .desk { display: grid; grid-template-columns: minmax(250px, 320px) 1fr; gap: 30px; align-items: start; }
   .slip { margin: 0; filter: drop-shadow(0 16px 18px rgba(40,25,10,.35)); }
   .slip .paper { background: #fbf9f3; padding: 26px 22px; font: 400 14.5px/1.55 "Courier Prime", monospace; color: #2b2925; letter-spacing: .02em; text-transform: uppercase;
     -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 16px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 8px repeat-x, conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / 16px 8px repeat-x;
     background-image: linear-gradient(180deg, rgba(0,0,0,.02), transparent 30%, rgba(0,0,0,.025) 70%, transparent); }
-  .slip .pl { padding: 0 6px; margin: 0 -6px; white-space: pre-wrap; transition: background .15s; }
-  .slip .pl.read { background: rgba(29,42,68,.10); box-shadow: inset 3px 0 0 #1d2a44; }
-  .slip .pl.missed { background: rgba(143,42,28,.10); box-shadow: inset 3px 0 0 #8f2a1c; }
+  .slip .pl { position: relative; white-space: pre-wrap; }
+  /* a clerk's checking: a tick in the margin for each amount read right, a red line under each one missed */
+  .slip .pl.read::before { content: ""; position: absolute; left: -15px; top: 4px; width: 5px; height: 10px; border: solid #1d2a44; border-width: 0 2px 2px 0; transform: rotate(40deg); }
+  .slip .pl.missed { text-decoration: underline; text-decoration-color: #8f2a1c; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .slip .pl.missed::before { content: ""; position: absolute; left: -16px; top: 9px; width: 10px; height: 2px; background: #8f2a1c; }
   .desk-side h3 { margin-top: 0; }
   .printed, .readings { border-collapse: collapse; width: 100%; font-size: 15px; margin-bottom: 18px; }
   .printed td, .readings td, .readings th { padding: 4px 8px 4px 0; border-bottom: 1px solid rgba(36,28,20,.15); text-align: left; }
