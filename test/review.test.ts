@@ -103,3 +103,8 @@ test('minor: re-grading a bundle with a task missing reports it, without crashin
   assert.equal(r.mismatches, 1, 'an answer that cannot be checked is not a match');
   assert.equal(r.missing, 1);
 });
+
+test('a local model that times out is a passing fault, retried, not a crash', () => {
+  const e = new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+  assert.equal(R.passing(e), true);
+});

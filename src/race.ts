@@ -72,7 +72,7 @@ const racingHere = new Set<string>();
 // EPERM means the process exists but belongs to someone else: it is alive
 const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch (e) { return (e as NodeJS.ErrnoException).code === 'EPERM'; } };
 // timeouts, overloads and dropped connections pass; they are retried rather than scored
-export const passing = (e: unknown) => /timed out|\b5\d\d\b|overloaded|ECONNRESET|ECONNREFUSED|fetch failed|socket hang up/i.test((e as Error)?.message ?? '');
+export const passing = (e: unknown) => /timed out|aborted due to timeout|TimeoutError|\b5\d\d\b|overloaded|ECONNRESET|ECONNREFUSED|fetch failed|socket hang up/i.test((e as Error)?.message ?? '');
 
 type Entrant = { id: string; model: string; baseline: boolean; exec(t: { id: string; input: unknown }): Promise<{ answer: unknown | null; trace: Step[]; usd: number; ms: number; status: 'done' | 'no-answer' }> };
 
