@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { LIB, runSuite, gradeFix, fixtest, plant, type Mutant } from '../src/arenas/fixtest/index.ts';
+import { LIB, runSuite, gradeFix, fixtest, plant, cleanTotal, type Mutant } from '../src/arenas/fixtest/index.ts';
 
 const line = readFileSync(join(LIB, 'src/stats.ts'), 'utf8').split('\n').findIndex(l => l.startsWith('export const mean'));
 const original = readFileSync(join(LIB, 'src/stats.ts'), 'utf8').split('\n')[line];
@@ -14,8 +14,8 @@ const fix = { edits: [{ file: 'src/stats.ts', find: 'xs.length : 1;', replace: '
 const ctx = { task: { id: 'fixtest:t', input: { mutant: bug, failing: truth.failing, output: '' } } };
 
 test('the untouched library passes every one of its tests', async () => {
-  const r = await runSuite(LIB);
-  assert.equal(r.failed.length, 0); assert.ok(r.total >= 100, `${r.total} tests`);
+  const total = await cleanTotal();   // run in a clean copy, inside the same fence as any agent's code
+  assert.ok(total >= 100, `${total} tests`);
 });
 
 test('a planted bug fails exactly the tests it should', async () => {
@@ -66,4 +66,29 @@ test('a bug that loops forever is stopped, and every test counts as failed', asy
   const o = readFileSync(join(LIB, 'src/stats.ts'), 'utf8').split('\n')[loopLine];
   const r = await runSuite(plant({ file: 'src/stats.ts', line: loopLine + 1, original: o, mutated: o.replace('left = left.filter(i => !front.includes(i)); r++;', 'r++;') }), 4000);
   assert.equal(r.timedOut, true);
+});
+
+test('review: an edit that stops a test file from running is not a fix', async () => {
+  const syntax = { edits: [...fix.edits, { file: 'src/stats.ts', find: 'export function rng', replace: 'export function rng((' }] };
+  assert.equal(await gradeFix(syntax, truth), 0, 'a syntax error empties the suite; that is not a mend');
+  const quits = { edits: [...fix.edits, { file: 'src/stats.ts', find: 'export const mean', replace: 'process.exit(0);\nexport const mean' }] };
+  assert.equal(await gradeFix(quits, truth), 0, 'quitting before the tests register is not a mend');
+  const ran = await fixtest.tools.find(x => x.name === 'run_tests')!.run(syntax, ctx) as { failed: string[] };
+  assert.ok(ran.failed.length > 0, 'run_tests says the suite is broken');
+});
+
+test('review: code an agent writes runs fenced in: no writing outside its copy, no network', async () => {
+  const { tmpdir } = await import('node:os'); const { existsSync } = await import('node:fs');
+  const out = join(tmpdir(), `beagle-escape-${Date.now()}`), home = join(process.env.HOME!, `.beagle-escape-${Date.now()}`);
+  const escape = { edits: [...fix.edits, { file: 'src/stats.ts', find: 'export const mean', replace: `import { writeFileSync as __w } from 'node:fs'; try { __w(${JSON.stringify(out)}, 'x'); } catch {} try { __w(${JSON.stringify(home)}, 'x'); } catch {}\nexport const mean` }] };
+  await gradeFix(escape, truth);
+  assert.equal(existsSync(out), false, 'it could not write to the temp folder outside its copy');
+  assert.equal(existsSync(home), false, 'it could not write to the home folder');
+});
+
+test('review: a bug that no longer fits the library leaves no clone behind', async () => {
+  const { readdirSync } = await import('node:fs'); const { tmpdir } = await import('node:os');
+  const count = () => readdirSync(tmpdir()).filter(f => f.startsWith('beagle-fix-')).length, before = count();
+  assert.throws(() => plant({ ...bug, original: 'not the line' }), /library has changed/);
+  assert.equal(count(), before);
 });

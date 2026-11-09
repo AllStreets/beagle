@@ -99,6 +99,9 @@ test('the API lists any arena\'s items by their brief, says what kind of arena i
     assert.equal(tasks.length, 6); assert.match(tasks[0].shown, /^big \d$/);
     const arena = await (await fetch(`${base}/api/arenas/words/sample`)).json();
     assert.equal(arena.kind, 'custom'); assert.equal(arena.inBrowser, false);
+    const fv = R.startVoyage('fixtest', { raceTasks: 1 });
+    const typed = await fetch(`${base}/api/try`, { method: 'POST', headers: { 'x-beagle': '1', 'content-type': 'application/json' }, body: JSON.stringify({ voyage: fv.id, genome: 'baseline:no change', text: 'fix it' }) });
+    assert.equal(typed.status, 400, 'an arena that takes no typed items says so');
     const rg = await (await fetch(`${base}/api/voyages/${v.id}/regrade`, { method: 'POST', headers: { 'x-beagle': '1' } })).json();
     assert.deepEqual(rg.generations.map((x: any) => [x.generation, x.runs, x.agree]), [[0, 6, 6]]);
     assert.equal(rg.generations[0].best.recorded.mean, rg.generations[0].best.again.mean);

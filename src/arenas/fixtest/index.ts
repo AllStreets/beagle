@@ -22,7 +22,7 @@ export function plant(m: Mutant): string {
   const dir = mkdtempSync(join(tmpdir(), 'beagle-fix-'));
   cpSync(LIB, dir, { recursive: true, mode: 1 /* COPYFILE_FICLONE: clone where the disk can */ });
   const p = join(dir, m.file), lines = readFileSync(p, 'utf8').split('\n');
-  if (lines[m.line - 1] !== m.original) throw new Error(`the library has changed: ${m.file}:${m.line} is not the line this bug was made from`);
+  if (lines[m.line - 1] !== m.original) { rmSync(dir, { recursive: true, force: true }); throw new Error(`the library has changed: ${m.file}:${m.line} is not the line this bug was made from`); }
   lines[m.line - 1] = m.mutated; writeFileSync(p, lines.join('\n'));
   return dir;
 }
@@ -42,24 +42,35 @@ export function applyEdits(dir: string, edits: unknown): string | null {
   return null;
 }
 
-// the library's run is its own: not a child of any test runner Beagle itself runs under
-const clean = () => { const e = { ...process.env }; delete e.NODE_TEST_CONTEXT; delete e.NODE_OPTIONS; return e; };
+// Code an agent wrote runs fenced in: macOS's sandbox lets it write only inside its own copy, read
+// nothing of the home folder but Node itself, and reach no network; its environment is bare.
+const NODE_HOME = resolve(process.execPath, '..', '..');
+const fence = (dir: string) => `(version 1)(allow default)(deny network*)
+(deny file-write*)(allow file-write* (subpath "${dir}") (subpath "/private${dir}") (literal "/dev/null") (literal "/dev/stdout") (literal "/dev/stderr") (regex #"^/dev/tty"))
+(deny file-read* (subpath "${process.env.HOME}"))(allow file-read* (subpath "${NODE_HOME}") (subpath "${dir}") (subpath "/private${dir}"))`;
+const bare = (dir: string) => ({ PATH: '/usr/bin:/bin', HOME: dir, TMPDIR: dir, LANG: 'en_US.UTF-8' });
 
 // the library's own suite, in node's test runner; a run that goes on too long counts every test failed
 export function runSuite(dir: string, ms = 30_000): Promise<{ failed: string[]; passed: number; total: number; output: string; timedOut: boolean }> {
   return new Promise(ok => {
-    const p = spawn(process.execPath, ['--experimental-strip-types', '--no-warnings', '--test', '--test-reporter=tap', ...files(dir).filter(f => f.startsWith('test/'))], { cwd: dir, detached: true, env: clean() });
+    const p = spawn('/usr/bin/sandbox-exec', ['-p', fence(dir), process.execPath, '--experimental-strip-types', '--no-warnings', '--test', '--test-reporter=tap', ...files(dir).filter(f => f.startsWith('test/'))], { cwd: dir, detached: true, env: bare(dir) });
     let out = '', timedOut = false;
     p.stdout.on('data', d => out += d); p.stderr.on('data', d => out += d);
     const timer = setTimeout(() => { timedOut = true; try { process.kill(-p.pid!, 'SIGKILL'); } catch { /* gone */ } }, ms);
     p.on('close', () => {
       clearTimeout(timer);
-      const failed = [...out.matchAll(/^not ok \d+ - (.+)$/gm)].map(m => m[1].trim()).filter(n => !n.startsWith('test/'));
+      // a test file that fails to load reports under its own name: that is a failure too
+      const failed = [...out.matchAll(/^not ok \d+ - (.+)$/gm)].map(m => m[1].trim());
       const total = Number(/^# tests (\d+)/m.exec(out)?.[1] ?? 0), passed = Number(/^# pass (\d+)/m.exec(out)?.[1] ?? 0);
       ok({ failed: timedOut ? ['(the tests ran out of time)'] : failed, passed, total, output: out, timedOut });
     });
   });
 }
+
+// how many tests the untouched library has: a run with fewer did not run them all, whatever it says
+let clean: Promise<number> | null = null;
+export const cleanTotal = () => clean ??= (async () => { const dir = mkdtempSync(join(tmpdir(), 'beagle-clean-')); cpSync(LIB, dir, { recursive: true }); try { return await runSuite(dir); } finally { rmSync(dir, { recursive: true, force: true }); } })().then(r => { if (r.failed.length || !r.total) throw new Error(`beaglelib's own suite does not pass: ${r.failed.join(', ')}`); return r.total; });
+const whole = async (r: { total: number; passed: number; failed: string[] }) => r.total === await cleanTotal() && r.passed + r.failed.length === r.total;
 
 // the first failure's report, as a person running the tests would read it
 export function firstFailure(output: string) {
@@ -74,7 +85,7 @@ export async function gradeFix(answer: unknown, truth: FixTruth): Promise<number
   try {
     if (applyEdits(dir, a.edits ?? [])) return 0;
     const r = await runSuite(dir);
-    if (r.timedOut) return 0;
+    if (r.timedOut || !await whole(r)) return 0;   // the suite did not all run: nothing is mended
     if (r.failed.some(n => !truth.failing.includes(n))) return 0;   // it broke something that worked
     return truth.failing.filter(n => !r.failed.includes(n)).length / truth.failing.length;
   } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -82,6 +93,8 @@ export async function gradeFix(answer: unknown, truth: FixTruth): Promise<number
 
 // ---- the tools an agent may use, each on its own task's bugged copy ----
 const planted = new Map<string, string>();
+// the copies the tools read are kept for a run's later turns, and removed when Beagle stops
+process.once('exit', () => { for (const d of planted.values()) rmSync(d, { recursive: true, force: true }); });
 const copyFor = (ctx?: { task: { id: string; input: unknown } }) => {
   const m = (ctx?.task.input as { mutant?: Mutant })?.mutant; if (!m) throw new Error('no task');
   const key = createHash('sha1').update(JSON.stringify(m)).digest('hex');
@@ -114,7 +127,9 @@ export const fixtest: Arena = {
       run: async (a: { edits?: Edit[] }, ctx) => {
         const fresh = mkdtempSync(join(tmpdir(), 'beagle-try-'));
         try { cpSync(copyFor(ctx), fresh, { recursive: true, mode: 1 }); const bad = applyEdits(fresh, a?.edits ?? []); if (bad) return { error: bad };
-          const r = await runSuite(fresh); return { failed: r.failed.slice(0, 10), passed: r.passed, total: r.total, first_failure: firstFailure(r.output).split(`file://${fresh}`).join('beaglelib').split(fresh).join('beaglelib') };
+          const r = await runSuite(fresh);
+          if (!await whole(r)) return { failed: [`(only ${r.passed + r.failed.length} of ${await cleanTotal()} tests ran: the suite is broken)`, ...r.failed].slice(0, 10), passed: r.passed, total: r.total, first_failure: firstFailure(r.output).split(fresh).join('beaglelib') || r.output.slice(-1200).split(fresh).join('beaglelib') };
+          return { failed: r.failed.slice(0, 10), passed: r.passed, total: r.total, first_failure: firstFailure(r.output).split(`file://${fresh}`).join('beaglelib').split(fresh).join('beaglelib') };
         } finally { rmSync(fresh, { recursive: true, force: true }); }
       } },
   ],

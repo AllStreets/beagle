@@ -73,7 +73,20 @@ test('an arena may ask for the built-in calculator, which does arithmetic and no
   const calc = A.getArena('sums').tools.find(t => t.name === 'calculate')!;
   assert.deepEqual(await calc.run({ expression: '(1713 + floor(1713 / 4)) mod 7' }), { result: (1713 + Math.floor(1713 / 4)) % 7 });
   assert.deepEqual(await calc.run({ expression: '2 * (3 + 4) - 10 / 4' }), { result: 11.5 });
+  assert.deepEqual(await calc.run({ expression: '7 mod -3' }), { result: 1 }, 'mod is never negative, as the tool says');
+  assert.deepEqual(await calc.run({ expression: '-7 mod 3' }), { result: 2 });
   assert.match(String((await calc.run({ expression: 'process.exit(1)' }) as any).error), /only numbers/);
   assert.match(String((await calc.run({ expression: 'constructor' }) as any).error), /only numbers/);
   assert.ok(A.startersFor('sums').some(g => g.tools.includes('calculate')));
+});
+
+test('review: a grader stuck in a loop is stopped, scores 0, and Beagle keeps running', async () => {
+  await C.addArena(folder('spins', 40, 'export default (a: any) => { if (a?.word === "spin") { for (;;) {} } return 1; };'));
+  (A.getArena('spins') as any).graderTimeoutMs = 300;
+  const t0 = Date.now(), ticks: number[] = [], iv = setInterval(() => ticks.push(Date.now()), 20);
+  const s = await A.gradeSafely(A.getArena('spins'), { word: 'spin' }, { word: 'x' });
+  clearInterval(iv);
+  assert.equal(s, 0); assert.ok(Date.now() - t0 < 3000, 'stopped near its time');
+  assert.ok(ticks.length >= 5, 'the event loop kept turning while the grader spun');
+  assert.equal(await A.gradeSafely(A.getArena('spins'), { word: 'ok' }, { word: 'x' }), 1, 'the next grade still works');
 });

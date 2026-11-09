@@ -36,7 +36,8 @@ export async function gradeSafely(a: Arena, answer: unknown, truth: unknown): Pr
     const ms = a.graderTimeoutMs ?? 120_000;
     let timer: ReturnType<typeof setTimeout> | undefined;
     // the timer holds the process open, so a grader that never returns cannot end a race silently
-    const s = await Promise.race([Promise.resolve().then(() => a.grade(answer, truth)), new Promise<number>((_, no) => { timer = setTimeout(() => no(new Error('the grader ran out of time')), ms); })]).finally(() => clearTimeout(timer));
+    // an arena whose grader times itself (a worker that is ended at its limit) is left to do so
+    const s = a.timesItself ? await a.grade(answer, truth) : await Promise.race([Promise.resolve().then(() => a.grade(answer, truth)), new Promise<number>((_, no) => { timer = setTimeout(() => no(new Error('the grader ran out of time')), ms); })]).finally(() => clearTimeout(timer));
     return typeof s === 'number' && isFinite(s) ? Math.max(0, Math.min(1, s)) : 0;
   } catch { return 0; }
 }

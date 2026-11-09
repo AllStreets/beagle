@@ -22,6 +22,7 @@ export type Arena = {
   miss?(answer: unknown, truth: unknown): string;   // how an answer went wrong, for the designer
   maxTurns?: number;                         // model turns a run may take
   graderTimeoutMs?: number;
+  timesItself?: boolean;                     // the grader enforces its own time limit
   inBrowser?: boolean;                       // the grader can run in a browser (the log's re-grade)
   brief?(input: unknown): string;            // one line about an item, for lists
   fromText?(text: string, date: string): unknown;   // an item a person typed, for 'set your own item'

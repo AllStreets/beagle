@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, mkdirSync, cpSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { Worker } from 'node:worker_threads';
 import { open } from '../store.ts';
 import { paths } from '../paths.ts';
 import { registerArena, arenaIds, getArena } from './index.ts';
@@ -18,16 +19,56 @@ const home = () => join(paths.home, 'arenas', 'custom');
 const bucket = (id: string) => createHash('sha1').update(id).digest().readUInt32BE(0) % 100;
 export const splitOf = (id: string) => bucket(id) < 60 ? 'breeding' : bucket(id) < 85 ? 'race' : 'sealed';
 
+// A custom grader runs in a worker thread: one that loops forever is terminated at its time and a
+// fresh worker takes the next grade, so Beagle's own thread never stops.
+const WORKER = new URL('./grader-worker.mjs', import.meta.url);
+class Grader {
+  private w: Worker | null = null; private ready: Promise<void> | null = null; private n = 0;
+  private pending = new Map<number, { ok: (s: number) => void; no: (e: Error) => void }>();
+  constructor(private url: string, public timeoutMs = 120_000) {}
+  private start() {
+    const w = new Worker(WORKER, { workerData: { url: this.url }, execArgv: ['--experimental-strip-types', '--no-warnings'] });
+    this.w = w;
+    this.ready = new Promise((ok, no) => {
+      w.on('message', (m: { ready?: boolean; fatal?: string; id?: number; score?: number; error?: string }) => {
+        if (m.ready) { this.idle(); return ok(); } if (m.fatal) return no(new Error(m.fatal));
+        const p = this.pending.get(m.id!); if (!p) return; this.pending.delete(m.id!);
+        m.error !== undefined ? p.no(new Error(m.error)) : p.ok(Number(m.score));
+        this.idle();
+      });
+      w.on('error', (e: Error) => { no(e); this.fail(e); }); w.on('exit', () => { if (this.w === w) { this.w = null; this.fail(new Error('the grader stopped')); } });
+    });
+    w.ref();   // held while it starts and while it grades; let go once idle (see idle())
+    return this.ready;
+  }
+  // an idle grader never keeps Beagle running; a busy one does, until its answer or its time
+  private idle() { if (this.w && !this.pending.size) this.w.unref(); }
+  private fail(e: Error) { for (const p of this.pending.values()) p.no(e); this.pending.clear(); }
+  async check() { await (this.ready ?? this.start()); }
+  async grade(answer: unknown, truth: unknown): Promise<number> {
+    if (!this.w) this.start(); await this.ready;
+    const id = ++this.n, w = this.w!;
+    return new Promise((ok, no) => {
+      const t = setTimeout(() => { this.pending.delete(id); this.w = null; w.terminate(); no(new Error('the grader ran out of time')); }, this.timeoutMs);
+      this.pending.set(id, { ok: s => { clearTimeout(t); ok(s); }, no: e => { clearTimeout(t); no(e); } });
+      w.ref(); w.postMessage({ id, answer, truth });
+    });
+  }
+}
+
 async function load(dir: string): Promise<Arena> {
   const spec = JSON.parse(readFileSync(join(dir, 'arena.json'), 'utf8')) as Spec;
   // a fresh query string, so a changed grader is not served from the module cache
-  const grade = (await import(`${pathToFileURL(join(dir, 'grade.ts')).href}?v=${Date.now()}`)).default as Arena['grade'];
-  if (typeof grade !== 'function') throw new Error('grade.ts must export a default function (answer, truth) => number');
+  const grader = new Grader(`${pathToFileURL(join(dir, 'grade.ts')).href}?v=${Date.now()}`);
+  await grader.check();
+  const grade: Arena['grade'] = (answer, truth) => grader.grade(answer, truth);
   const a: Arena = {
-    id: spec.id, data: spec.id, name: spec.name, describe: spec.describe, answer: spec.answer, maxTurns: spec.maxTurns, grade, tools: (spec.tools ?? []).map(n => { const t = BUILTIN[n]; if (!t) throw new Error(`arena.json asks for a tool Beagle does not have: ${n} (it has ${Object.keys(BUILTIN).join(', ')})`); return t; }),
+    id: spec.id, data: spec.id, name: spec.name, describe: spec.describe, answer: spec.answer, maxTurns: spec.maxTurns, grade, timesItself: true, tools: (spec.tools ?? []).map(n => { const t = BUILTIN[n]; if (!t) throw new Error(`arena.json asks for a tool Beagle does not have: ${n} (it has ${Object.keys(BUILTIN).join(', ')})`); return t; }),
     show: input => typeof input === 'string' ? input : JSON.stringify(input), kind: 'custom', fromText: text => text,
   };
   a.starters = () => genericStarters(a); a.controls = () => genericControls(a);
+  // the arena's time limit is the worker's: past it the worker is ended, not merely ignored
+  Object.defineProperty(a, 'graderTimeoutMs', { get: () => grader.timeoutMs, set: (v: number) => { grader.timeoutMs = v; }, enumerable: true });
   return a;
 }
 

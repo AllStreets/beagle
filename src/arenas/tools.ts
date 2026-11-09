@@ -18,7 +18,7 @@ export function calculate(expr: string): number {
     const args = [sum()]; while (peek() === ',') { next(); args.push(sum()); }
     if (next() !== ')') fail(); return f(...args);
   };
-  const prod = (): number => { let v = atom(); for (;;) { const t = peek(); if (t === '*') { next(); v *= atom(); } else if (t === '/') { next(); v /= atom(); } else if (t === '%' || t?.toLowerCase() === 'mod') { next(); const m = atom(); v = ((v % m) + m) % m; } else return v; } };
+  const prod = (): number => { let v = atom(); for (;;) { const t = peek(); if (t === '*') { next(); v *= atom(); } else if (t === '/') { next(); v /= atom(); } else if (t === '%' || t?.toLowerCase() === 'mod') { next(); const m = Math.abs(atom()); v = ((v % m) + m) % m; } else return v; } };
   const sum = (): number => { let v = prod(); for (;;) { const t = peek(); if (t === '+') { next(); v += prod(); } else if (t === '-') { next(); v -= prod(); } else return v; } };
   const v = sum(); if (i !== toks.length || !isFinite(v)) fail();
   return v;
