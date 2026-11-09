@@ -9,7 +9,7 @@
 <img alt="fossils" src="https://img.shields.io/badge/fossils-trained_on_this_Mac_with_MLX-8f2a1c?style=for-the-badge&labelColor=14110d"/>
 <br/>
 <img alt="proof" src="https://img.shields.io/badge/every_score-re--gradable_with_no_model_calls-b08a4a?style=for-the-badge&labelColor=14110d"/>
-<img alt="tests" src="https://img.shields.io/badge/tests-74_engine_%C2%B7_25_in_the_browser-8f2a1c?style=for-the-badge&labelColor=14110d"/>
+<img alt="tests" src="https://img.shields.io/badge/tests-79_engine_%C2%B7_33_in_the_browser-8f2a1c?style=for-the-badge&labelColor=14110d"/>
 <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-b08a4a?style=for-the-badge&labelColor=14110d"/></a>
 <br/>
 <img alt="engine" src="https://img.shields.io/badge/engine-TypeScript_%C2%B7_Node_22_%C2%B7_node%3Asqlite-7d7262?style=flat-square&labelColor=14110d"/>
@@ -69,20 +69,24 @@ The voyage's best is generation three's *Sonnet self-check, slot audit* at 79 (r
 
 ## The ship
 
-The home screen is the model. Point at a room, or its label, and the camera goes in and a folio opens beside it.
+The home screen is the model. Point at a room, or its label, and the camera goes in and a folio opens beside it. Each room is printed the way its object would have been in 1831, in its own type, and each one has a working tool in it.
 
-- **The chart room** is where the work is read: pick any news item and see where every agent answered, against where it really happened.
-- **The drawing room** draws every agent as an engraved organism. Its body is how its steps are wired, spines mean it may use the gazetteer, seeds are worked examples, and the bar beneath is its score with the fine line of its likely range. The lineage page draws the whole voyage as a family tree in ink, with the designer's reason for every child.
-- **The hold** keeps a jar per agent, filled to its score, and a plain ledger of the field.
-- **The log** holds the proof (below).
-- **The fossil locker** shows each fossil pressed into stone: its training curve is cut as strata, and the pass that was kept is marked.
-- **The forecastle** is Settings: caps, models, evolution, plain or lab view.
+- **The chart room** is an Admiralty chart, lettered in Bodoni, with a degree scale on its border, a compass rose and a scale of kilometres. Pick any race item and the answers land one at a time around a red star where it really happened. *Set your own item*: write any news item, choose agents from the voyage, and they answer it live. The local ones are free, and Claude ones ask before spending. Then click where it really happened and every answer is graded against your point.
+- **The log** is a printed logbook form filled in by hand. The sealed test's fingerprint is pressed into a wax seal, and *Test the seal* recomputes it from the sealed items now, character by character. *Re-grade the voyage* fetches every answer and re-scores all 1,595 of them in your browser, from coordinates alone, keeping a tally as it goes. Then it works out every best score and its range again and sets them against the record.
+- **The hold** keeps a jar per agent on a shelf, filled to its score with its likely range etched on the glass. *The scales* weigh any two agents item by item: a scatter of every shared item, wins and losses, and a paired bootstrap on the difference. That answers whether one is really better when their ranges overlap.
+- **The drawing room** draws every agent as a copperplate plate: its body is how its steps are wired, its spines the gazetteer, its seeds worked examples. Open a bred agent and it shows *what the designer changed* from its parent, sentence by sentence, beside the designer's reason. The lineage draws the whole voyage as a family tree in ink.
+- **The fossil locker** is a museum case at night. Each fossil is a slab under glass, with its training curve cut as strata, a typed catalogue card, and its verdict stamped in red. *Ask it something*: the fossil is kept warm, answers any item with its likeliest places and how sure it is, and is set beside its teacher answering the same item.
+- **The forecastle** is Settings, written as standing orders with blanks to fill. *The purser's estimate* works out what the orders would cost and how long they would take, from what this voyage really paid per item. It warns you before a cap would cut a generation short.
 
-Every number on every screen comes from the local API, and a browser test checks 25 things against it. Plain view explains every number in words; lab view adds cost, time, ranks and raw answers. Every term of art has its meaning a hover away.
+<img src="docs/media/log.jpg" alt="The log: a printed logbook page; a red wax seal pressed with the sealed test's fingerprint, both fingerprints written out and agreeing; below, a tally of every answer re-graded in the browser, all agreeing with the record" />
 
-<img src="docs/media/fossils.jpg" alt="The fossil locker: a limestone slab with the fossil's training curve cut as strata and an ammonite marking the kept pass; beside it the fossil's score against its teacher, its size and speed" />
+Every number on every screen comes from the local API. A browser test checks 33 things against it, including running every tool above. Plain view explains every number in words; lab view adds cost, time, ranks and raw answers. Every term of art has its meaning a hover away.
 
-<img src="docs/media/lineage.jpg" alt="The drawing room's lineage page: generations as columns of small engraved organisms, ink lines joining each child to its parents, and the designer's reasons below" />
+<img src="docs/media/fossils.jpg" alt="The fossil locker at night: asked about an airstrike item, the fossil's five likeliest places on a chart beside its teacher's answer, the fossil in 3.4 ms against its teacher's 20.6 s, twelve kilometres apart" />
+
+<img src="docs/media/hold.jpg" alt="The hold: a shelf of glass jars, each filled to its agent's score with the likely range etched on the glass; below, a pair of brass scales weighing two agents" />
+
+<img src="docs/media/lineage.jpg" alt="The drawing room's lineage page: three generations as columns of small engraved organisms, ink lines joining each child to its parents" />
 
 ## Why you can trust the numbers
 
@@ -90,7 +94,7 @@ Every number on every screen comes from the local API, and a browser test checks
 - **The designer never sees race or sealed items,** and a test checks that no race or sealed text reaches its prompt.
 - **Controls see exactly what agents see.** Getting this wrong once made the controls look far stronger than they are. The fix has a test, and the wrong runs were thrown away and redone.
 - **Ranges, not just scores.** Every score has a 95% bootstrap interval, and Beagle only calls one agent better than another when the ranges separate.
-- **Re-grade it yourself.** `beagle export` writes a voyage as one file, and `beagle regrade` re-scores every answer from it with no model calls. On this voyage, every recorded score matched. A run whose item is missing from the file is counted as a mismatch, never as a pass.
+- **Re-grade it yourself.** The log does it in your browser in about a second. From a terminal, `beagle export` writes a voyage as one file, and `beagle regrade` re-scores every answer from it with no model calls. On this voyage, every recorded score matched. A run whose item is missing from the file is counted as a mismatch, never as a pass.
 - **Every call paid for is in the ledger,** including runs that were later thrown away. A spend cap holds per generation and per voyage, and one race per generation can run at a time. (Before that rule, a second process paid for the same runs twice. The log shows the money.)
 - **A usage limit is not a fault.** When Claude's limit is hit, the race stops, keeps every finished run, and the same command picks up where it left off.
 - **Memorisation is reported.** In the withdrawn second voyage, two answers matched Wikidata's coordinate for southern Lebanon to six decimals. The run's full record shows no access to it: Sonnet recalled it from Wikipedia.
@@ -117,8 +121,8 @@ Claude calls go through your own Claude Code, with your settings, plugins and MC
 ## Tests
 
 ```sh
-npm test                  # 74 engine tests: arena, runner, races, caps, locks, designer, fossils, API
-npx tsx tools/ui-test.ts  # 25 checks of the ship and its rooms against the live API
+npm test                  # 79 engine tests: arena, runner, races, caps, locks, designer, fossils, API
+npx tsx tools/ui-test.ts  # 33 checks of the ship and its rooms against the live API
 ```
 
 ## Data
