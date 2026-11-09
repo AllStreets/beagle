@@ -120,3 +120,25 @@ test('a malformed path is refused, and the server keeps running', async () => {
   assert.equal(status, 400);
   assert.equal((await fetch(`${base}/api/settings`)).status, 200);
 });
+
+test('a voyage can be fetched whole as a bundle, and re-grading it in any program reproduces the recorded scores; no sealed item is in it', async () => {
+  const vs = await (await fetch(`${base}/api/voyages`)).json();
+  const v = vs.find((x: any) => x.arena === 'geotag' && x.spent > 0);
+  const b = await (await fetch(`${base}/api/voyages/${v.id}/bundle`)).json();
+  assert.equal(b.format, 'beagle-bundle-1');
+  assert.ok(b.runs.length > 0);
+  const { grade } = await import('../src/arenas/geotag/grade.ts');
+  for (const r of b.runs) assert.equal(r.status === 'done' ? grade(r.answer, b.tasks[r.task].truth) : 0, r.score);
+  assert.doesNotMatch(JSON.stringify(b), /SECRET/);
+});
+
+test('the sealed fingerprint is recomputed on request and compared with the one recorded at launch', async () => {
+  const vs = await (await fetch(`${base}/api/voyages`)).json();
+  const v = vs.find((x: any) => x.arena === 'geotag');
+  const s = await (await fetch(`${base}/api/voyages/${v.id}/seal`)).json();
+  assert.equal(s.recorded, v.sealed_hash);
+  assert.match(s.now, /^[0-9a-f]{64}$/);
+  assert.equal(s.match, true);
+  assert.equal(s.items, 1);
+  assert.doesNotMatch(JSON.stringify(s), /SECRET/);
+});

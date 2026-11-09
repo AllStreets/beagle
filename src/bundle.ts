@@ -18,9 +18,18 @@ export type Bundle = {
 };
 
 export function exportBundle(voyageId: string): string {
+  const b = buildBundle(voyageId);
+  mkdirSync(paths.bundles, { recursive: true });
+  const file = join(paths.bundles, `${b.voyage.id}.beagle.json`);
+  writeFileSync(file, JSON.stringify(b, null, 1));
+  return file;
+}
+
+// sealed runs (generation -1) carry sealed items, so they leave the bundle until the voyage is finished
+export function buildBundle(voyageId: string): Bundle {
   const v = getVoyage(voyageId), db = open();
   const a = db.prepare('select hash, version from arenas where id = ?').get(getArena(v.arena).data) as { hash: string; version: string } | undefined;
-  const runs = db.prepare('select generation, genome, task, answer, score, status, usd, ms from runs where voyage = ? order by generation, genome, task').all(v.id) as { generation: number; genome: string; task: string; answer: string; score: number; status: string; usd: number; ms: number }[];
+  const runs = db.prepare(`select generation, genome, task, answer, score, status, usd, ms from runs where voyage = ? ${v.status === 'finished' ? '' : 'and generation >= 0'} order by generation, genome, task`).all(v.id) as { generation: number; genome: string; task: string; answer: string; score: number; status: string; usd: number; ms: number }[];
   const taskIds = [...new Set(runs.map(r => r.task))];
   const tasks = Object.fromEntries((taskIds.length ? db.prepare(`select id, input, truth from tasks where id in (${taskIds.map(() => '?').join(',')})`).all(...taskIds) as { id: string; input: string; truth: string }[] : []).map(t => [t.id, { input: json(t.input, null), truth: json(t.truth, null) }]));
   const b: Bundle = {
@@ -31,10 +40,7 @@ export function exportBundle(voyageId: string): string {
     tasks,
     runs: runs.map(r => ({ ...r, answer: json(r.answer, null) })),
   };
-  mkdirSync(paths.bundles, { recursive: true });
-  const file = join(paths.bundles, `${v.id}.beagle.json`);
-  writeFileSync(file, JSON.stringify(b, null, 1));
-  return file;
+  return b;
 }
 
 // Re-score every answer with the arena's grader and summarise one generation (the last, unless

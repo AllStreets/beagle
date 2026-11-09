@@ -64,7 +64,13 @@ try {
   expect('a run opens with its steps', (await page.$$('.trace li')).length >= 1);
 
   await go('#/log');
-  expect('the log shows the sealed fingerprint recorded at launch', (await page.textContent('.hash'))!.trim() === full.sealed_hash);
+  await page.click('#test-seal'); await page.waitForFunction(() => /seal (holds|is broken)/.test(document.querySelector('#seal-verdict')?.textContent ?? ''), null, { timeout: 30000 });
+  expect('testing the seal recomputes the fingerprint written at launch, and it holds', (await page.textContent('#h-rec')) === full.sealed_hash && (await page.textContent('#h-now')) === full.sealed_hash && (await page.textContent('#seal-verdict'))!.includes('The seal holds'));
+  await page.click('#regrade'); await page.waitForFunction(() => /answers (agree|do not agree)/.test(document.querySelector('#regrade-verdict')?.textContent ?? ''), null, { timeout: 60000 });
+  const answers = full.generations.filter((g: any) => g.generation >= 0).reduce((n: number, g: any) => n + g.runs, 0);
+  expect('re-grading in the browser agrees with every recorded answer', (await page.textContent('#regrade-verdict'))!.includes(`All ${answers.toLocaleString('en-GB')} answers agree`), `${answers} answers`);
+  const lastRow = await page.$eval(`tr[data-g="${genN}"]`, tr => [tr.querySelector('.rec')!.textContent, tr.querySelector('.again')!.textContent]);
+  expect('the best score worked again in the browser matches the API to a tenth', lastRow[0] === lastRow[1] && lastRow[1]!.startsWith((lead.mean * 100).toFixed(1)), lastRow[1] ?? '');
   await go('#/fossils');
   const fossils = await api(`/voyages/${v.id}/fossils`), locker = (await page.textContent('#folio'))!;
   if (!fossils.length) expect('the fossil locker says plainly that it is empty', locker.includes('No skill has been fossilised yet'));

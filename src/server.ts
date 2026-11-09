@@ -9,7 +9,8 @@ import { join, extname, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
-import { startVoyage, race, getVoyage, summarize, type RaceEvent } from './race.ts';
+import { startVoyage, race, getVoyage, summarize, sealedHash, type RaceEvent } from './race.ts';
+import { buildBundle } from './bundle.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { baselines } from './baselines.ts';
 import { starters } from './arenas/geotag/starters.ts';
@@ -103,6 +104,12 @@ const routes: Route[] = [
     const v = getVoyage(m[1]), db = open();
     const gens = (db.prepare('select distinct generation g from genomes where voyage = ? and generation >= 0 order by g').all(v.id) as { g: number }[]).map(r => r.g);
     return gens.flatMap(n => { const g = generation(v.id, n), sc = new Map(g.scores.map(s => [s.genome, s])); return g.genomes.map(x => ({ id: x.id, name: x.name, model: x.model, generation: n, parents: x.parents.filter((p: string) => p !== x.id), kept: x.parents.includes(x.id), reason: x.reason, mean: sc.get(x.id)?.mean ?? null, lo: sc.get(x.id)?.lo ?? null, hi: sc.get(x.id)?.hi ?? null, genome: x.genome })); });
+  }],
+  ['GET', /^\/api\/voyages\/([^/]+)\/bundle$/, m => buildBundle(decodeURIComponent(m[1]))],
+  ['GET', /^\/api\/voyages\/([^/]+)\/seal$/, m => {
+    const v = getVoyage(decodeURIComponent(m[1])), now = sealedHash(v.arena);
+    const items = (open().prepare(`select count(*) n from tasks where arena = ? and split = 'sealed'`).get(dataOf(v.arena)) as { n: number }).n;
+    return { recorded: v.sealed_hash, now, match: now === v.sealed_hash, items, at: new Date().toISOString() };
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/fossils$/, m => {
     const db = open(); db.exec(`create table if not exists fossils (voyage text, genome text, at text, record text, primary key (voyage, genome))`);

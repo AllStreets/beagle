@@ -3,21 +3,8 @@ import { api, post, entrants, pct, type Voyage, type Generation, type Telling, t
 import { organism, scaleBar, chart, inset, km, paper } from './drawings.ts';
 import type { RoomId } from './ship.ts';
 
-const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
-const money = (x: number) => `$${x.toFixed(x < 1 ? 3 : 2)}`;
-const secs = (ms: number) => ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
-const dist = (d: number | null) => d === null ? 'no answer' : d < 10 ? `${d.toFixed(1)} km` : `${Math.round(d).toLocaleString()} km`;
-// terms of art, each with its meaning in plain words, shown on hover and to screen readers
-const TERMS: Record<string, string> = {
-  agent: 'A design for doing the task: what it is told, which model runs it, which tools it may use, and how its steps are wired.',
-  genome: 'An agent written down as data, so it can be compared, changed and bred.',
-  control: 'A simple method every agent has to beat for its score to mean anything.',
-  interval: 'The range the true score most likely lies in, given how few items have been tried. When two ranges overlap, neither agent is clearly better.',
-  front: 'The Pareto front: agents nobody beats on accuracy without costing more or taking longer.',
-  sealed: 'Items set aside before the voyage began and never shown to anyone, used once at the end to check the winners honestly.',
-  fossil: 'A small network trained on this Mac on a winning agent\'s answers, so the skill runs in milliseconds for free.',
-};
-const term = (k: keyof typeof TERMS, label = k) => `<dfn tabindex="0" title="${esc(TERMS[k])}">${label}<span role="tooltip">${esc(TERMS[k])}</span></dfn>`;
+import { esc, money, secs, dist, term, head } from './ui.ts';
+import { logbook } from './logbook.ts';
 
 export type Ctx = { voyage: Voyage; gen: Generation; genN: number; view: 'plain' | 'lab'; arena: Arena | null; others?: { id: string; spent: number; note: string | null }[] };
 
@@ -26,11 +13,10 @@ export async function render(id: RoomId, el: HTMLElement, c: Ctx) {
   if (id === 'chart') return chartRoom(el, c);
   if (id === 'drawing') return drawingRoom(el, c);
   if (id === 'specimens') return hold(el, c);
-  if (id === 'log') return log(el, c);
+  if (id === 'log') return logbook(el, c);
   if (id === 'fossils') return fossils(el, c);
   return settings(el, c);
 }
-const head = (title: string, sub: string) => `<header class="folio-head"><h1>${title}</h1><p>${sub}</p></header>`;
 
 // ---------- the chart room: one item at a time, every answer on the chart ----------
 async function chartRoom(el: HTMLElement, c: Ctx) {
@@ -126,22 +112,6 @@ function hold(el: HTMLElement, c: Ctx) {
   el.innerHTML = `${head('The hold', `All ${es.length} specimens of generation ${c.genN + 1}, best first. Each was tried on the same ${c.gen.common} news items.`)}
   <p class="verdict">${lead ? `${esc(lead.name)} leads with ${pct(lead.mean)}. ${best ? (sep ? `It clearly beats the best ${term('control')}, ${esc(best.name)} (${pct(best.mean)}): their ranges do not overlap.` : `It is not yet clearly better than the best ${term('control')}, ${esc(best.name)} (${pct(best.mean)}): their ranges overlap.`) : ''}` : ''}</p>
   <table class="ledger"><thead><tr><th>Specimen</th><th>Score</th><th>${term('interval', 'Likely range')}</th><th>Within 25 km</th>${c.view === 'lab' ? `<th>Cost</th><th>Time per item</th><th>${term('front', 'Front')}</th><th>Answered</th>` : ''}</tr></thead><tbody>${es.map(e => `<tr class="${e.control ? 'ctl' : ''}"><td><a href="#/drawing/${encodeURIComponent(e.genome)}">${esc(e.name)}</a>${e.control ? ' <small>control</small>' : ''}</td><td class="n"><span class="fill" style="--w:${e.mean}"></span>${pct(e.mean)}</td><td class="n">${pct(e.lo)} to ${pct(e.hi)}</td><td class="n">${e.within} of ${e.tasks}</td>${c.view === 'lab' ? `<td class="n">${money(e.usd)}</td><td class="n">${secs(e.ms)}</td><td class="n">${e.pareto}</td><td class="n">${e.tasks - e.noAnswer} of ${e.tasks}</td>` : ''}</tr>`).join('')}</tbody></table>`;
-}
-
-// ---------- the log: why these numbers can be trusted, and how to check them yourself ----------
-function log(el: HTMLElement, c: Ctx) {
-  const v = c.voyage, a = c.arena;
-  el.innerHTML = `${head('The log', 'What was fixed before the voyage, what it cost, and how to check every number without trusting Beagle.')}
-  <div class="log-grid">
-    <section><h2>Sealed before sailing</h2><p>${a ? `${a.counts.sealed} news items from ${esc(a.info?.version.split('; sealed from ')[1]?.split(';')[0] ?? 'the sealed months')} on were set aside as the ${term('sealed', 'sealed test')}.` : ''} Their fingerprint was written here before the first race, and is checked again before they are ever used:</p><code class="hash">${esc(v.sealed_hash)}</code><p class="soft">Nobody, and no agent or designer, sees these items until the voyage is finished.</p></section>
-    <section><h2>The arena</h2><p>${a ? `${esc(a.name)}. ${a.counts.breeding} items to learn from, ${a.counts.race} to race on, ${a.counts.sealed} sealed, and ${a.counts.pool} unlabelled for training fossils later. Built from Wikipedia's Current Events, with each place's coordinates from Wikidata.` : ''}</p>${a?.info ? `<p class="soft">Built ${esc(a.info.built_at.slice(0, 10))}. Fingerprint <code>${esc(a.info.hash.slice(0, 16))}</code></p>` : ''}</section>
-    <section><h2>Controls</h2><p>Every generation races three ${term('control', 'controls')} on the same items: a random point on the globe, the gazetteer with no model, and one plain question to Claude, each shown the item exactly as the agents see it. A score only means something next to theirs.</p></section>
-    <section><h2>Spent</h2><table class="ledger small"><tbody>${v.generations.filter(g => g.generation >= 0).map(g => `<tr><td>Generation ${g.generation + 1}</td><td class="n">${g.runs} runs</td><td class="n">${money(g.usd)}</td></tr>`).join('')}${(() => { const kept = v.generations.filter(g => g.generation >= 0).reduce((n, g) => n + g.usd, 0), extra = v.spent - kept; return extra > .005 ? `<tr><td>Paid for, but not kept</td><td></td><td class="n">${money(extra)}</td></tr>` : ''; })()}<tr><td><b>The voyage, every call paid for</b></td><td></td><td class="n"><b>${money(v.spent)}</b></td></tr></tbody></table>
-  ${v.spent - v.generations.filter(g => g.generation >= 0).reduce((n, g) => n + g.usd, 0) > .005 ? `<p class="soft">Paid for but not kept: runs redone after a fault, and runs a second race process paid for twice on 2026-11-08 before Beagle learned to stop that. They are in the ledger because they were paid for.</p>` : ''}<p class="soft">Claude calls count at the cost Claude Code reports; calls to models on this Mac count as free. The voyage's cap is ${money(v.settings.capVoyage)}.</p></section>
-    <section class="wide"><h2>Check it yourself</h2><p>Export the voyage as one file: every agent, every item with its truth, every answer. Then re-grade it from the answers alone, with no model calls:</p><pre>beagle export ${esc(v.id)}\nbeagle regrade ~/Library/Application\\ Support/Beagle/bundles/${esc(v.id)}.beagle.json</pre><p class="soft">On ${esc(new Date().toISOString().slice(0, 10))}, re-grading this voyage's first generation reproduced every recorded score.</p></section>
-    ${(c as any).others?.length ? `<section class="wide"><h2>Earlier voyages, withdrawn</h2><ul class="withdrawn">${(c as any).others.map((o: any) => `<li><b>${esc(o.id)}</b>, $${o.spent.toFixed(2)}: ${esc(o.note ?? 'withdrawn')}</li>`).join('')}</ul><p class="soft">Withdrawn voyages stay on record and their spend stays in the ledger. Their results are not compared with this one.</p></section>` : ''}
-    <section class="wide"><h2>One thing it found</h2><p>Two answers in the first race matched the truth's Wikidata coordinate to six decimal places. The run's full record shows no access to it: Sonnet planned, looked up two villages the gazetteer did not have, and answered from memory. It had memorised the coordinate Wikipedia shows for southern Lebanon. That is real knowledge the model brings, not a leak, and Beagle reports it rather than hiding it.</p></section>
-  </div>`;
 }
 
 async function fossils(el: HTMLElement, c: Ctx) {
