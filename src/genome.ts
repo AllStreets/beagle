@@ -15,7 +15,8 @@ export type Genome = {
 export const TOOLS = ['lookup_place'];
 const SHAPES: Shape[] = ['single', 'plan-then-answer', 'self-check', 'vote'];
 
-export function validate(x: unknown): Genome {
+// tools: the names this genome's arena offers (geotagging's lookup by default)
+export function validate(x: unknown, tools: string[] = TOOLS): Genome {
   const g = x as Genome;
   if (!g || typeof g !== 'object') throw new Error('not a genome');
   const bad = (why: string) => { throw new Error(`genome "${g.name ?? g.id ?? '?'}": ${why}`); };
@@ -23,7 +24,7 @@ export function validate(x: unknown): Genome {
   if (typeof g.model !== 'string' || !/^(claude|ollama):\S+$/.test(g.model)) bad('model must be claude:<name> or ollama:<name>');
   if (typeof g.instructions !== 'string' || !g.instructions.trim()) bad('instructions are empty');
   if (!Array.isArray(g.tools)) bad('tools must be a list');
-  for (const t of g.tools) if (!TOOLS.includes(t)) bad(`unknown tool "${t}"`);
+  for (const t of g.tools) if (!tools.includes(t)) bad(`unknown tool "${t}"${tools.length ? ` (this arena has ${tools.join(', ')})` : ' (this arena has no tools)'}`);
   if (!g.workflow || !SHAPES.includes(g.workflow.shape)) bad(`workflow shape must be one of ${SHAPES.join(', ')}`);
   if (g.workflow.shape === 'vote') {
     if (g.workflow.n === undefined) bad('a vote needs n, how many answers it takes');

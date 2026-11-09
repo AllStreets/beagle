@@ -86,7 +86,7 @@ export async function breed(voyageId: string, generation: number, o: { children:
       const parents = (c.parents ?? []).filter((p: string) => bodies.has(p));
       if (!parents.length) throw new Error(`no known parent among ${JSON.stringify(c.parents)}`);
       if (v.settings.localAgents && !String(c.model).startsWith('ollama:')) throw new Error(`${c.model} does not run on this Mac, and this voyage's agents must`);
-      const g = validate({ id: `g${next}-${randomUUID().slice(0, 6)}`, name: c.name, model: c.model, instructions: c.instructions, tools: c.tools, workflow: c.workflow, memory: c.memory });
+      const g = validate({ id: `g${next}-${randomUUID().slice(0, 6)}`, name: c.name, model: c.model, instructions: c.instructions, tools: c.tools, workflow: c.workflow, memory: c.memory }, arena.tools.map(t => t.name));
       out.next.push(g); out.parents[g.id] = parents; out.reasons[g.id] = String(c.reason ?? '');
     } catch (e) { out.refused.push({ name: String(c.name), why: (e as Error).message }); }
   }

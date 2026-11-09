@@ -125,3 +125,16 @@ test('local agents: Claude agents sit out the race, and the designer may breed o
   assert.deepEqual(bred.next.map(x => x.name), ['l', 'local child']);
   assert.match(bred.refused[0].why, /this Mac/);
 });
+
+test('the designer may give a child any tool of its own arena, and only those', async () => {
+  const D = await import('../src/designer.ts');
+  A.registerArena({ ...words, id: 'words-calc', data: 'words', tools: [{ name: 'calculate', describe: 'x', args: {}, run: () => ({}) }] } as any);
+  M.setDriver(async (_p, name) => name.includes('opus') ? { text: JSON.stringify({ children: [
+    { name: 'with calc', parents: ['a'], model: 'ollama:llama3.1:8b', instructions: 'x', tools: ['calculate'], workflow: { shape: 'single' }, memory: { examples: 0 }, reason: 'r' },
+    { name: 'with lookup', parents: ['a'], model: 'ollama:llama3.1:8b', instructions: 'x', tools: ['lookup_place'], workflow: { shape: 'single' }, memory: { examples: 0 }, reason: 'r' } ] }), usd: 0, ms: 1 } : { text: say('large'), usd: 0, ms: 1 });
+  const v = R.startVoyage('words-calc', { raceTasks: 6, capGeneration: 100 });
+  await R.race(v.id, 0, [g('a')], { baselines: false });
+  const bred = await D.breed(v.id, 0, { children: 2, elites: 1, probe: 1 });
+  assert.deepEqual(bred.next.map(x => x.name), ['a', 'with calc']);
+  assert.match(bred.refused[0].why, /lookup_place/);
+});
