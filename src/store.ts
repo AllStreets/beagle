@@ -58,7 +58,7 @@ create table if not exists ledger (
   at text not null,
   voyage text,
   generation integer,            -- which generation paid for it
-  kind text not null,            -- race, design, baseline, teach
+  kind text not null,            -- race, design, baseline, teach, try
   model text not null,
   usd real not null,
   ms integer not null

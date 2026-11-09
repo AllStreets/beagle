@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beagle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Petit+Formal+Script&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Petit+Formal+Script&family=Mrs+Saint+Delafield&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #121512; overflow: hidden; }
   #stage { position: fixed; inset: 0; }
@@ -125,6 +125,39 @@
   .ledger td.n:nth-child(2) { position: relative; width: 140px; }
   .fill { display: inline-block; width: calc(var(--w) * 80px); height: 5px; background: #241c14; margin-right: 8px; vertical-align: middle; }
 
+
+  /* the chart room: an Admiralty chart, lettered in a Didone */
+  #folio-body.chart-folio { font-family: "EB Garamond", serif; }
+  #folio-body[data-room="chart"] .folio-head h1 { font: italic 400 58px/1.05 "Bodoni Moda", serif; font-optical-sizing: auto; letter-spacing: -.01em; }
+  #folio-body[data-room="chart"] .folio-head p { font-family: "Bodoni Moda", serif; font-size: 16.5px; font-style: italic; }
+  #folio-body[data-room="chart"] .pages { font: 500 13px "Bodoni Moda", serif; letter-spacing: .16em; text-transform: uppercase; }
+  #folio-body[data-room="chart"] .items-head { font: 500 11px "Bodoni Moda", serif; letter-spacing: .14em; text-transform: uppercase; }
+  #folio-body[data-room="chart"] .items .d { font: 500 11.5px "Bodoni Moda", serif; letter-spacing: .12em; }
+  #folio-body[data-room="chart"] .items .m { font: 500 22px "Bodoni Moda", serif; }
+  #folio-body[data-room="chart"] .answers th { font: 500 11px "Bodoni Moda", serif; letter-spacing: .14em; text-transform: uppercase; }
+  #folio-body[data-room="chart"] figure.sheet canvas#chart { cursor: default; }
+  .far { display: block; margin-top: 6px; font-size: 14.5px; }
+  figure.sheet figcaption #cap { font-style: normal; color: inherit; }
+  .own { display: grid; grid-template-columns: 330px 1fr; gap: 26px; align-items: start; }
+  .own-out figure.sheet canvas#chart { height: min(62vh, 640px); cursor: crosshair; }
+  .own-form .field { display: block; margin-bottom: 14px; }
+  .own-form .l { display: block; font: 500 11px "Bodoni Moda", serif; letter-spacing: .14em; text-transform: uppercase; color: #4b3f30; margin-bottom: 6px; }
+  .own-form textarea { width: 100%; box-sizing: border-box; font: 400 17px/1.45 "EB Garamond", serif; color: #241c14; background: #f6f0e1; border: 0; border-top: 1.5px solid #241c14; border-bottom: 1px solid #241c14; padding: 10px 12px; resize: vertical; }
+  .own-form textarea::placeholder { color: #8a7c66; font-style: italic; }
+  .own-form input[type=date] { font: 400 16px "Bodoni Moda", serif; background: #f6f0e1; border: 0; border-bottom: 1px solid #241c14; padding: 6px 8px; color: #241c14; }
+  .own-form textarea:focus, .own-form input:focus { outline: 2px solid #8f2a1c; outline-offset: 1px; }
+  .who { border: 0; border-top: 1px solid #241c14; padding: 8px 0 4px; margin: 0 0 12px; }
+  .who legend { font: 500 11px "Bodoni Moda", serif; letter-spacing: .14em; text-transform: uppercase; color: #4b3f30; padding: 0 8px 0 0; }
+  .pick { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: baseline; padding: 3px 0; font-size: 15.5px; cursor: pointer; }
+  .pick small { font-size: 12.5px !important; }
+  .pick input { accent-color: #8f2a1c; margin: 0; transform: translateY(2px); }
+  .cost { font-style: italic; color: #6a5a44; font-size: 14.5px; margin: 4px 0 12px; }
+  .ask { font: 500 13px "Bodoni Moda", serif; letter-spacing: .18em; text-transform: uppercase; color: #efe7d3; background: #241c14; border: 0; padding: 12px 22px; cursor: pointer; position: relative; }
+  .ask::after { content: ""; position: absolute; inset: 3px; border: .5px solid rgba(239,231,211,.55); pointer-events: none; }
+  .ask:hover { background: #3a2c1e; } .ask:disabled { opacity: .65; cursor: progress; }
+  .answers details { font-size: 13.5px; } .answers summary { cursor: pointer; color: #6a5a44; font-style: italic; }
+  .trace.mini { margin: 4px 0 0; padding-left: 18px; max-width: 520px; } .trace.mini li { margin: 3px 0; word-break: break-word; }
+  @media (max-width: 900px) { .own { grid-template-columns: 1fr; } }
   /* the log: a printed logbook form, filled in by hand */
   #folio:has(> #folio-body[data-room="log"]) { background: #f1ead8; }
   #folio-body[data-room="log"] .logbook { position: relative; max-width: 1040px; padding-left: 78px; font: 400 18px/1.6 "IM Fell DW Pica", serif;

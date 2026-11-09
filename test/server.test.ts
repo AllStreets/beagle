@@ -142,3 +142,26 @@ test('the sealed fingerprint is recomputed on request and compared with the one 
   assert.equal(s.items, 1);
   assert.doesNotMatch(JSON.stringify(s), /SECRET/);
 });
+
+test('your own item: a local agent answers it free; a Claude agent only with consent, and its cost is in the ledger', async () => {
+  const vs = await (await fetch(`${base}/api/voyages`)).json();
+  const v = vs.find((x: any) => x.arena === 'geotag' && x.spent > 0);
+  const { open } = await import('../src/store.ts');
+  const db = open();
+  const local = { id: 'try-local', name: 'Local one', model: 'ollama:llama3.1:8b', instructions: 'Answer.', tools: [], workflow: { shape: 'single' }, memory: { examples: 0 } };
+  const paid = { ...local, id: 'try-paid', name: 'Paid one', model: 'claude:claude-haiku-4-5' };
+  for (const g of [local, paid]) db.prepare('insert or replace into genomes (id, voyage, generation, parent_ids, body, reason) values (?, ?, 0, ?, ?, null)').run(g.id, v.id, '[]', JSON.stringify(g));
+  const ask = (genome: string, extra = {}) => fetch(`${base}/api/try`, { method: 'POST', headers: W, body: JSON.stringify({ voyage: v.id, genome, text: 'Floods hit [place] after a week of rain.', date: '2026-11-01', ...extra }) });
+  const r = await ask('try-local'); assert.equal(r.status, 200);
+  const a = await r.json(); assert.deepEqual(a.answer, { lat: 10, lon: 10 }); assert.equal(a.usd, 0); assert.ok(Array.isArray(a.trace));
+  const refused = await ask('try-paid'); assert.equal(refused.status, 402);
+  assert.match((await refused.json()).error, /costs money/);
+  const before = (db.prepare(`select count(*) n from ledger where voyage = ? and kind = 'try'`).get(v.id) as { n: number }).n;
+  const ok = await ask('try-paid', { allowPaid: true }); assert.equal(ok.status, 200);
+  const after = (db.prepare(`select count(*) n from ledger where voyage = ? and kind = 'try'`).get(v.id) as { n: number }).n;
+  assert.equal(after, before + 1);
+  const ctl = await (await ask('baseline:gazetteer alone')).json();
+  assert.ok('answer' in ctl, 'the free controls answer too');
+  const empty = await fetch(`${base}/api/try`, { method: 'POST', headers: W, body: JSON.stringify({ voyage: v.id, genome: 'try-local', text: ' ' }) });
+  assert.equal(empty.status, 400);
+});

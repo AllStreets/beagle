@@ -57,9 +57,9 @@ export function scaleBar(k: CanvasRenderingContext2D, x0: number, x1: number, y:
 }
 
 // The chart: one task, centred on where it happened, every answer near it numbered.
-const land: any = feature(world as any, (world as any).objects.countries);
+export const land: any = feature(world as any, (world as any).objects.countries);
 land.features = land.features.filter((f: any) => f.properties?.name !== 'Antarctica' && geoArea(f) < 2 * Math.PI);
-const borders = mesh(world as any, (world as any).objects.countries, (a: any, b: any) => a !== b);
+export const borders = mesh(world as any, (world as any).objects.countries, (a: any, b: any) => a !== b);
 export const km = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => geoDistance([a.lon, a.lat], [b.lon, b.lat]) * 6371;
 
 export function chart(k: CanvasRenderingContext2D, W: number, H: number, t: Telling, o: { left?: number; labels?: boolean } = {}) {

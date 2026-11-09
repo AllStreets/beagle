@@ -5,6 +5,7 @@ import type { RoomId } from './ship.ts';
 
 import { esc, money, secs, dist, term, head } from './ui.ts';
 import { logbook } from './logbook.ts';
+import { chartRoom } from './chartroom.ts';
 
 export type Ctx = { voyage: Voyage; gen: Generation; genN: number; view: 'plain' | 'lab'; arena: Arena | null; others?: { id: string; spent: number; note: string | null }[] };
 
@@ -19,34 +20,6 @@ export async function render(id: RoomId, el: HTMLElement, c: Ctx) {
 }
 
 // ---------- the chart room: one item at a time, every answer on the chart ----------
-async function chartRoom(el: HTMLElement, c: Ctx) {
-  const tasks = await api<{ id: string; date: string; shown: string; mean: number; answered: number }[]>(`/voyages/${c.voyage.id}/generations/${c.genN}/tasks`, []);
-  const first = await api<Telling>(`/voyages/${c.voyage.id}/generations/${c.genN}/telling`);
-  el.innerHTML = `${head('The chart room', `Pick a news item. Its places are hidden from the agents; the chart shows where each one answered, against where it really happened.`)}
-  <div class="chart-room">
-    <div class="items-wrap"><div class="items-head"><span>${tasks.length} news items, hardest first</span><span>Field average</span></div><ol class="items" aria-label="News items in this race, hardest first">${tasks.map(t => `<li><button data-task="${t.id}" class="${t.id === first.task.id ? 'on' : ''}"><span class="d">${t.date}</span><span class="t">${esc(t.shown)}</span><span class="m">${pct(t.mean)}</span></button></li>`).join('')}</ol></div>
-    <figure class="sheet"><canvas id="chart"></canvas><canvas id="inset" aria-hidden="true"></canvas><figcaption id="cap"></figcaption></figure>
-    <table class="answers" id="answers"></table>
-  </div>`;
-  const show = (t: Telling) => {
-    const cv = el.querySelector<HTMLCanvasElement>('#chart')!, r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio);
-    cv.width = r.width * dpr; cv.height = r.height * dpr; const k = cv.getContext('2d')!; k.scale(dpr, dpr); chart(k, r.width, r.height, t, { left: .06 });
-    const iv = el.querySelector<HTMLCanvasElement>('#inset')!; iv.width = 520; iv.height = 270; inset(iv.getContext('2d')!, 520, 270, t);
-    const truth = t.task.truth.places;
-    el.querySelector('#cap')!.innerHTML = `<b>${t.task.input.date}.</b> ${esc(t.task.shown.split('\n').slice(1).join(' ')).replace(/\[place\]/g, '<mark>[place]</mark>')} <span>Truth: ${truth.map(p => esc(p.name)).join(', ')}.</span>`;
-    el.querySelector('#answers')!.innerHTML = `<thead><tr><th></th><th>Agent</th><th>Off by</th><th>Score</th>${c.view === 'lab' ? '<th>Answer</th>' : ''}</tr></thead><tbody>${t.answers.map((a, i) => {
-      const d = a.answer ? Math.min(...truth.map(p => km(a.answer!, p))) : null;
-      return `<tr class="${a.control ? 'ctl' : ''}"><td>${i + 1}</td><td><a href="#/drawing/${encodeURIComponent(a.genome)}">${esc(a.name)}</a></td><td>${dist(d)}</td><td>${pct(a.score)}</td>${c.view === 'lab' ? `<td class="mono"><a href="#/run/${a.run}">${a.answer ? `${a.answer.lat.toFixed(3)}, ${a.answer.lon.toFixed(3)}` : a.status}</a></td>` : ''}</tr>`;
-    }).join('')}</tbody>`;
-  };
-  show(first);
-  el.querySelector('.items button.on')?.scrollIntoView({ block: 'center' });
-  el.querySelectorAll<HTMLButtonElement>('.items button').forEach(b => b.addEventListener('click', async () => {
-    el.querySelectorAll('.items button').forEach(x => x.classList.toggle('on', x === b));
-    show(await api<Telling>(`/voyages/${c.voyage.id}/generations/${c.genN}/telling?task=${b.dataset.task}`));
-  }));
-}
-
 // ---------- the drawing room: every agent as a plate; one opens under the glass ----------
 function plate(e: Entrant, i: number, w = 300, h = 380) {
   const cv = document.createElement('canvas'), dpr = 2; cv.width = w * dpr; cv.height = h * dpr; cv.style.width = '100%'; cv.style.aspectRatio = `${w} / ${h}`;

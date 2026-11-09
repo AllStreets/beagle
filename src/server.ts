@@ -9,7 +9,8 @@ import { join, extname, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
-import { startVoyage, race, getVoyage, summarize, sealedHash, type RaceEvent } from './race.ts';
+import { startVoyage, race, getVoyage, summarize, sealedHash, examplesFor, type RaceEvent } from './race.ts';
+import { run, RunError } from './runner.ts';
 import { buildBundle } from './bundle.ts';
 import { getSettings, saveSettings } from './settings.ts';
 import { baselines } from './baselines.ts';
@@ -104,6 +105,37 @@ const routes: Route[] = [
     const v = getVoyage(m[1]), db = open();
     const gens = (db.prepare('select distinct generation g from genomes where voyage = ? and generation >= 0 order by g').all(v.id) as { g: number }[]).map(r => r.g);
     return gens.flatMap(n => { const g = generation(v.id, n), sc = new Map(g.scores.map(s => [s.genome, s])); return g.genomes.map(x => ({ id: x.id, name: x.name, model: x.model, generation: n, parents: x.parents.filter((p: string) => p !== x.id), kept: x.parents.includes(x.id), reason: x.reason, mean: sc.get(x.id)?.mean ?? null, lo: sc.get(x.id)?.lo ?? null, hi: sc.get(x.id)?.hi ?? null, genome: x.genome })); });
+  }],
+  // your own item: one agent (or a free control) answers a news item you wrote. Claude agents cost
+  // money, so they answer only with allowPaid, inside the voyage's cap, and their cost goes in the ledger.
+  ['POST', /^\/api\/try$/, async (_m, req) => {
+    const b = await body(req), v = getVoyage(String(b.voyage ?? '')), arena = getArena(v.arena);
+    const text = String(b.text ?? '').trim().slice(0, 2000), date = /^\d{4}-\d{2}-\d{2}$/.test(b.date ?? '') ? b.date : new Date().toISOString().slice(0, 10);
+    if (!text) throw new Http(400, 'write a news item first');
+    const task = { id: `try-${Date.now()}`, input: { text, hidden: text, date } };
+    if (String(b.genome).startsWith('baseline:')) {
+      const ctl = baselines(v.arena).find(x => `baseline:${x.name}` === b.genome);
+      if (!ctl) throw new Http(404, 'no such control');
+      if (ctl.model.startsWith('claude:') && !b.allowPaid) throw new Http(402, 'this control asks Claude, which costs money; send allowPaid to agree');
+      const r = await ctl.answer(task);
+      if (r.usd) ledger.add({ voyage: v.id, generation: null, kind: 'try', model: ctl.model, usd: r.usd, ms: r.ms });
+      return { answer: r.answer, usd: r.usd, ms: r.ms, trace: [{ kind: 'note', output: r.note ?? '' }] };
+    }
+    const row = open().prepare('select body from genomes where voyage = ? and id = ? order by generation desc limit 1').get(v.id, String(b.genome)) as { body: string } | undefined;
+    if (!row) throw new Http(404, 'no such agent in this voyage');
+    const g = json<Genome>(row.body, null as unknown as Genome);
+    if (g.model.startsWith('claude:')) {
+      if (!b.allowPaid) throw new Http(402, `${g.name} runs on Claude, which costs money; send allowPaid to agree`);
+      if (ledger.spent(v.id) >= v.settings.capVoyage) throw new Http(402, 'this voyage has reached its spending cap');
+    }
+    try {
+      const r = await run(g, task, arena, { examples: examplesFor(v.id) });
+      if (r.usd) ledger.add({ voyage: v.id, generation: null, kind: 'try', model: g.model, usd: r.usd, ms: r.ms });
+      return { answer: r.answer, usd: r.usd, ms: r.ms, status: r.status, trace: r.trace };
+    } catch (e) {
+      if (e instanceof RunError && e.spent) ledger.add({ voyage: v.id, generation: null, kind: 'try', model: g.model, usd: e.spent, ms: 0 });
+      throw new Http(502, `${g.name} could not answer: ${(e as Error).message.slice(0, 200)}`);
+    }
   }],
   ['GET', /^\/api\/voyages\/([^/]+)\/bundle$/, m => buildBundle(decodeURIComponent(m[1]))],
   ['GET', /^\/api\/voyages\/([^/]+)\/seal$/, m => {

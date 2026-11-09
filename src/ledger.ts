@@ -2,7 +2,7 @@
 // Claude Code's reported cost; local calls are free but their time still counts.
 import { open } from './store.ts';
 
-export type Entry = { voyage: string | null; generation?: number | null; kind: 'race' | 'design' | 'baseline' | 'teach'; model: string; usd: number; ms: number };
+export type Entry = { voyage: string | null; generation?: number | null; kind: 'race' | 'design' | 'baseline' | 'teach' | 'try'; model: string; usd: number; ms: number };
 
 export function add(e: Entry) {
   open().prepare('insert into ledger (at, voyage, generation, kind, model, usd, ms) values (?, ?, ?, ?, ?, ?, ?)')

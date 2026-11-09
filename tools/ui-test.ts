@@ -44,6 +44,15 @@ try {
   expect('choosing another item redraws the chart and its caption', (await page.textContent('#cap')) !== cap1);
   expect('the canvas is drawn', await page.$eval('#chart', (c: any) => c.width > 400));
 
+  await go('#/chart/own', 3000);
+  await page.$$eval('input[name=g]', els => els.forEach(e => { (e as HTMLInputElement).checked = (e as HTMLInputElement).value === 'baseline:gazetteer alone'; }));
+  await page.fill('textarea[name=text]', 'Floods cut off villages near Mannheim after the Rhine bursts its banks.');
+  await page.click('.ask'); await page.waitForFunction(() => /free/.test(document.querySelector('#answers tbody tr')?.textContent ?? ''), null, { timeout: 30000 });
+  const own = await page.textContent('#answers tbody tr');
+  expect('your own item: a free control answers it live and the answer is listed', !!own && /49\.\d\d, 8\.\d\d/.test(own), own?.replace(/\s+/g, ' ').slice(0, 80));
+  const box = (await page.$('#chart'))!; const bb = (await box.boundingBox())!;
+  await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); await page.waitForTimeout(600);
+  expect('marking the truth on the chart grades every answer', /\d+ ?km/.test((await page.textContent('#answers tbody tr')) ?? ''));
   await go('#/specimens');
   const rows = await page.$$eval('.ledger tbody tr', trs => trs.map(t => t.textContent ?? ''));
   expect('the hold lists every specimen', rows.length === gen.scores.length, `${rows.length}`);
