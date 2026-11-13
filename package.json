@@ -8,6 +8,17 @@
   "bin": {
     "beagle": "bin/beagle.mjs"
   },
+  "exports": {
+    "./race": "./src/race.ts",
+    "./designer": "./src/designer.ts",
+    "./genome": "./src/genome.ts",
+    "./stats": "./src/stats.ts",
+    "./runner": "./src/runner.ts",
+    "./arenas": "./src/arenas/index.ts",
+    "./models": "./src/models/index.ts",
+    "./store": "./src/store.ts",
+    "./package.json": "./package.json"
+  },
   "engines": {
     "node": ">=22.13"
   },

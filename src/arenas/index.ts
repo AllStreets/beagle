@@ -24,6 +24,7 @@ export function hooks(a: Arena) {
     merge: a.merge ?? ((xs: unknown[]) => { const n = new Map<string, number>(); for (const x of xs) n.set(same(x), (n.get(same(x)) ?? 0) + 1); let best: unknown = xs[0] ?? null, top = 0; for (const x of xs) { const c = n.get(same(x))!; if (c > top) { top = c; best = x; } } return best; }),
     example: a.example ?? ((t: unknown) => same(t)),
     miss: a.miss ?? ((x: unknown, t: unknown) => `answered ${same(x).slice(0, 300)}; the truth was ${same(t).slice(0, 300)}`),
+    selfCheck: a.selfCheck ?? ((x: unknown) => `You answered ${same(x)}. Check it against the task: is it right, and is it complete? Reply with your final answer.`),
     maxTurns: a.maxTurns ?? 6,
     brief: a.brief ?? ((i: unknown) => a.show(i).replace(/\s+/g, ' ').slice(0, 240)),
     fromText: a.fromText ?? ((t: string) => t),
@@ -41,6 +42,9 @@ export async function gradeSafely(a: Arena, answer: unknown, truth: unknown): Pr
     return typeof s === 'number' && isFinite(s) ? Math.max(0, Math.min(1, s)) : 0;
   } catch { return 0; }
 }
+
+// how a custom arena splits its tasks: a program that writes its own tasks splits them the same way
+export { splitOf } from './split.ts';
 
 // generation one's agents: the arena's own, or for geotagging, its hand-written starters
 import { starters as geoStarters } from './geotag/starters.ts';

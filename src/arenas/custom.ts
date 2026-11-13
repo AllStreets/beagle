@@ -13,11 +13,11 @@ import { registerArena, arenaIds, getArena } from './index.ts';
 import { genericStarters, genericControls } from './generic.ts';
 import type { Arena } from './types.ts';
 import { BUILTIN } from './tools.ts';
+import { splitOf } from './split.ts';
 
 type Spec = { id: string; name: string; describe: string; answer: object; maxTurns?: number; tools?: string[] };
 const home = () => join(paths.home, 'arenas', 'custom');
-const bucket = (id: string) => createHash('sha1').update(id).digest().readUInt32BE(0) % 100;
-export const splitOf = (id: string) => bucket(id) < 60 ? 'breeding' : bucket(id) < 85 ? 'race' : 'sealed';
+export { splitOf } from './split.ts';
 
 // A custom grader runs in a worker thread: one that loops forever is terminated at its time and a
 // fresh worker takes the next grade, so Beagle's own thread never stops.

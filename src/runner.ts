@@ -34,12 +34,12 @@ const turnSchema = (g: Genome, arena: Arena) => ({
 });
 
 // One loop of turns until an answer, a run of malformed replies, or the turn limit.
-async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[], task: { id: string; input: unknown }): Promise<unknown | null> {
+async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[], task: { id: string; input: unknown }, signal?: AbortSignal): Promise<unknown | null> {
   let malformed = 0, used = 0;
   const h = hooks(arena);
   while (used < h.maxTurns) {
     used++;
-    const r = await complete(g.model, turns, { schema: turnSchema(g, arena) });
+    const r = await complete(g.model, turns, { schema: turnSchema(g, arena), signal });
     const reply = r.json as { action?: string; args?: unknown; answer?: unknown } | undefined;
     trace.push({ kind: 'model', input: turns.at(-1)!.content, output: r.text, usd: r.usd, ms: r.ms });
     turns.push({ role: 'assistant', content: r.text });
@@ -61,32 +61,34 @@ async function loop(g: Genome, arena: Arena, turns: Turn[], trace: Step[], task:
 
 // If a call fails partway, what was already paid for travels with the error, so it is counted.
 export class RunError extends Error { constructor(public cause: unknown, public spent: number, public trace: Step[]) { super((cause as Error)?.message ?? String(cause)); } }
-export async function run(g: Genome, task: { id: string; input: unknown }, arena: Arena, o: { examples?: Example[] } = {}): Promise<RunResult> {
+// signal: a stop from the caller; the run ends at its next model call with the signal's reason
+export async function run(g: Genome, task: { id: string; input: unknown }, arena: Arena, o: { examples?: Example[]; signal?: AbortSignal } = {}): Promise<RunResult> {
   const trace: Step[] = [];
   try { return await runInner(g, task, arena, o, trace); }
   catch (e) { throw new RunError(e, trace.reduce((n, s) => n + s.usd, 0), trace); }
 }
-async function runInner(g: Genome, task: { id: string; input: unknown }, arena: Arena, o: { examples?: Example[] }, trace: Step[]): Promise<RunResult> {
+async function runInner(g: Genome, task: { id: string; input: unknown }, arena: Arena, o: { examples?: Example[]; signal?: AbortSignal }, trace: Step[]): Promise<RunResult> {
+  const signal = o.signal;
   const sys: Turn = { role: 'system', content: system(g, arena, (o.examples ?? []).slice(0, g.memory.examples)) };
   const ask = (): Turn[] => [sys, { role: 'user', content: arena.show(task.input) }];
   let answer: unknown | null = null;
   const shape = g.workflow.shape;
   if (shape === 'vote') {
     const all: unknown[] = [];
-    for (let i = 0; i < (g.workflow.n ?? 3); i++) all.push(await loop(g, arena, ask(), trace, task));
+    for (let i = 0; i < (g.workflow.n ?? 3); i++) all.push(await loop(g, arena, ask(), trace, task, signal));
     const got = all.filter(a => a !== null); answer = got.length ? hooks(arena).merge(got) : null;
   } else if (shape === 'plan-then-answer') {
     const turns = ask(); turns[1] = { role: 'user', content: `${turns[1].content}\n\nFirst, before acting, reply {"plan": "..."} with a short plan.` };
-    const r = await complete(g.model, turns, { schema: { type: 'object', required: ['plan'], properties: { plan: { type: 'string' } } } });
+    const r = await complete(g.model, turns, { schema: { type: 'object', required: ['plan'], properties: { plan: { type: 'string' } } }, signal });
     trace.push({ kind: 'model', input: turns.at(-1)!.content, output: r.text, usd: r.usd, ms: r.ms });
     const plan = (r.json as { plan?: string } | undefined)?.plan ?? r.text;
-    answer = await loop(g, arena, [sys, { role: 'user', content: `${arena.show(task.input)}\n\nYour plan: ${plan}\nNow carry it out.` }], trace, task);
+    answer = await loop(g, arena, [sys, { role: 'user', content: `${arena.show(task.input)}\n\nYour plan: ${plan}\nNow carry it out.` }], trace, task, signal);
   } else {
     const turns = ask();
-    answer = await loop(g, arena, turns, trace, task);
+    answer = await loop(g, arena, turns, trace, task, signal);
     if (shape === 'self-check' && answer !== null) {
-      turns.push({ role: 'user', content: `You answered ${JSON.stringify(answer)}. Check it: is that really where this happened, and the most specific place named? Reply with your final answer.` });
-      answer = (await loop(g, arena, turns, trace, task)) ?? answer;
+      turns.push({ role: 'user', content: hooks(arena).selfCheck(answer, task.input) });
+      answer = (await loop(g, arena, turns, trace, task, signal)) ?? answer;
     }
   }
   if (answer === null) trace.push({ kind: 'note', input: null, output: 'no answer: the agent never gave an answer in the required shape', usd: 0, ms: 0 });

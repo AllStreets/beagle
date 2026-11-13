@@ -1,6 +1,7 @@
 // Voyages and races. A voyage fixes its arena, settings and the sealed test's fingerprint
 // before anything runs. A race runs every genome (and the baselines) on the same sample of race
-// tasks, under the spend caps, waiting out usage limits, and resuming where it stopped.
+// tasks, under the spend caps, waiting out usage limits, and resuming where it stopped. A caller's
+// signal stops it: runs still under way are left unscored, and the next race picks them up.
 import { createHash, randomUUID } from 'node:crypto';
 import { open, json } from './store.ts';
 import * as ledger from './ledger.ts';
@@ -76,8 +77,8 @@ export const passing = (e: unknown) => /timed out|aborted due to timeout|Timeout
 
 type Entrant = { id: string; model: string; baseline: boolean; exec(t: { id: string; input: unknown }): Promise<{ answer: unknown | null; trace: Step[]; usd: number; ms: number; status: 'done' | 'no-answer' }> };
 
-export async function race(voyageId: string, generation: number, genomes: Genome[], o: { baselines?: boolean; tasks?: TaskRow[]; onEvent?: (e: RaceEvent) => void } = {}): Promise<RaceResult> {
-  const v = getVoyage(voyageId), s = v.settings, arena = getArena(v.arena), db = open();
+export async function race(voyageId: string, generation: number, genomes: Genome[], o: { baselines?: boolean; tasks?: TaskRow[]; onEvent?: (e: RaceEvent) => void; signal?: AbortSignal } = {}): Promise<RaceResult> {
+  const v = getVoyage(voyageId), s = v.settings, arena = getArena(v.arena), db = open(), signal = o.signal;
   if (v.status === 'withdrawn') throw new Error(`voyage ${v.id} is withdrawn and does not race`);
   const emit = o.onEvent ?? (() => {});
   const tasks = o.tasks ?? raceTasks(v);
@@ -86,7 +87,7 @@ export async function race(voyageId: string, generation: number, genomes: Genome
   for (const g of genomes) putGenome.run(g.id, v.id, generation, '[]', JSON.stringify(g), null);
 
   const entrants: Entrant[] = [
-    ...genomes.filter(g => !((s.localOnly || s.localAgents) && g.model.startsWith('claude:'))).map(g => ({ id: g.id, model: g.model, baseline: false, exec: (t: { id: string; input: unknown }) => run(g, t, arena, { examples }) })),
+    ...genomes.filter(g => !((s.localOnly || s.localAgents) && g.model.startsWith('claude:'))).map(g => ({ id: g.id, model: g.model, baseline: false, exec: (t: { id: string; input: unknown }) => run(g, t, arena, { examples, signal }) })),
     ...(o.baselines === false ? [] : baselines(v.arena).filter(b => !(s.localOnly && b.model.startsWith('claude:'))).map(b => ({
       id: `baseline:${b.name}`, model: b.model, baseline: true,
       exec: async (t: { id: string; input: unknown }) => { const r = await b.answer(t); return { answer: r.answer, trace: [{ kind: 'note' as const, input: null, output: r.note, usd: r.usd, ms: r.ms }], usd: r.usd, ms: r.ms, status: (r.answer === null ? 'no-answer' : 'done') as 'done' | 'no-answer' }; },
@@ -103,6 +104,7 @@ export async function race(voyageId: string, generation: number, genomes: Genome
 
   async function worker() {
     while (!stop && next < jobs.length) {
+      if (signal?.aborted) { stop = 'aborted'; break; }
       if (genSpent() >= s.capGeneration) { stop = `the generation reached its $${s.capGeneration} cap`; break; }
       if (ledger.spent(v.id) >= s.capVoyage) { stop = `the voyage reached its $${s.capVoyage} cap`; break; }
       const { t, e } = jobs[next++];
@@ -114,12 +116,16 @@ export async function race(voyageId: string, generation: number, genomes: Genome
           // what was paid before the fault is counted; passing faults are waited out like limits
           const err = thrown instanceof RunError ? thrown.cause : thrown, paid = thrown instanceof RunError ? thrown.spent : 0;
           if (paid > 0) ledger.add({ voyage: v.id, generation, kind: e.baseline ? 'baseline' : 'race', model: e.model, usd: paid, ms: 0 });
+          if (signal?.aborted) break;
           if (!(err instanceof LimitError) && !passing(err)) { result = { answer: null, trace: [{ kind: 'note', input: null, output: `error: ${(err as Error).message}`, usd: 0, ms: 0 }], usd: 0, ms: 0, status: 'no-answer' }; break; }
           const wait = backoff * 2 ** attempt;
           emit({ type: 'waiting', until: new Date(Date.now() + wait).toISOString(), reason: (err as Error).message });
-          await new Promise(r => setTimeout(r, wait));
+          await new Promise<void>(r => { const t = setTimeout(done, wait); function done() { signal?.removeEventListener('abort', done); clearTimeout(t); r(); } signal?.addEventListener('abort', done, { once: true }); });
+          if (signal?.aborted) break;
         }
       }
+      // a run the signal cut short is never scored: it is run again when the race resumes
+      if (signal?.aborted) { stop = 'aborted'; break; }
       if (!result) { stop = 'Claude usage limit; resume the race later'; break; }
       const score = result.status === 'done' ? await gradeSafely(arena, result.answer, json(t.truth, null)) : 0;
       putRun.run(randomUUID(), v.id, generation, e.id, t.id, JSON.stringify(result.answer), score, JSON.stringify(result.trace), result.usd, result.ms, result.status, new Date().toISOString());
@@ -148,6 +154,50 @@ export async function race(voyageId: string, generation: number, genomes: Genome
 }
 
 export function finishVoyage(id: string) { open().prepare(`update voyages set status = 'finished' where id = ?`).run(id); }
+
+// Each child against its parent on the tasks both finished: the mean of the per-task differences
+// (child minus parent) with a seeded 95% interval. A child whose interval sits above zero is
+// better than its parent on these tasks; one that spans zero is not shown to be. A parent is read
+// in the latest generation up to this one that it raced in; a kept parent is not its own child.
+export type Comparison = { child: string; parent: string; diff: number; lo: number; hi: number; tasks: number };
+export function compareToParents(voyageId: string, generation: number): Comparison[] {
+  const v = getVoyage(voyageId), db = open();
+  const scoresOf = (genome: string, gen: number) => new Map((db.prepare('select task, score from runs where voyage = ? and generation = ? and genome = ?').all(v.id, gen, genome) as { task: string; score: number }[]).map(r => [r.task, r.score]));
+  const lastRaced = (genome: string) => (db.prepare('select max(generation) as g from runs where voyage = ? and genome = ? and generation <= ? and generation >= 0').get(v.id, genome, generation) as { g: number | null }).g;
+  const children = db.prepare('select id, parent_ids from genomes where voyage = ? and generation = ?').all(v.id, generation) as { id: string; parent_ids: string }[];
+  const out: Comparison[] = [];
+  for (const c of children) {
+    const mine = scoresOf(c.id, generation);
+    for (const p of json<string[]>(c.parent_ids, [])) {
+      if (p === c.id) continue;
+      const at = lastRaced(p); if (at === null) continue;
+      const theirs = scoresOf(p, at);
+      const diffs = [...mine.keys()].filter(t => theirs.has(t)).sort().map(t => mine.get(t)! - theirs.get(t)!);
+      if (!diffs.length) continue;
+      const ci = bootstrap(diffs, v.settings.seed);
+      out.push({ child: c.id, parent: p, diff: mean(diffs), lo: ci.lo, hi: ci.hi, tasks: diffs.length });
+    }
+  }
+  return out;
+}
+
+// The sealed split raced outside any voyage, for a program that holds its own sealed claims (a
+// graduate against its base). Every call records its runs under a voyage of its own, sealed-<n>,
+// so a second call scores afresh; those voyages never race anything else and are not listed.
+export type SealedRace = { hash: string; complete: boolean; reason?: string; scores: Score[]; perTask: Record<string, Record<string, number>> };
+export async function sealedRace(arenaId: string, genomes: Genome[], o: { signal?: AbortSignal; seed?: number } = {}): Promise<SealedRace> {
+  getArena(arenaId);
+  const db = open(), hash = sealedHash(arenaId);
+  const n = (db.prepare(`select count(*) as n from voyages where status = 'sealed'`).get() as { n: number }).n + 1;
+  const id = `sealed-${n}-${randomUUID().slice(0, 6)}`;
+  const settings: Settings = { ...getSettings(), ...(o.seed === undefined ? {} : { seed: o.seed }), localOnly: false, localAgents: false };
+  db.prepare('insert into voyages (id, arena, started_at, sealed_hash, settings, status) values (?, ?, ?, ?, ?, ?)').run(id, arenaId, new Date().toISOString(), hash, JSON.stringify(settings), 'sealed');
+  const sealed = db.prepare(`select id, input, truth from tasks where arena = ? and split = 'sealed' order by id`).all(dataOf(arenaId)) as TaskRow[];
+  const r = await race(id, -1, genomes, { baselines: false, tasks: sealed, signal: o.signal });
+  const perTask: Record<string, Record<string, number>> = {};
+  for (const x of db.prepare('select genome, task, score from runs where voyage = ? and generation = -1').all(id) as { genome: string; task: string; score: number }[]) (perTask[x.genome] ??= {})[x.task] = x.score;
+  return { hash, complete: r.complete, ...(r.reason ? { reason: r.reason } : {}), scores: r.scores, perTask };
+}
 
 // The sealed test is only ever run once the voyage is over, and stored as generation -1.
 export async function sealedScore(voyageId: string, genomeIds: string[], o: { onEvent?: (e: RaceEvent) => void } = {}): Promise<RaceResult> {

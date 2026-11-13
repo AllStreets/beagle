@@ -20,6 +20,7 @@ export const geotag: Arena = {
   // wins against answers that agree
   merge: answers => { const pts = answers.map(asPoint).filter((p): p is { lat: number; lon: number } => !!p); if (!pts.length) return null; let best = pts[0], s = Infinity; for (const p of pts) { const t = pts.reduce((n, q) => n + km(p, q), 0); if (t < s) { s = t; best = p; } } return best; },
   example: truth => { const p = (truth as Truth).places?.[0]; return p ? `${JSON.stringify({ lat: p.lat, lon: p.lon })} (${p.name})` : JSON.stringify(truth); },
+  selfCheck: answer => `You answered ${JSON.stringify(answer)}. Check it: is that really where this happened, and the most specific place named? Reply with your final answer.`,
   miss: (answer, truth) => { const p = asPoint(answer), t = truth as Truth; return `truth: ${t.places.map(q => q.name).join(', ')}; it ${p ? `was ${Math.round(Math.min(...t.places.map(q => km(p, q))))} km off` : 'gave no answer'}`; },
   show: input => { const i = input as { text: string; hidden?: string; date: string }; return `${i.date}\n${i.hidden ?? i.text}`; },
   tools: [{
