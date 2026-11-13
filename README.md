@@ -156,7 +156,7 @@ Claude calls go through your own Claude Code, with your settings, plugins and MC
 Another program can import the engine by name (`beagle/race`, `beagle/designer`, `beagle/genome`, `beagle/stats`, `beagle/runner`, `beagle/arenas`, `beagle/models`, `beagle/store`). It needs [tsx](https://tsx.is) to load the TypeScript.
 
 - **Its own folder.** `BEAGLE_HOME` is read on every use, so set it before the first call; the store reopens if it changes.
-- **Its own tasks.** `registerArena()` with `data` equal to its id, then `putArena(id, name)` and `putTasks(id, rows)`, each row `{ id, input, truth, split }`. `splitOf(id)` splits them the way custom arenas do. A task with the same id is replaced.
+- **Its own tasks.** `registerArena()` with `data` equal to its id, then `putArena(id, name)` and `putTasks(id, rows)`, each row `{ id, input, truth, split }`. `splitOf(id)` splits them the way custom arenas do. A task with the same id is replaced; an id another arena already holds is refused, so prefix each task's id with the arena's (`<arena>:<task>`).
 - **Its own models.** `setDriver()` takes every model call, `claude`, `ollama` and `mlx` alike, with the caller's `signal`. Beagle has no mlx server of its own: an `mlx:<name>` genome runs only through a driver.
 - **Its own designer.** `breed(voyage, generation, { designer: 'ollama:qwen3:30b', ... })`.
 - **A stop.** `race()` and `breed()` take a `signal`. A stopped race says `complete: false, reason: 'aborted'`, scores no run it cut short, and the next race picks up from there.

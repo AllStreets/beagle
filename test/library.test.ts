@@ -1,6 +1,6 @@
 import { test, before, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -208,4 +208,47 @@ test('sealedRace scores two genomes on the sealed split outside any voyage, and 
   const stop = new AbortController(); stop.abort();
   const aborted = await R.sealedRace('lib', [g('good', 'ollama:good')], { signal: stop.signal });
   assert.equal(aborted.complete, false);
+});
+
+test('putTasks refuses a task id another arena already holds', () => {
+  const before = store.open().prepare(`select arena, truth from tasks where id = 'r0'`).get() as { arena: string; truth: string };
+  assert.throws(() => store.putTasks('other', [{ id: 'r0', input: { word: 'x' }, truth: { word: 'x' }, split: 'race' }]), /r0.*lib/);
+  const after = store.open().prepare(`select arena, truth from tasks where id = 'r0'`).get() as { arena: string; truth: string };
+  assert.deepEqual({ ...after }, { ...before }, 'the other arena\'s task is left as it was');
+  // nothing of a refused batch is written
+  assert.throws(() => store.putTasks('other', [{ id: 'other:1', input: {}, truth: {}, split: 'race' }, { id: 'r1', input: {}, truth: {}, split: 'race' }]));
+  assert.equal(store.open().prepare(`select 1 from tasks where id = 'other:1'`).get(), undefined);
+});
+
+test('the designer is never offered Claude models on a voyage that uses only this Mac', async () => {
+  const systems: string[] = [];
+  M.setDriver(async (_p, _name, turns) => {
+    if (turns.some(t => t.content.includes('design the next generation'))) {
+      systems.push(turns[0].content);
+      return { text: JSON.stringify({ children: [] }), usd: 0, ms: 1 };
+    }
+    const item = /ITEM (\S+)/.exec(turns.at(-1)!.content)?.[1] ?? '';
+    return { text: JSON.stringify({ action: 'answer', answer: { word: item } }), usd: 0, ms: 1 };
+  });
+  const v = R.startVoyage('lib', { raceTasks: 4, localOnly: true, localAgents: false });
+  await R.race(v.id, 0, [g('good', 'ollama:qwen3:1.7b')], { baselines: false });
+  await D.breed(v.id, 0, { children: 1, elites: 1, probe: 1, designer: 'ollama:qwen3:30b' });
+  assert.equal(systems.length, 1);
+  assert.doesNotMatch(systems[0], /claude:/);
+  assert.match(systems[0], /only these local models/);
+});
+
+test('a Claude call stopped before it starts never runs Claude Code', async () => {
+  const { claude } = await import('../src/models/claude.ts');
+  // a stand-in claude on PATH that would answer if it were ever started
+  const bin = mkdtempSync(join(tmpdir(), 'beagle-fake-claude-')), marker = join(bin, 'started');
+  writeFileSync(join(bin, 'claude'), `#!/bin/sh\ntouch "${marker}"\nexit 1\n`); chmodSync(join(bin, 'claude'), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    const stop = new AbortController(); stop.abort();
+    await assert.rejects(claude('claude-haiku-4-5', [{ role: 'user', content: 'hi' }], { signal: stop.signal }), (e: unknown) => (e as Error).name === 'AbortError');
+    await new Promise(r => setTimeout(r, 50));
+    assert.equal(existsSync(marker), false, 'Claude Code was never started');
+  } finally { process.env.PATH = path; }
 });

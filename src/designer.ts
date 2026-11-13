@@ -49,7 +49,7 @@ async function patient<T>(f: () => Promise<T>, paid: (usd: number) => void, sign
 export async function breed(voyageId: string, generation: number, o: { children: number; elites: number; probe: number; log?: (s: string) => void; designer?: string; signal?: AbortSignal }): Promise<Bred> {
   const v = getVoyage(voyageId), arena = getArena(v.arena), db = open(), log = o.log ?? (() => {}), next = generation + 1;
   const designer = o.designer ?? DESIGNER, signal = o.signal;
-  if (v.settings.localOnly && designer.startsWith('claude:')) throw new Error('this voyage uses only models on this Mac, and the designer is a Claude model; breed by hand, give a local designer, or turn that setting off');
+  if (v.settings.localOnly && designer.startsWith('claude:')) throw new Error('this voyage uses only models on this Mac, and the designer is a Claude model; breed by hand or turn that setting off');
   const rows = db.prepare('select genome, task, score, status, usd, ms from runs where voyage = ? and generation = ?').all(v.id, generation) as { genome: string; task: string; score: number; status: string; usd: number; ms: number }[];
   const { scores } = summarize(rows, v.settings.seed);
   const bodies = new Map((db.prepare('select id, body from genomes where voyage = ? and generation = ?').all(v.id, generation) as { id: string; body: string }[]).map(g => [g.id, json<Genome>(g.body, null as unknown as Genome)]));
@@ -78,7 +78,7 @@ export async function breed(voyageId: string, generation: number, o: { children:
   const table = ranked.map(s => `${s.genome} "${bodies.get(s.genome)!.name}": score ${Math.round(s.mean * 100)} (range ${Math.round(s.lo * 100)} to ${Math.round(s.hi * 100)}), $${s.usd.toFixed(3)}, ${(s.ms / 1000).toFixed(1)} s per item, ${s.noAnswer} unanswered\n  design: ${JSON.stringify({ model: bodies.get(s.genome)!.model, tools: bodies.get(s.genome)!.tools, workflow: bodies.get(s.genome)!.workflow, memory: bodies.get(s.genome)!.memory })}\n  told: ${bodies.get(s.genome)!.instructions}`).join('\n');
   const controls = scores.filter(s => s.genome.startsWith('baseline:')).map(s => `${s.genome.slice(9)}: ${Math.round(s.mean * 100)}`).join(', ');
   const prompt = `The task: ${arena.describe}\n\nGeneration ${generation + 1}, best first, on the race items (you do not see those items):\n${table}\n\nControls on the same items: ${controls}\n\nWhere the best agents went wrong on practice items:\n${evidence.join('\n') || '(no misses)'}\n\nNow design the next generation: ${o.children} children.`;
-  const r = await patient(() => complete(designer, [{ role: 'system', content: system(arena.tools.map(t => t.name), !!v.settings.localAgents) }, { role: 'user', content: prompt }], { schema: SCHEMA, timeoutMs: 600_000, signal }), () => {}, signal);
+  const r = await patient(() => complete(designer, [{ role: 'system', content: system(arena.tools.map(t => t.name), !!(v.settings.localAgents || v.settings.localOnly)) }, { role: 'user', content: prompt }], { schema: SCHEMA, timeoutMs: 600_000, signal }), () => {}, signal);
   usd += r.usd; ledger.add({ voyage: v.id, generation: next, kind: 'design', model: designer, usd: r.usd, ms: r.ms });
 
   const out: Bred = { next: [...elites], parents: {}, reasons: {}, refused: [], usd };

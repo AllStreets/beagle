@@ -10,6 +10,8 @@ const LIMIT = /usage limit|session limit|weekly limit|rate limit|limit reached|t
 export const isLimit = (s: string) => LIMIT.test(s);
 
 export function claude(name: string, turns: Turn[], o: CallOptions): Promise<{ text: string; usd: number; ms: number }> {
+  // a call stopped before it starts never starts Claude Code
+  try { o.signal?.throwIfAborted(); } catch (e) { return Promise.reject(e); }
   const system = turns.filter(t => t.role === 'system').map(t => t.content).join('\n\n');
   const convo = turns.filter(t => t.role !== 'system');
   const content = convo.length === 1 ? convo[0].content

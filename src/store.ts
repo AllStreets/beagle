@@ -107,13 +107,16 @@ export function putArena(id: string, name: string) {
 }
 
 export type TaskRow = { id: string; input: unknown; truth: unknown; split: 'breeding' | 'race' | 'sealed' };
-// a task with the same id is replaced whole
+// a task with the same id is replaced whole; an id another arena holds is refused, so prefix ids with the arena's
 export function putTasks(arenaData: string, rows: TaskRow[]) {
   const d = open(), put = d.prepare('insert or replace into tasks (id, arena, split, input, truth, meta) values (?, ?, ?, ?, ?, ?)');
+  const owner = d.prepare('select arena from tasks where id = ?');
   d.exec('begin');
   try {
     for (const r of rows) {
       if (!['breeding', 'race', 'sealed'].includes(r.split)) throw new Error(`task "${r.id}": split must be breeding, race or sealed`);
+      const held = (owner.get(r.id) as { arena: string } | undefined)?.arena;
+      if (held !== undefined && held !== arenaData) throw new Error(`task "${r.id}" belongs to arena "${held}"; give ${arenaData}'s tasks ids of their own, such as "${arenaData}:${r.id}"`);
       put.run(r.id, arenaData, r.split, JSON.stringify(r.input), JSON.stringify(r.truth), '{}');
     }
     d.prepare('update arenas set hash = ? where id = ?').run(tasksHash(arenaData), arenaData);

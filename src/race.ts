@@ -120,7 +120,7 @@ export async function race(voyageId: string, generation: number, genomes: Genome
           if (!(err instanceof LimitError) && !passing(err)) { result = { answer: null, trace: [{ kind: 'note', input: null, output: `error: ${(err as Error).message}`, usd: 0, ms: 0 }], usd: 0, ms: 0, status: 'no-answer' }; break; }
           const wait = backoff * 2 ** attempt;
           emit({ type: 'waiting', until: new Date(Date.now() + wait).toISOString(), reason: (err as Error).message });
-          await new Promise<void>(r => { const t = setTimeout(done, wait); function done() { signal?.removeEventListener('abort', done); clearTimeout(t); r(); } signal?.addEventListener('abort', done, { once: true }); });
+          await new Promise<void>(r => { const timer = setTimeout(wake, wait); function wake() { signal?.removeEventListener('abort', wake); clearTimeout(timer); r(); } signal?.addEventListener('abort', wake, { once: true }); });
           if (signal?.aborted) break;
         }
       }
