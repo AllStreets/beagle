@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { LimitError, type Turn } from './index.ts';
+import { LimitError, type CallOptions, type Turn } from './index.ts';
 
 // Claude through the person's own Claude Code, headless. Settings, plugins, MCP servers and
 // tools are left out (an MCP tool list alone can be tens of thousands of tokens), nothing is
@@ -9,7 +9,9 @@ import { LimitError, type Turn } from './index.ts';
 const LIMIT = /usage limit|session limit|weekly limit|rate limit|limit reached|too many requests|\b429\b|overloaded/i;
 export const isLimit = (s: string) => LIMIT.test(s);
 
-export function claude(name: string, turns: Turn[], o: { schema?: object; timeoutMs?: number }): Promise<{ text: string; usd: number; ms: number }> {
+export function claude(name: string, turns: Turn[], o: CallOptions): Promise<{ text: string; usd: number; ms: number }> {
+  // a call stopped before it starts never starts Claude Code
+  try { o.signal?.throwIfAborted(); } catch (e) { return Promise.reject(e); }
   const system = turns.filter(t => t.role === 'system').map(t => t.content).join('\n\n');
   const convo = turns.filter(t => t.role !== 'system');
   const content = convo.length === 1 ? convo[0].content
@@ -23,9 +25,12 @@ export function claude(name: string, turns: Turn[], o: { schema?: object; timeou
     const p = spawn('claude', args, { cwd: tmpdir(), stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '', err = '';
     const timer = setTimeout(() => { p.kill(); reject(new Error('claude timed out')); }, o.timeoutMs ?? 300_000);
+    // the caller's stop ends the call the way the time limit does
+    const stop = () => { clearTimeout(timer); p.kill(); reject(o.signal!.reason ?? new Error('aborted')); };
+    o.signal?.addEventListener('abort', stop, { once: true });
     p.stdout.on('data', d => out += d); p.stderr.on('data', d => err += d);
     p.on('close', code => {
-      clearTimeout(timer);
+      clearTimeout(timer); o.signal?.removeEventListener('abort', stop);
       const last = out.trim().split('\n').reverse().find(l => l.includes('"type":"result"'));
       let d: any; try { d = JSON.parse(last ?? ''); } catch { /* handled below */ }
       if (!d) return reject(LIMIT.test(err + out) ? new LimitError((err || out).slice(-300)) : new Error(`claude exited ${code}: ${(err || out).slice(-300)}`));

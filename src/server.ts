@@ -71,7 +71,7 @@ const routes: Route[] = [
     const tasks = (db.prepare(`select id, input, truth from tasks where arena = ? and split = 'race' order by id limit 12`).all(data) as { id: string; input: string; truth: string }[]).map(t => ({ id: t.id, input: json(t.input, null), truth: json(t.truth, null) }));
     return { id: a.id, name: a.name, describe: a.describe, kind: a.kind ?? 'custom', inBrowser: !!a.inBrowser, tools: a.tools.map(t => t.name), counts, info, tasks: tasks.map(t => ({ ...t, shown: a.show(t.input) })) };
   }],
-  ['GET', /^\/api\/voyages$/, () => (open().prepare('select * from voyages order by started_at desc').all() as { id: string; settings: string }[]).map(v => ({ ...v, settings: json(v.settings, {}), spent: ledger.spent(v.id), racing: racing.has(v.id) }))],
+  ['GET', /^\/api\/voyages$/, () => (open().prepare(`select * from voyages where status != 'sealed' order by started_at desc`).all() as { id: string; settings: string }[]).map(v => ({ ...v, settings: json(v.settings, {}), spent: ledger.spent(v.id), racing: racing.has(v.id) }))],
   ['POST', /^\/api\/voyages$/, async (_m, req) => { const b = await body(req); const o: Record<string, unknown> = {}; if (b.raceTasks) o.raceTasks = Number(b.raceTasks); if (typeof b.localOnly === 'boolean') o.localOnly = b.localOnly; return startVoyage(b.arena ?? 'geotag', o); }],
   ['GET', /^\/api\/voyages\/([^/]+)$/, m => {
     const v = getVoyage(m[1]), db = open();

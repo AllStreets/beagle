@@ -151,6 +151,19 @@ Fossils need MLX in a native Python: see [trainer/README.md](trainer/README.md).
 
 Claude calls go through your own Claude Code, with your settings, plugins and MCP servers switched off. On a Claude plan they count against your usage, not a bill; the caps are in Settings.
 
+## As a library
+
+Another program can import the engine by name (`beagle/race`, `beagle/designer`, `beagle/genome`, `beagle/stats`, `beagle/runner`, `beagle/arenas`, `beagle/models`, `beagle/store`). It needs [tsx](https://tsx.is) to load the TypeScript.
+
+- **Its own folder.** `BEAGLE_HOME` is read on every use, so set it before the first call; the store reopens if it changes.
+- **Its own tasks.** `registerArena()` with `data` equal to its id, then `putArena(id, name)` and `putTasks(id, rows)`, each row `{ id, input, truth, split }`. `splitOf(id)` splits them the way custom arenas do. A task with the same id is replaced; an id another arena already holds is refused, so prefix each task's id with the arena's (`<arena>:<task>`).
+- **Its own models.** `setDriver()` takes every model call, `claude`, `ollama` and `mlx` alike, with the caller's `signal`. Beagle has no mlx server of its own: an `mlx:<name>` genome runs only through a driver.
+- **Its own designer.** `breed(voyage, generation, { designer: 'ollama:qwen3:30b', ... })`.
+- **A stop.** `race()` and `breed()` take a `signal`. A stopped race says `complete: false, reason: 'aborted'`, scores no run it cut short, and the next race picks up from there.
+- **Child against parent.** `compareToParents(voyage, generation)` gives each child's mean difference from its parent on the tasks both finished, with a seeded 95% interval.
+- **A sealed race of its own.** `sealedRace(arena, genomes, { seed })` races the sealed split outside any voyage and returns the sealed fingerprint it used, the scores and each task's score. Every call races afresh.
+- **A self-check in its own words.** An arena's `selfCheck(answer, input)` is the turn a self-check agent checks its answer with; without one the question is generic.
+
 ## Tests
 
 ```sh

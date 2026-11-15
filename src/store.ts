@@ -1,7 +1,9 @@
+import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { paths, ensureDirs } from './paths.ts';
 
-let db: DatabaseSync | null = null;
+// the open database and the file it is, so a moved BEAGLE_HOME opens the new one
+let db: DatabaseSync | null = null, dbFile: string | null = null;
 
 const SCHEMA = `
 create table if not exists arenas (
@@ -78,9 +80,11 @@ create table if not exists settings (
 `;
 
 export function open(): DatabaseSync {
-  if (db) return db;
+  const file = paths.db;
+  if (db && dbFile === file) return db;
+  db?.close(); db = null;
   ensureDirs();
-  db = new DatabaseSync(paths.db);
+  db = new DatabaseSync(file); dbFile = file;
   db.exec('pragma journal_mode = wal; pragma busy_timeout = 5000;');
   // before 2026-11-08 genomes were keyed by id alone, so a second voyage lost its starters
   const pk = (db.prepare(`select sql from sqlite_master where name = 'genomes'`).get() as { sql: string } | undefined)?.sql ?? '';
@@ -93,6 +97,36 @@ export function open(): DatabaseSync {
   return db;
 }
 
-export function close() { db?.close(); db = null; }
+export function close() { db?.close(); db = null; dbFile = null; }
+
+// Another program's own tasks, written into Beagle's store so every race reads them like any
+// arena's. The arena's row names it; its hash is every task's id, text and truth, as a build records.
+export function putArena(id: string, name: string) {
+  open().prepare(`insert into arenas (id, name, version, hash, built_at) values (?, ?, 'library', ?, ?)
+    on conflict(id) do update set name = excluded.name`).run(id, name, tasksHash(id), new Date().toISOString());
+}
+
+export type TaskRow = { id: string; input: unknown; truth: unknown; split: 'breeding' | 'race' | 'sealed' };
+// a task with the same id is replaced whole; an id another arena holds is refused, so prefix ids with the arena's
+export function putTasks(arenaData: string, rows: TaskRow[]) {
+  const d = open(), put = d.prepare('insert or replace into tasks (id, arena, split, input, truth, meta) values (?, ?, ?, ?, ?, ?)');
+  const owner = d.prepare('select arena from tasks where id = ?');
+  d.exec('begin');
+  try {
+    for (const r of rows) {
+      if (!['breeding', 'race', 'sealed'].includes(r.split)) throw new Error(`task "${r.id}": split must be breeding, race or sealed`);
+      const held = (owner.get(r.id) as { arena: string } | undefined)?.arena;
+      if (held !== undefined && held !== arenaData) throw new Error(`task "${r.id}" belongs to arena "${held}"; give ${arenaData}'s tasks ids of their own, such as "${arenaData}:${r.id}"`);
+      put.run(r.id, arenaData, r.split, JSON.stringify(r.input), JSON.stringify(r.truth), '{}');
+    }
+    d.prepare('update arenas set hash = ? where id = ?').run(tasksHash(arenaData), arenaData);
+    d.exec('commit');
+  } catch (e) { d.exec('rollback'); throw e; }
+}
+
+function tasksHash(arenaData: string): string {
+  const rows = open().prepare('select id, input, truth from tasks where arena = ? order by id').all(arenaData) as { id: string; input: string; truth: string | null }[];
+  return createHash('sha256').update(rows.map(r => `${r.id}|${r.input}|${r.truth}`).join('\n')).digest('hex');
+}
 
 export const json = <T>(s: string | null | undefined, fallback: T): T => { try { return s ? JSON.parse(s) as T : fallback; } catch { return fallback; } };

@@ -20,6 +20,7 @@ export type Arena = {
   merge?(answers: unknown[]): unknown;       // a vote's answer
   example?(truth: unknown): string;          // a worked example's answer, as the agent is shown it
   miss?(answer: unknown, truth: unknown): string;   // how an answer went wrong, for the designer
+  selfCheck?(answer: unknown, input: unknown): string;   // the turn a self-check genome is asked to check its answer with
   maxTurns?: number;                         // model turns a run may take
   graderTimeoutMs?: number;
   timesItself?: boolean;                     // the grader enforces its own time limit

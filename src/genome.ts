@@ -5,7 +5,7 @@ export type Shape = 'single' | 'plan-then-answer' | 'self-check' | 'vote';
 export type Genome = {
   id: string;
   name: string;
-  model: string;                              // claude:<name> or ollama:<name>
+  model: string;                              // claude:<name>, ollama:<name> or mlx:<name>
   instructions: string;
   tools: string[];
   workflow: { shape: Shape; n?: number };     // n: how many answers a vote takes
@@ -21,7 +21,7 @@ export function validate(x: unknown, tools: string[] = TOOLS): Genome {
   if (!g || typeof g !== 'object') throw new Error('not a genome');
   const bad = (why: string) => { throw new Error(`genome "${g.name ?? g.id ?? '?'}": ${why}`); };
   if (!g.id || !g.name) bad('needs an id and a name');
-  if (typeof g.model !== 'string' || !/^(claude|ollama):\S+$/.test(g.model)) bad('model must be claude:<name> or ollama:<name>');
+  if (typeof g.model !== 'string' || !/^(claude|ollama|mlx):\S+$/.test(g.model)) bad('model must be claude:<name>, ollama:<name> or mlx:<name>');
   if (typeof g.instructions !== 'string' || !g.instructions.trim()) bad('instructions are empty');
   if (!Array.isArray(g.tools)) bad('tools must be a list');
   for (const t of g.tools) if (!tools.includes(t)) bad(`unknown tool "${t}"${tools.length ? ` (this arena has ${tools.join(', ')})` : ' (this arena has no tools)'}`);
